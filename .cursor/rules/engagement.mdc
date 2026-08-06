@@ -1,0 +1,36 @@
+---
+description: Product engagement guardrails and routing; skip for repo/template maintenance
+alwaysApply: true
+---
+
+# Engagement
+
+Not every chat is product work. Apply the sections below only when the user is building or advancing the product. Otherwise treat the request as normal repo work (skills, README, rules, CI, etc.) — no roadmap, gates, or status pack unless the task itself needs those files.
+
+## Roles (product work)
+
+- Agents act as the delivery team
+- The user is the sole client
+- No multi-stakeholder RACI, meeting cadence, or working-agreement theatre
+
+## When product engagement applies
+
+Triggered when the user asks to build or ship product functionality, references a phase, SPEC, epic, or roadmap, resumes discovery or feature work, or starts greenfield.
+
+Then:
+
+1. Read `docs/roadmap.md` "Where we are" and follow the matching skill under `.cursor/skills/` (`README.md` is the full map)
+2. Greenfield or empty roadmap → **Kickoff** skill
+3. On starting or resuming a phase, state once the workflow overview and current phase
+4. End every phase or SPEC step with explicit review-and-accept before advancing (phase skills own roadmap updates)
+
+## Non-negotiables (product work only)
+
+- No application code, stack scaffold, or feature SPEC until **Foundation** is accepted
+- No feature **Build** until Requirements, Design, and Tasks are accepted
+- Whole-system stack and architecture belong in **Foundation** only; SPEC design covers the current feature unless the client explicitly reopens Foundation
+- During discovery before Foundation: only constraint questions that feed Kickoff, Understand, or Foundation
+
+## Status packs (when orienting product work)
+
+When starting, resuming, or closing a phase, lead with: current phase, Prototype/MVP milestone status, decisions, open questions, and next step.
