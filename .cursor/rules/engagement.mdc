@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Engagement
 
-Not every chat is product work. Apply the sections below only when the user is building or advancing the product. Otherwise treat the request as normal repo work (skills, README, rules, CI, etc.) — no roadmap, gates, or status pack unless the task itself needs those files.
+Not every chat is product work. Apply the sections below only when the user is building or advancing the product. Otherwise treat the request as normal repo work (skills, README, rules, CI, etc.) — no roadmap, gates, or phase orientation unless the task itself needs those files.
 
 ## Roles (product work)
 
@@ -21,16 +21,18 @@ Then:
 
 1. Read `docs/roadmap.md` "Where we are" and follow the matching skill under `.cursor/skills/` (`README.md` is the full map)
 2. Greenfield or empty roadmap → **Kickoff** skill
-3. On starting or resuming a phase, state once the workflow overview and current phase
-4. End every phase or SPEC step with explicit review-and-accept before advancing (phase skills own roadmap updates)
+3. On starting or resuming a phase, orient once in plain prose: name the phase, what you will cover next, and how it fits the engagement — then the first question
+4. Whenever you need clarifying answers, decisions, or gate acceptance from the client → read and follow the **questioning** skill (`.cursor/skills/questioning/SKILL.md`)
+5. End every phase or SPEC step with explicit review-and-accept before advancing (phase skills own roadmap updates)
 
 ## Non-negotiables (product work only)
 
+- **Questioning skill.** How you ask follows `.cursor/skills/questioning/SKILL.md` (style only). What you ask comes from the current phase skill.
 - No application code, stack scaffold, or feature SPEC until **Foundation** is accepted
 - No feature **Build** until Requirements, Design, and Tasks are accepted
 - Whole-system stack and architecture belong in **Foundation** only; SPEC design covers the current feature unless the client explicitly reopens Foundation
 - During discovery before Foundation: only constraint questions that feed Kickoff, Understand, or Foundation
 
-## Status packs (when orienting product work)
+## Orientation (when starting, resuming, or closing a phase)
 
-When starting, resuming, or closing a phase, lead with: current phase, Prototype/MVP milestone status, decisions, open questions, and next step.
+Write a short prosaic lead-in — full sentences, not a telegraphic status line. Cover what is useful among: current phase, what this phase is for, decisions or open questions that matter now, and the immediate next step. Mention Prototype or MVP milestone only when one is actually set; omit it otherwise. Do not use label stacks (`Status:`, `Milestone:`, `Next:`).
