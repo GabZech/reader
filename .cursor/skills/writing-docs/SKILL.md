@@ -3,8 +3,8 @@ name: writing-docs
 description: >-
   Voice and structure for human-facing living docs under docs/ (vision, metrics,
   personas, journeys, constraints, epics, architecture, development, operations,
-  roadmap, and similar). Use when writing or editing those files. Do not use for
-  docs/history/ or docs/specs/.
+  roadmap, and similar) and the product root README. Use when writing or editing
+  those files. Do not use for docs/history/ or docs/specs/.
 ---
 
 # Writing docs
@@ -13,7 +13,7 @@ Style for reports and living docs under `docs/` meant for humans. Purpose and co
 
 ## Scope
 
-- **Apply** to human-facing living docs under `docs/` (e.g. product-definition, architecture, development, operations, roadmap, conventions, ui-guidelines)
+- **Apply** to human-facing living docs under `docs/` (e.g. product-definition, architecture, development, operations, roadmap, conventions, ui-guidelines) and the product root `README.md`
 - **Skip** `docs/history/` and `docs/specs/` (engagement log and feature contracts keep their own shape)
 
 ## Voice
@@ -53,6 +53,23 @@ When the doc’s job is technical accuracy (user journeys, architecture, constra
 - Do not invent a new emoji per bullet, per sentence, or for emphasis
 - Narrative framing stays emoji-free unless a milestone or caution needs a signal
 - Diagrams only when they clarify a relationship the prose cannot
+
+## Root README (`README.md`)
+
+Product front door after Kickoff; not a second copy of vision or the full template manual.
+
+### Shape
+
+1. **Title** — product or working name
+2. **Overview** — short prosaic pitch: problem and consequence first, then direction. Write in sentences, not a capability or feature inventory. Refresh when discovery locks change what a newcomer should know. Do not paste full vision, personas, or epic lists
+3. **How we work** — why before how: open with why structure beats jumping to code, then the two stages in short prose (discovery and foundation once; feature development repeats). Name discovery phases in running sentences with their goals; do not use telegraphic bullet or arrow lists. No artifact inventories. Point to the template for detail: [GabZech/template-spec-workflow](https://github.com/GabZech/template-spec-workflow)
+4. Optional short pointers into `docs/` when useful; omit template “How to Start” once the product is underway
+
+### When
+
+- **Kickoff (required):** on accept, replace the template README with this shape
+- **Understand → Foundation (optional):** after phase accept, one questioning-skill ask whether to refresh Overview (and only then edit). Keep How we work stable unless the engagement model itself changes
+- **Feature development:** do not offer this ask; Documentation owns living-doc alignment for features
 
 ## Roadmap (`docs/roadmap.md`)
 

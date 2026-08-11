@@ -70,4 +70,4 @@ If persona, primary journeys, or constraints are still missing, keep asking — 
 
 ## Gate
 
-After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Scope; refresh Summary / Decisions / Open; add Understand under Concluded). Do not advance without confirmation.
+After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Scope; refresh Summary / Decisions / Open; add Understand under Concluded); follow writing-docs **Root README** When for this phase. Do not advance without confirmation.

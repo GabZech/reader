@@ -31,4 +31,4 @@ Do not rewrite personas or invent primary journeys. If something is missing, reo
 
 ## Gate
 
-Ask for explicit accept. On accept: update `docs/roadmap.md` “Where we are” to Prototype. Do not advance without confirmation.
+Ask for explicit accept. On accept: update `docs/roadmap.md` “Where we are” to Prototype; follow writing-docs **Root README** When for this phase. Do not advance without confirmation.
