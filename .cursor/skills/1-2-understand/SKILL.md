@@ -1,13 +1,14 @@
 ---
 name: 1-2-understand
 description: >-
-  Runs the Understand phase: personas, journeys, and cross-cutting constraints.
-  Use when roadmap says Understand, or after Kickoff is accepted.
+  Runs the Understand phase: personas, journeys (overall use cases), and
+  cross-cutting constraints. Use when roadmap says Understand, or after
+  Kickoff is accepted.
 ---
 
 # Understand
 
-Build a shared picture of who the product is for, what they are trying to do, and the constraints that shape those journeys. Descriptive only — no epics and no prototype / MVP / later cuts.
+Build a shared picture of who the product is for, what they try to do end to end, and the constraints that shape those paths. Descriptive only — no epics and no prototype / MVP / later cuts.
 
 ## Entry
 
@@ -16,21 +17,57 @@ Build a shared picture of who the product is for, what they are trying to do, an
 ## Artifacts
 
 - `docs/product-definition/personas.md`
-- `docs/product-definition/journeys.md`
+- `docs/product-definition/journeys.md` (named overall use cases at discovery grain)
 - `docs/product-definition/constraints.md`
+- `docs/history/discovery/02-understand/` (clarifying answers — never client prompts)
 
 ## Do
 
 **Include:**
-- Personas: who uses the product, goals, context
-- Journeys: what they are trying to do end to end, including detail and edge cases that belong on a journey
-- Constraints: cross-cutting rules and limits (compliance, data, offline, integrations, must-nots) that do not sit cleanly on one journey
+- Personas: who is in focus, goals, context
+- Journeys: primary end-to-end scenarios (overall use cases), including edges that belong on a journey
+- Constraints: cross-cutting hard vs soft limits that do not sit cleanly on one journey
 - Open questions that still block a clear picture of users or journeys
 
-Do not write epics. Do not assign prototype / MVP / later. Do not invent stack or architecture.
+**Clarifying questions:** deliver each ask using the **questioning** skill (`.cursor/skills/questioning/SKILL.md`). **What to ask:** [questionbank.md](questionbank.md). Walk clusters one at a time; skip what Kickoff or this conversation already answered well.
+
+Do not write epics. Do not assign prototype / MVP / later. Do not invent stack or architecture. Do not write user stories or acceptance criteria.
 
 **Human role:** Confirm personas and journeys feel right; add missing users or paths; challenge weak constraints; accept when the picture is good enough to scope.
 
+## Clarifying questions
+
+Goal: gather only what personas, journeys, and constraints need. Defer epic cuts to Scope; defer stories to Requirements; defer stack to Foundation.
+
+### Principles
+
+1. **Reuse Kickoff.** Deepen who, outcomes, and assumptions; do not re-litigate vision or metrics unless contradicted.
+2. **Past and present over hypotheticals.** Critical incidents and concrete situations over “would you use…” or feature opinions.
+3. **Current-state journeys first.** Map how goals are achieved today; do not design the to-be path here.
+4. **Use-case grain, not stories.** Name end-to-end scenarios; stop before user-story split and acceptance criteria.
+5. **Constraints by proposal.** Infer hard vs soft limits from answers and Kickoff; confirm or edit — do not open with a laundry-list ask.
+6. **Stay in Understand scope.** No epics, MVP cuts, or architecture.
+
+### Flow
+
+1. Orient once (phase purpose and what comes next), then clarifying rounds from [questionbank.md](questionbank.md) via the questioning skill.
+2. If answers are vague, ask for one concrete example or “last time” next.
+3. After primary journeys are clear, propose inferred constraints; one confirmation ask.
+4. Draft personas, journeys, and constraints when “enough to draft” is met; present the summary.
+5. **Gap check (before accept):** Name one or two thin spots that still belong in Understand (not Scope/Foundation). One ask: anything to add there or elsewhere in Understand? Incorporate, then continue.
+6. One accept ask for Understand.
+
+### Enough to draft when
+
+- At least one grounded persona (goals and context, not demographics alone)
+- A named set of primary journeys covering the vision’s outcomes
+- Each primary journey narratable end to end (trigger, steps today, outcome, main friction)
+- Costly edges called out where they matter
+- Cross-cutting constraints confirmed (or adjusted) from the agent’s proposal, with hard vs soft clear enough to steer Scope
+- Open unknowns listed when they still block an honest cut
+
+If persona, primary journeys, or constraints are still missing, keep asking — do not invent them.
+
 ## Gate
 
-Ask for explicit accept. On accept: update `docs/roadmap.md` “Where we are” to Scope. Do not advance without confirmation.
+After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Scope; refresh Summary / Decisions / Open; add Understand under Concluded). Do not advance without confirmation.
