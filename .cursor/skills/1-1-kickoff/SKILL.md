@@ -42,7 +42,7 @@ Do not write personas, journeys, epics, or stack choices yet.
 
 Goal: gather only what `vision.md` and `metrics.md` need. Defer deep user/journey detail to Understand; defer stack to Foundation.
 
-**Style:** follow `.cursor/skills/questioning/SKILL.md` (one question per message; short acknowledge or none — never long parrot-restates).
+**Style:** follow `.cursor/skills/questioning/SKILL.md`.
 
 **What to ask:** use the menu in [questionbank.md](questionbank.md). Walk clusters one question at a time; skip what the client already answered well in conversation.
 
