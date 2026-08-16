@@ -47,7 +47,7 @@ After the client agrees on structure:
 
 On explicit go-ahead:
 
-- Add or update `.cursor/skills/<phase>/SKILL.md` (Entry, Artifacts, Do, clarifying flow, enough-to-draft, Gate)
+- Add or update `.cursor/skills/<phase>/SKILL.md` (Entry, Artifacts, Do, clarifying flow, ready-to-draft-artifacts, Gate)
 - Add or update `.cursor/skills/<phase>/questionbank.md` when the phase needs a clarifying menu; link it from the phase skill like Kickoff/Understand
 - Follow **write-skills** and **questioning** (style stays in questioning; menu content stays in the bank)
 - Match house patterns already used in `1-1-kickoff` and `1-2-understand`

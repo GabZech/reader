@@ -8,19 +8,9 @@ The product is built for a solo reader who wants full ownership of their corpus,
 
 ## How we work
 
-Left alone, an agent will start coding from the first prompt. At that point neither side usually understands the product well enough, so work drifts. This repo uses a SPEC-driven workflow (from [template-spec-workflow](https://github.com/GabZech/template-spec-workflow)) to slow that impulse: agree what matters, then build only what was accepted. Every step ends with an explicit client accept before the next begins.
+Left alone, an agent will start coding before either side understands the product. This repo uses a SPEC-driven workflow (from [template-spec-workflow](https://github.com/GabZech/template-spec-workflow)): agree what matters, then build only what was accepted. Every step ends with an explicit accept before the next begins.
 
-### 1. Product discovery and foundation
-
-The first stage runs once. Its job is to turn a rough idea into a shared picture of the product, and only then scaffold the system that will hold features.
-
-**Kickoff** locks the problem, vision, non-goals, and how success will be measured. **Understand** deepens that into who the product is for, what they try to do end to end, and the constraints that shape those paths. **Scope** packages those journeys into epics and decides what belongs in the prototype, the MVP, and later. **Prototype** makes the priority journeys clickable in Figma so the flow can be challenged before product code exists. **Foundation** then designs the system once and builds its skeleton: architecture, stack, application shell, and operational basics.
-
-### 2. Feature development
-
-After that, work repeats one feature at a time. Before code, the feature is pinned down in requirements, design, and tasks. Only then is it built, reviewed against the agreed criteria, documented, deployed, and watched in the live environment.
-
-For the full playbook, see the [template workflow overview](https://github.com/GabZech/template-spec-workflow#workflow-overview).
+Discovery and foundation run once. After that, work repeats one feature at a time. For the full playbook, see the [template workflow overview](https://github.com/GabZech/template-spec-workflow#workflow-overview).
 
 ## Docs
 

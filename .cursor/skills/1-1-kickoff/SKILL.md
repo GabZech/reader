@@ -61,11 +61,11 @@ Goal: gather only what `vision.md` and `metrics.md` need. Defer deep user/journe
 2. Clarifying rounds from [questionbank.md](questionbank.md), one question per message via the questioning skill — skip the non-goals cluster; do not solicit exclusions.
 3. If answers are vague, ask for one concrete example next.
 4. Propose inferred non-goals; one confirmation ask (accept, edit, or reject items).
-5. Draft vision + metrics when “enough to draft” is met; present the summary.
+5. Draft vision + metrics when the checklist below is met; present the summary.
 6. **Gap check (before accept):** From this conversation, name one or two topic categories the client might still want in Kickoff (gaps or thin spots that still belong in vision/metrics — not Understand/Foundation work). One ask: anything to add in those areas (or elsewhere in Kickoff)? Incorporate answers, then continue.
 7. One accept ask for Kickoff.
 
-### Enough to draft when
+### Ready to draft artifacts when
 
 - One primary problem (not a laundry list of unrelated issues)
 - Clear enough “who is hurt / who benefits” for a vision — not full personas

@@ -4,7 +4,7 @@ Clarifying **content** for Understand. Deliver each ask with the questioning ski
 
 Pick and adapt; do not read as a script. Sole client = the user. Project-agnostic: reuse Kickoff answers; deepen, do not restart.
 
-Journeys here are **overall use cases** at discovery grain: named end-to-end scenarios with actor, goal, trigger, steps, outcome, and costly edges. User stories and acceptance criteria wait for Requirements.
+Journeys here are **overall use cases** at discovery grain: named end-to-end scenarios with actor, goal, trigger, steps today, outcome, costly edges, and **Wanted**. User stories and acceptance criteria wait for Requirements.
 
 ## Question clusters → artifacts
 
@@ -13,7 +13,7 @@ Journeys here are **overall use cases** at discovery grain: named end-to-end sce
 | Persona depth | Personas | Name who is in focus, their goals, contexts, and what success or failure looks like for them |
 | Situations and rhythm | Personas, journeys | Say when, where, and how often the work happens, and what starts or ends a session |
 | Journey inventory | Journeys | List the primary end-to-end scenarios by name (use-case grain) |
-| Journey walkthrough | Journeys | Narrate each primary journey: trigger → steps today → outcome, channels, and friction |
+| Journey walkthrough | Journeys | Narrate each primary journey: trigger → steps today → outcome, friction, and **Wanted** if they volunteer a change |
 | Edges and recovery | Journeys | Name costly failure, empty, late, or wrong cases and what people do then |
 | Cross-cutting constraints | Constraints | Separate hard vs soft limits that are not one journey |
 | Open unknowns | History notes; later phases | List what still blocks an honest Scope cut |
@@ -45,7 +45,7 @@ Name distinct goals worth following end to end. Stop at scenario grain; do not s
 
 ### 4. Journey walkthrough (per primary journey)
 
-Prefer critical incidents and chronological follow-ups over generic funnel templates. Current-state first; do not design the to-be path here.
+Prefer critical incidents and chronological follow-ups over generic funnel templates. Current-state first; do not design the to-be path here. If they volunteer what should change, record it as **Wanted** on that journey; do not rewrite the steps.
 
 - Tell me about the last time you (or they) did this.
 - What were the steps from trigger to done?
@@ -61,7 +61,7 @@ Prefer critical incidents and chronological follow-ups over generic funnel templ
 
 ### 6. Cross-cutting constraints
 
-Do not open with “what are your constraints?” Near the end, infer hard vs soft limits from prior answers and Kickoff (legal, contractual, policy, safety, legacy systems, processes, data ownership and retention, privacy, cost, reliability, integrations, must-nots). Present a short list and ask once whether to confirm or adjust. Probe only thin spots:
+Do not open with “what are your constraints?” Near the end, infer hard vs soft **limits** from prior answers and Kickoff (legal, contractual, policy, safety, legacy systems, processes, data ownership and retention, privacy, cost, reliability, integrations, must-nots). Present a short list and ask once whether to confirm or adjust. Probe only thin spots. Do not file product wishes here; those belong as **Wanted** on the journey they would change.
 
 - What rules or obligations cannot be bent?
 - What existing systems, formats, or processes must be lived with for now?
@@ -91,7 +91,7 @@ Park deep research design; capture the unknown so Scope or later phases can use 
 - No epic packaging and no prototype / MVP / later cuts (Scope owns those).
 - No stack or architecture (Foundation).
 - Do not invent primary journeys the client did not recognise; if Scope needs a missing path, reopen Understand.
-- Personas stay qualitative: goals, context, motivations, approaches — not analytics theatre.
+- Personas stay qualitative: goals, context, motivations. Approaches and steps live on journeys.
 
 ## Boundary with the next phase
 
