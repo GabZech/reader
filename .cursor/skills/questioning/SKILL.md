@@ -2,9 +2,9 @@
 name: questioning
 description: >-
   Client Q&A style for product work: prosaic storytelling voice, one question
-  per message, minimal short acknowledge, no parroting answers. Use whenever
-  product discovery or feature workflow needs clarification, decisions, or gate
-  acceptance from the client.
+  per message, no recap of the last answer. Use whenever product discovery or
+  feature workflow needs clarification, decisions, or gate acceptance from the
+  client.
 ---
 
 # Questioning
@@ -22,7 +22,7 @@ description: >-
 
 ## Message shape
 
-1. **Optional** acknowledge: a few words or one short sentence naming the implication, not replaying their words. Skip when the next question is obvious. Default: question only.
+1. After a reply, the next question only: no recap, paraphrase, or implication of what they just said.
 2. **Exactly one** question. Wait for the reply. No multi-part asks, no lists, no “also…”.
 
 Gate accepts count as one question.
