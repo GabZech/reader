@@ -2,9 +2,9 @@
 name: questioning
 description: >-
   Client Q&A style for product work: prosaic storytelling voice, one question
-  per message, no recap of the last answer. Use whenever product discovery or
-  feature workflow needs clarification, decisions, or gate acceptance from the
-  client.
+  per message; comment on impact only when an answer is high-stakes. Use
+  whenever product discovery or feature workflow needs clarification, decisions,
+  or gate acceptance from the client.
 ---
 
 # Questioning
@@ -22,7 +22,8 @@ description: >-
 
 ## Message shape
 
-1. After a reply, the next question only: no recap, paraphrase, or implication of what they just said.
-2. **Exactly one** question. Wait for the reply. No multi-part asks, no lists, no “also…”.
+1. After a reply, default to the next question only. Do not recap or paraphrase what they just said.
+2. Comment only when the answer is high-stakes: it would drive a major architectural specification, or it may conflict with other features or locked decisions. Then one short comment on that overall impact, not a summary of their words, then the question.
+3. **Exactly one** question. Wait for the reply. No multi-part asks, no lists, no “also…”.
 
 Gate accepts count as one question.
