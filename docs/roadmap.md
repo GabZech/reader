@@ -2,35 +2,39 @@
 
 ## Where We Are
 
-**📍 Phase:** Understand (in progress)
+**📍 Phase:** Scope (not started)
 
 **🏁 Milestone:** none set
 
 **📄 Summary:**
 
-- Kickoff accepted: problem, vision, non-goals, and success metrics are locked
-- Next phase is Understand: turning that into personas, journeys, and constraints before Scope
+- Understand accepted: who it is for, the as-is journeys, and the limits that shape them are locked
+- Scope is next when you pick it up: package those journeys into epics and decide prototype / first release / later. It is not started in this session
 
 **❗ Decisions:**
 
 - **In**
   - Built for one person only; not a shared or multi-user product
   - Full ownership of ingested content and highlights in client-controlled formats
-  - Obsidian markdown export with YAML frontmatter is a first-release must-have
-  - Morning newsletter freshness is a hard reliability bet: items must be ready before the morning session
-  - Operating cost target about $5 USD/month, with $10 USD/month as the hard fail
-  - Usable from a computer and from devices used for daily reading
+  - Obsidian export matches the settled markdown sample (frontmatter, title, summary, highlights, section headings)
+  - Morning newsletters must already be in the News list by the phone pass, once the source has sent
+  - Phone for morning News (usually home Wi-Fi unless away); computer for evening read-later and video
+  - Operating cost about $5 USD/month preferred, $10 USD/month hard ceiling, including any store or developer fees
+  - List membership cannot stay as manual author-name or feed-ID query editing; a list groups sources for a moment and may mix types later
+  - In-app extraction of the sources actually read must be consistently readable; the browser is a rare escape, not the normal path
 - **Out**
   - Multi-user or shared accounts
   - YouTube local save and auto-transcription
   - Feature-for-feature parity with the current reading app
   - Built-in LLM or RAG querying in the first release
-  - Perfect in-app reading for every site (browser-tab fallback is acceptable)
+  - Perfect in-app reading for every site on the web
+  - Going through a publisher paywall without their access
 
 **⚠️ Open:**
 
-- Personas, journeys, and cross-cutting constraints
+- Epics and the prototype / first-release / later cut (Scope, when resumed)
 
 ## Concluded
 
 - ✅ **Kickoff:** [vision](product-definition/vision.md), [metrics](product-definition/metrics.md); session log under [history/discovery/01-kickoff](history/discovery/01-kickoff/)
+- ✅ **Understand:** [personas](product-definition/personas.md), [journeys](product-definition/journeys.md), [constraints](product-definition/constraints.md); session log under [history/discovery/02-understand](history/discovery/02-understand/)

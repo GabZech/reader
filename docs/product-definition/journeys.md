@@ -1,1 +1,104 @@
 # Journeys
+
+These are current-state overall use cases at discovery grain. They are not user stories and not prototype / MVP cuts. The actor is [The Solo Reader](personas.md#the-solo-reader).
+
+**Steps today** are as-is. **Wanted** is what should differ on that path, not a full as-should walkthrough. As-should journeys wait for Prototype. Cross-cutting limits live in [constraints](constraints.md).
+
+The named lists (News, read-later, YouTube channels, events) are the current set. More lists will be added later, including lists that mix YouTube videos with newsletter or RSS sources.
+
+## Morning News Pass
+
+**Actor:** [The Solo Reader](personas.md#the-solo-reader)
+
+**Goal:** Get through the standing morning newsletters on the phone before the day takes over.
+
+**Trigger:** Waking / the morning reading slot.
+
+**Steps today:**
+1. Open the current reading app on the phone, usually on home Wi-Fi (not when away from home).
+2. Open the News list.
+3. Read two newsletters (last named: a traditional newspaper newsletter and an AI news newsletter). If time remains, maybe a third.
+4. Each newsletter is a summary of articles. Interesting items open in an overlay; Close returns to the newsletter.
+5. A newspaper article link opens the full original page in that overlay, not extracted text.
+6. If an article needs a detailed read and there is no time, send it to the read-later list (continues in [Park, Highlight, and Land in Obsidian](#park-highlight-and-land-in-obsidian)).
+
+**Outcome:** The morning pair (sometimes a third) has been seen. Some items may be parked for later. The session ends when time runs out or the intended newsletters are done.
+
+**Costly edges:** Overlay often hits a paywall on sites the reader does not subscribe to: the item is left. Formatting can be wrong or images missing: reopen the app, then leave the item, or add it to save-later if it is worth reading and the failure was formatting (that usually repairs it). For the one subscribed newspaper, the overlay does not always stay signed in: recovery last named is signing in again there. Newsletters are present if the app is opened after the source has sent.
+
+**Wanted:** Keep the overlay as the original page by default, with an optional toggle to a distraction-free ingested view (ads and extra chrome removed). Persist login for the one subscribed newspaper so signing in again is not routine.
+
+## Park, Highlight, and Land in Obsidian
+
+**Actor:** [The Solo Reader](personas.md#the-solo-reader)
+
+**Goal:** Keep passages from an article that is worth saving, in the vault, without a manual export step at the end of the reading session.
+
+**Trigger:** An article is judged very interesting, usually during [Morning News Pass](#morning-news-pass) or when working through read-later.
+
+**Steps today:**
+1. Add the article to the read-later list (this is also how highlighting is reached today; first-open highlight is not the current path).
+2. Open it from read-later (typical evening, on the computer) and highlight there.
+3. Attach a note to a highlight when a `###` section heading is needed; that note exports as a subtitle.
+4. Do nothing else in the reading app. Readwise syncs in the background.
+5. The next time Obsidian is opened, the note is in the vault.
+
+**Outcome:** A markdown note matching the settled export format: YAML frontmatter (`author`, `published_date`, `source`, `last_highlighted_date`), title, summary, and highlights. Sample: [export-example-obsidian.md](../history/discovery/02-understand/export-example-obsidian.md).
+
+**Costly edges:** The export pipe itself is considered fine. The awkward part is assigning section titles while highlighting (note-on-highlight workaround). Highlighting currently requires the read-later round-trip.
+
+**Wanted:** Highlight on the original article on first open, without parking on read-later only to highlight. Sticky section titles: a section title applies to following highlights until the next section title, instead of a note on a single highlight.
+
+## Add a Source to a List
+
+**Actor:** [The Solo Reader](personas.md#the-solo-reader)
+
+**Goal:** Get a new newsletter or feed onto the right curated list, including lists that only show the last day or last week.
+
+**Trigger:** A new source should appear in News, a timed list, or another list.
+
+**Steps today:**
+1. Newsletter: sign up, wait for the first email, copy the author name, open the list query, add an `if author=x` clause by hand.
+2. RSS / blog / Substack: paste the link; it is added as a feed source and appears as an individual source in the sources list. Membership in a specific list can still need query work, especially for timed windows.
+
+**Outcome:** The source’s items start showing in the intended list, with a recency window that matches how often that source publishes.
+
+**Costly edges:** Newsletter onboarding cannot finish until the first email arrives. Author name and feed ID hunting plus query edits are the standing pain.
+
+**Wanted:** A list of all sources, addable to lists in a few clicks. When adding to a timed list, choose the list and a per-source recency window (for example last week for this source).
+
+## Evening Video Triage
+
+**Actor:** [The Solo Reader](personas.md#the-solo-reader)
+
+**Goal:** Use free evening time to watch what looks interesting from favourite channels, without treating the list as a must-watch queue.
+
+**Trigger:** Entertainment on the computer, opening the favourite YouTube channels list.
+
+**Steps today:**
+1. Browse the latest items.
+2. If interesting, click and watch inside the reading app.
+3. If not worth watching, delete without opening.
+4. If unsure or maybe later, leave the item untouched.
+
+**Outcome:** Some videos watched, some discarded, some still sitting. No local save and no transcription.
+
+**Costly edges:** None named beyond the Kickoff non-goal of local video save and auto-transcription, which stays out. See [constraints](constraints.md).
+
+**Wanted:** None named.
+
+## Weekend Events Scan
+
+**Actor:** [The Solo Reader](personas.md#the-solo-reader)
+
+**Goal:** See what is going on in town before the weekend.
+
+**Trigger:** Opening the events list (newsletters about local happenings), typically before the weekend.
+
+**Steps today:** Same interaction as [Morning News Pass](#morning-news-pass): digest, overlay, Close, continue. Same parking to read-later when needed ([Park, Highlight, and Land in Obsidian](#park-highlight-and-land-in-obsidian)).
+
+**Outcome:** A picture of upcoming local events, or items parked for a closer read.
+
+**Costly edges:** Same overlay failures as [Morning News Pass](#morning-news-pass).
+
+**Wanted:** Same overlay changes as [Morning News Pass](#morning-news-pass).
