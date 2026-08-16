@@ -23,7 +23,7 @@ Then:
 2. Greenfield or empty roadmap → **Kickoff** skill
 3. On starting or resuming a phase, orient once in plain prose: name the phase, what you will cover next, and how it fits the engagement — then the first question
 4. Whenever you need clarifying answers, decisions, or gate acceptance from the client → read and follow the **questioning** skill (`.cursor/skills/questioning/SKILL.md`)
-5. End every phase or SPEC step with explicit review-and-accept before advancing (phase skills own roadmap updates)
+5. End every phase or SPEC step with explicit review-and-accept before advancing (phase skills own roadmap updates and when to touch root `README.md`; writing-docs owns README shape)
 
 ## Non-negotiables (product work only)
 

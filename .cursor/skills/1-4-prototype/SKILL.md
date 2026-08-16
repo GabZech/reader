@@ -6,3 +6,9 @@ description: >-
 ---
 
 # Prototype
+
+Make the priority journeys clickable in Figma before product code, then iterate on feedback.
+
+## Gate
+
+Ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs; follow writing-docs **Root README** When for this phase. Do not advance without confirmation.

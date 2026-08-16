@@ -20,6 +20,7 @@ Capture the product idea, set how the engagement runs, clarify what matters, and
 - `docs/roadmap.md` (initialised with where we are)
 - `docs/product-definition/vision.md`
 - `docs/product-definition/metrics.md`
+- `README.md` (product overview + concise workflow; replaces the template manual)
 - `docs/history/discovery/01-kickoff/` (engagement explanation, clarifying answers — never client prompts)
 
 ## Do
@@ -76,4 +77,4 @@ If problem, who, why-now, or metrics are still missing, keep asking — do not i
 
 ## Gate
 
-After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Understand; refresh Summary / Decisions / Open; add Kickoff under Concluded). Do not advance without confirmation.
+After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Understand; refresh Summary / Decisions / Open; add Kickoff under Concluded); rewrite `README.md` per writing-docs **Root README**. Do not advance without confirmation.
