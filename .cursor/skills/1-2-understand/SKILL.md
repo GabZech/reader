@@ -8,7 +8,7 @@ description: >-
 
 # Understand
 
-Build a shared picture of who the product is for, what they try to do end to end, and the constraints that shape those paths. Descriptive only — no epics and no prototype / MVP / later scope.
+Build a shared picture of who the product is for, what they try to do end to end, and the constraints that shape those paths. Descriptive only — no epics and no mockup / MVP / later scope.
 
 ## Entry
 
@@ -31,19 +31,19 @@ Build a shared picture of who the product is for, what they try to do end to end
 
 **Clarifying questions:** deliver each ask using the **questioning** skill (`.cursor/skills/questioning/SKILL.md`). **What to ask:** [questionbank.md](questionbank.md). Walk clusters one at a time; skip what Kickoff or this conversation already answered well.
 
-Do not write epics. Do not assign prototype / MVP / later. Do not invent stack or architecture. Do not write user stories or acceptance criteria.
+Do not write epics. Do not assign mockup / MVP / later. Do not invent stack or architecture. Do not write user stories or acceptance criteria.
 
 **Human role:** Confirm personas and journeys feel right; add missing users or paths; challenge weak constraints; check **Wanted** is a short change note, not a to-be redesign; accept when the picture is good enough to scope.
 
 ## Clarifying questions
 
-Goal: gather only what personas, journeys, and constraints need. Defer epics and prototype / MVP / later scope to Scope; defer stories to Requirements; defer stack to Foundation.
+Goal: gather only what personas, journeys, and constraints need. Defer epics and mockup / MVP / later scope to Scope; defer stories to Requirements; defer stack to Foundation.
 
 ### Principles
 
 1. **Reuse Kickoff.** Deepen who, outcomes, and assumptions; do not re-litigate vision or metrics unless contradicted.
 2. **Past and present over hypotheticals.** Critical incidents and concrete situations over “would you use…” or feature opinions.
-3. **Current-state journeys.** Map how goals are achieved today. Put path-specific desired changes as **Wanted** on that journey. Put cross-cutting limits in constraints. Do not rewrite journeys as the new app. As-should paths wait for Prototype.
+3. **Current-state journeys.** Map how goals are achieved today. Put path-specific desired changes as **Wanted** on that journey. Put cross-cutting limits in constraints. Do not rewrite journeys as the new app. As-should paths wait for Mockup.
 4. **Use-case grain, not stories.** Name end-to-end scenarios; stop before user-story split and acceptance criteria.
 5. **Constraints by proposal.** Infer hard vs soft limits from answers and Kickoff; confirm or edit — do not open with a laundry-list ask.
 6. **Stay in Understand scope.** No epics, MVP scope, or architecture.
@@ -64,7 +64,7 @@ Goal: gather only what personas, journeys, and constraints need. Defer epics and
 - Each primary journey narratable end to end (trigger, steps today, outcome, main friction), with **Wanted** where a change was named
 - Costly edges called out where they matter
 - Cross-cutting **limits** confirmed (or adjusted) from the agent’s proposal, with hard vs soft clear enough to steer Scope. Product wishes are not filed as constraints.
-- Open unknowns listed when they still block honest prototype / MVP / later scope
+- Open unknowns listed when they still block honest mockup / MVP / later scope
 
 If persona, primary journeys, or constraints are still missing, keep asking — do not invent them.
 

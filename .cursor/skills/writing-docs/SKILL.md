@@ -80,7 +80,7 @@ Orient the engagement; do not duplicate vision, metrics, or feature inventory.
 Fixed field order and icons:
 
 1. **📍 Phase** — current phase name and status (e.g. in progress). Do not use 🎯 for phase; 🎯 stays Goal elsewhere
-2. **🏁 Milestone** — Prototype / MVP / none set
+2. **🏁 Milestone** — Mockup / MVP / none set
 3. **📄 Summary** — where development stands now and what the next phase is (what is accepted, what this phase is doing, what comes after it). Not the product pitch, not constraints or feature lists. Prefer 1–3 prosaic bullets
 4. **❗ Decisions** — durable locks that steer later work, as prosaic bullets (not telegraphic labels). Nest **In** and **Out** sublists when both apply. Pull Out from confirmed non-goals; keep In to who, ownership, cost, must-haves, and hard reliability bets
 5. **⚠️ Open** — only what the current phase must still resolve. Do not add a separate Next line

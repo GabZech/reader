@@ -35,4 +35,4 @@ Then:
 
 ## Orientation (when starting, resuming, or closing a phase)
 
-Write a short prosaic lead-in — full sentences, not a telegraphic status line. Cover what is useful among: current phase, what this phase is for, decisions or open questions that matter now, and the immediate next step. Mention Prototype or MVP milestone only when one is actually set; omit it otherwise. Do not use label stacks (`Status:`, `Milestone:`, `Next:`).
+Write a short prosaic lead-in — full sentences, not a telegraphic status line. Cover what is useful among: current phase, what this phase is for, decisions or open questions that matter now, and the immediate next step. Mention Mockup or MVP milestone only when one is actually set; omit it otherwise. Do not use label stacks (`Status:`, `Milestone:`, `Next:`).

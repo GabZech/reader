@@ -16,7 +16,7 @@ Journeys here are **overall use cases** at discovery grain: named end-to-end sce
 | Journey walkthrough | Journeys | Narrate each primary journey: trigger → steps today → outcome, friction, and **Wanted** if they volunteer a change |
 | Edges and recovery | Journeys | Name costly failure, empty, late, or wrong cases and what people do then |
 | Cross-cutting constraints | Constraints | Separate hard vs soft limits that are not one journey |
-| Open unknowns | History notes; later phases | List what still blocks honest prototype / MVP / later scope |
+| Open unknowns | History notes; later phases | List what still blocks honest mockup / MVP / later scope |
 
 ### 1. Persona depth
 
@@ -74,7 +74,7 @@ Mark which limits are fixed (hard) vs changeable (soft). Soft constraints are ca
 ### 7. Open unknowns
 
 - What are we still assuming about users or behaviour that we have not seen in a concrete example?
-- What would we need to learn before Scope can set prototype, MVP, and later honestly?
+- What would we need to learn before Scope can set mockup, MVP, and later honestly?
 
 Park deep research design; capture the unknown so Scope or later phases can use it.
 
@@ -88,11 +88,11 @@ Park deep research design; capture the unknown so Scope or later phases can use 
 ## Boundaries
 
 - No user stories, acceptance criteria, or story maps in this phase.
-- No epic packaging and no prototype / MVP / later scope (Scope owns those).
+- No epic packaging and no mockup / MVP / later scope (Scope owns those).
 - No stack or architecture (Foundation).
 - Do not invent primary journeys the client did not recognise; if Scope needs a missing path, reopen Understand.
 - Personas stay qualitative: goals, context, motivations. Approaches and steps live on journeys.
 
 ## Boundary with the next phase
 
-After Understand accept, Scope turns accepted journeys into epics and decides prototype / MVP / later. Do not pre-assign those scopes here. If the client volunteers scope preferences early, note them under history and reuse in Scope.
+After Understand accept, Scope turns accepted journeys into epics and decides mockup / MVP / later. Do not pre-assign those scopes here. If the client volunteers scope preferences early, note them under history and reuse in Scope.

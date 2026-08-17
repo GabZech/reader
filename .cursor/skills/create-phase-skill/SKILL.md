@@ -5,7 +5,7 @@ description: >-
   its question bank: brainstorm with the client first, research and review,
   then write files. Use when authoring a phase skill, adding questionbank.md,
   or repeating the Kickoff/Understand skill-creation workflow for Scope,
-  Prototype, Foundation, or later phases.
+  Mockup, Foundation, or later phases.
 ---
 
 # Create phase skill
@@ -18,7 +18,7 @@ Authoring craft (succinct copy, split style vs content, SKILL.md shape) lives in
 
 - Client asks to create or improve a phase skill / question bank
 - A phase skill lacks clarifying guidance that Kickoff or Understand already have
-- Preparing Scope, Prototype, Foundation, or a later phase the same way
+- Preparing Scope, Mockup, Foundation, or a later phase the same way
 
 ## Sequence (mandatory order)
 
@@ -64,7 +64,7 @@ Summarize what was added or changed and which phase to run next (or resume). Do 
 | Agnosticism | Skills and banks apply to any idea; product facts stay in `docs/` |
 | Question banks | Progressive disclosure: long menus in `questionbank.md`, not in `SKILL.md` |
 | Delivery style | Never duplicate questioning skill rules inside the bank |
-| Scopes and stack | Discovery banks stay descriptive until Scope (prototype / MVP / later) or Foundation (stack) |
+| Scopes and stack | Discovery banks stay descriptive until Scope (mockup / MVP / later) or Foundation (stack) |
 | User stories | Not in discovery banks; Requirements owns story + AC level of detail |
 | Client prompts | Never save verbatim chat into skills or `docs/` |
 
