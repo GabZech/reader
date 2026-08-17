@@ -34,4 +34,8 @@ Five named capabilities: **Add a Source to a List**, **Morning News Pass**, **Re
 
 **List triage:** Removing an item from a list is first-product behavior on every list. A YouTube item is triaged the same way as any other list item, so adding a YouTube channel stays in **Add a Source to a List**. **Evening Video Triage** later is in-app watching, the evening session, and filtering Shorts, not a different delete model.
 
-**Mockup shell:** The dummy includes the home page and overall basic functionality of the app (lists in the picture, source inventory, navigation, remove-from-list), not only the two uncertain cuts.
+**Mockup shell:** The Figma includes the home page and overall basic functionality of the app (lists in the picture, list of all sources, moving between parts, remove-from-list), not only the two uncertain paths.
+
+## Catalog wording (2026-08-17)
+
+Epics catalog rewritten in ordinary language: dropped specialist phrasing (grain, cut, morning freshness, walkable, dummy, triage as a special model). Substance of the scopes is unchanged.
