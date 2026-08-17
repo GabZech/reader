@@ -57,7 +57,7 @@ Goal: gather only what `vision.md` and `metrics.md` need. Defer deep user/journe
 
 ### Flow
 
-1. Brief idea restatement + short workflow explanation (not a questioning turn).
+1. Brief idea restatement + short workflow explanation (questioning voice; not an ask).
 2. Clarifying rounds from [questionbank.md](questionbank.md), one question per message via the questioning skill — skip the non-goals cluster; do not solicit exclusions.
 3. If answers are vague, ask for one concrete example next.
 4. Propose inferred non-goals; one confirmation ask (accept, edit, or reject items).
