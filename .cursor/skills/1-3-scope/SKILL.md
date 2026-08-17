@@ -21,7 +21,7 @@ Turn accepted journeys into named capabilities (epics) and decide mockup scope, 
 ## Do
 
 **Include:**
-- Epics as named capabilities, each traced to at least one journey (and usually a persona). Same labels every time: capability, journeys, persona, MVP or later, in mockup scope. Package how the user sees the job, not by technical layer.
+- Epics as named capabilities, each traced to at least one journey (and usually a persona). Same labels every time: capability, journeys, persona, MVP or later, mockup (yes / no / which part). Package how people doing the job see it, not by technical layer.
 - Mockup scope: which journeys or epics must be clickable in Figma, and what that walkthrough is for (learning)
 - MVP scope vs later
 - Which epic is the natural first piece of the MVP to implement after Mockup
@@ -40,9 +40,9 @@ Goal: gather only what epics and mockup / MVP / later scope need. Defer stories 
 ### Principles
 
 1. **Reuse Understand.** Deepen what is in or later; do not re-litigate personas, journeys, or constraints unless contradicted. Missing primary path: reopen Understand.
-2. **User-recognisable capabilities.** Name epics the way someone would describe the job. Combine journeys into one epic only if they are the same job or a real outcome cannot complete without both. Split if the name would become vague. **Level of detail:** named capabilities, not user stories or tasks.
-3. **The clickable mockup is not the MVP.** Mockup scope tests the risky or unclear paths (comprehension, usefulness, core flow). It need not include everything in MVP scope; it may include something later if that is where the uncertainty is. Do not put the whole product in the clickable mockup.
-4. **MVP whole enough, not merely small.** The first product must complete a recognisable outcome. Do not leave a load-bearing hole. Do not try to include everything.
+2. **Recognisable capabilities.** Name epics the way someone would describe the job. Combine journeys into one epic only if they are the same job or a real outcome cannot complete without both. Split if the name would become vague. **Level of detail:** named capabilities, not user stories or tasks.
+3. **The clickable mockup is not the MVP.** Mockup scope tests the risky or unclear paths: whether people understand it, find it useful, and can complete the core path. It need not include everything in MVP scope; it may include something later if that is where the uncertainty is. Do not put the whole product in the clickable mockup.
+4. **MVP whole enough, not merely small.** The first product must complete a recognisable outcome. Do not leave a hole that blocks that outcome. Do not try to include everything.
 5. **Scopes by proposal.** Infer epics and mockup / MVP / later from answers and Understand; confirm or edit. Do not open with laundry lists or scoring workshops.
 6. **Stay in Scope.** No stories, no Figma screens, no architecture.
 
@@ -57,8 +57,8 @@ Goal: gather only what epics and mockup / MVP / later scope need. Defer stories 
 
 ### Ready to draft artifacts when
 
-- Named epics cover every in-scope primary journey, each a user-recognisable capability (not a story, not a technical layer), with journey links
-- MVP scope can complete a recognisable outcome without a load-bearing hole
+- Named epics cover every accepted primary journey, each a recognisable capability (not a story, not a technical layer), with journey links
+- MVP scope can complete a recognisable outcome without a hole that blocks it
 - Mockup scope has a learning purpose and is narrower than the whole MVP
 - Every epic is in MVP scope or later; mockup membership is named where it applies
 - The first piece of the MVP to implement after Mockup is named

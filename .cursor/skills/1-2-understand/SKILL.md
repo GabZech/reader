@@ -46,7 +46,7 @@ Goal: gather only what personas, journeys, and constraints need. Defer epics and
 3. **Current-state journeys.** Map how goals are achieved today. Put path-specific desired changes as **Wanted** on that journey. Put cross-cutting limits in constraints. Do not rewrite journeys as the new app. As-should paths wait for Mockup.
 4. **Use-case grain, not stories.** Name end-to-end scenarios; stop before user-story split and acceptance criteria.
 5. **Constraints by proposal.** Infer hard vs soft limits from answers and Kickoff; confirm or edit — do not open with a laundry-list ask.
-6. **Stay in Understand scope.** No epics, MVP scope, or architecture.
+6. **Stay in Understand scope.** No epics, mockup / MVP / later, or architecture.
 
 ### Flow
 
@@ -54,7 +54,7 @@ Goal: gather only what personas, journeys, and constraints need. Defer epics and
 2. If answers are vague, ask for one concrete example or “last time” next.
 3. After primary journeys are clear, propose inferred constraints (limits only); one confirmation ask.
 4. Draft personas, journeys, and constraints when the checklist below is met; present the summary.
-5. **Gap check (before accept):** Name one or two thin spots that still belong in Understand (not Scope/Foundation). One ask: anything to add there or elsewhere in Understand? Incorporate, then continue.
+5. **Gap check (before accept):** Name one or two thin spots that still belong in Understand (not Scope/Mockup/Foundation). One ask: anything to add there or elsewhere in Understand? Incorporate, then continue.
 6. One accept ask for Understand.
 
 ### Ready to draft artifacts when
