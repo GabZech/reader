@@ -121,4 +121,6 @@ Scope started, then paused: the Read later list was a missing primary journey. U
 
 ## Accept (2026-08-17)
 
-Understand accepted, including this amendment. Scope resumes with the revised journey set.
+Understand accepted, including this amendment. Scope is next but not started in this session.
+
+**Volunteered during the paused Scope cut (reuse in Scope):** First-product outcomes named as not worth using without were Add a Source to a List, Morning News Pass, and Park, Highlight, and Land in Obsidian. Read later was named in that same turn as a missing journey (now Read-Later Pass). Evening Video Triage was not named as required for the first product.

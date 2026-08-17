@@ -2,15 +2,14 @@
 
 ## Where We Are
 
-**📍 Phase:** Scope (in progress)
+**📍 Phase:** Scope (not started)
 
 **🏁 Milestone:** none set
 
 **📄 Summary:**
 
-- Understand accepted, including the Read-Later Pass amendment
-- Scope is underway: package the journeys into epics and decide mockup / MVP / later
-- Mockup is next after Scope is accepted
+- Understand accepted: who it is for, the as-is journeys, and the limits that shape them are locked, including the Read-Later Pass amendment
+- Scope is next when you pick it up: package those journeys into epics and decide mockup / MVP / later. It is not started in this session
 
 **❗ Decisions:**
 
@@ -23,7 +22,6 @@
   - Operating cost about $5 USD/month preferred, $10 USD/month hard ceiling, including any store or developer fees
   - List membership cannot stay as manual author-name or feed-ID query editing. The lists in the picture now are News, Read later, and Favourite channels. More lists may mix types later
   - In-app extraction of the sources actually read must be consistently readable; the browser is a rare escape, not the normal path
-  - YouTube channels are added by pasting the channel weblink
 - **Out**
   - Multi-user or shared accounts
   - YouTube local save and auto-transcription
@@ -35,7 +33,7 @@
 
 **⚠️ Open:**
 
-- Epics and mockup / MVP / later scope (Scope)
+- Epics and mockup / MVP / later scope (Scope, when resumed)
 
 ## Concluded
 
