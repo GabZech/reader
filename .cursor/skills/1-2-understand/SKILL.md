@@ -8,7 +8,7 @@ description: >-
 
 # Understand
 
-Build a shared picture of who the product is for, what they try to do end to end, and the constraints that shape those paths. Descriptive only — no epics and no prototype / MVP / later cuts.
+Build a shared picture of who the product is for, what they try to do end to end, and the constraints that shape those paths. Descriptive only — no epics and no prototype / MVP / later scope.
 
 ## Entry
 
@@ -37,7 +37,7 @@ Do not write epics. Do not assign prototype / MVP / later. Do not invent stack o
 
 ## Clarifying questions
 
-Goal: gather only what personas, journeys, and constraints need. Defer epic cuts to Scope; defer stories to Requirements; defer stack to Foundation.
+Goal: gather only what personas, journeys, and constraints need. Defer epics and prototype / MVP / later scope to Scope; defer stories to Requirements; defer stack to Foundation.
 
 ### Principles
 
@@ -46,7 +46,7 @@ Goal: gather only what personas, journeys, and constraints need. Defer epic cuts
 3. **Current-state journeys.** Map how goals are achieved today. Put path-specific desired changes as **Wanted** on that journey. Put cross-cutting limits in constraints. Do not rewrite journeys as the new app. As-should paths wait for Prototype.
 4. **Use-case grain, not stories.** Name end-to-end scenarios; stop before user-story split and acceptance criteria.
 5. **Constraints by proposal.** Infer hard vs soft limits from answers and Kickoff; confirm or edit — do not open with a laundry-list ask.
-6. **Stay in Understand scope.** No epics, MVP cuts, or architecture.
+6. **Stay in Understand scope.** No epics, MVP scope, or architecture.
 
 ### Flow
 
@@ -64,7 +64,7 @@ Goal: gather only what personas, journeys, and constraints need. Defer epic cuts
 - Each primary journey narratable end to end (trigger, steps today, outcome, main friction), with **Wanted** where a change was named
 - Costly edges called out where they matter
 - Cross-cutting **limits** confirmed (or adjusted) from the agent’s proposal, with hard vs soft clear enough to steer Scope. Product wishes are not filed as constraints.
-- Open unknowns listed when they still block an honest cut
+- Open unknowns listed when they still block honest prototype / MVP / later scope
 
 If persona, primary journeys, or constraints are still missing, keep asking — do not invent them.
 

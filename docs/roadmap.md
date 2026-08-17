@@ -32,7 +32,7 @@
 
 **⚠️ Open:**
 
-- Epics and the prototype / first-release / later cut (Scope, when resumed)
+- Epics and prototype / MVP / later scope (Scope, when resumed)
 
 ## Concluded
 

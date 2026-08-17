@@ -1,6 +1,6 @@
 # Journeys
 
-These are current-state overall use cases at discovery grain. They are not user stories and not prototype / MVP cuts. The actor is [The Solo Reader](personas.md#the-solo-reader).
+These are current-state overall use cases at discovery grain. They are not user stories and not prototype / MVP scope. The actor is [The Solo Reader](personas.md#the-solo-reader).
 
 **Steps today** are as-is. **Wanted** is what should differ on that path, not a full as-should walkthrough. As-should journeys wait for Prototype. Cross-cutting limits live in [constraints](constraints.md).
 

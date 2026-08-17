@@ -35,5 +35,5 @@ If Monitor fails, return to Build (fix) or Deploy (rollback/redeploy). Do not si
 ## Gate
 
 Ask for explicit accept. On accept:
-- Update `docs/roadmap.md` “Where we are” (feature complete; propose next MVP epic or mark **Milestone: MVP** if the MVP cut is done)
+- Update `docs/roadmap.md` “Where we are” (feature complete; propose next MVP epic or mark **Milestone: MVP** if MVP scope is done)
 - Do not mark the SPEC complete without that confirmation

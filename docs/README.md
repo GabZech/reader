@@ -9,7 +9,7 @@ Living product and engineering docs for this engagement. History under `docs/his
 - [Personas](product-definition/personas.md): who the product is for (Understand)
 - [Journeys](product-definition/journeys.md): how those people move through the product (Understand)
 - [Constraints](product-definition/constraints.md): cross-cutting limits (Understand)
-- [Epics](product-definition/epics.md): scope cuts (Scope)
+- [Epics](product-definition/epics.md): epics and prototype / MVP / later scope (Scope)
 
 ## Engagement
 

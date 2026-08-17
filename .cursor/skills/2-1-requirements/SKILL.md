@@ -13,7 +13,7 @@ State what the feature must do before any design or code.
 ## Entry
 
 - Foundation is accepted
-- Feature chosen from the MVP (or later) cut in `docs/product-definition/epics.md` and `docs/roadmap.md` “What we are building”
+- Feature chosen from MVP (or later) scope in `docs/product-definition/epics.md`
 - Create `docs/specs/<feature-slug>/` if it does not exist
 
 ## Artifact
