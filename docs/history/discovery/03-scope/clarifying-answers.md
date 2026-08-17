@@ -17,3 +17,7 @@ The first product must complete **Add a Source to a List**, **Morning News Pass*
 **Highlighting failure:** selecting text does not highlight it automatically; clicking a highlight offers no way to add a section title or delete the highlight.
 
 **Volunteered for Mockup (not designed here):** select text to highlight it; click a highlight to add a section title or delete it.
+
+## What cannot stand alone (2026-08-17)
+
+**Add a Source to a List** is a prerequisite: without it the other journeys would not work. **Morning News Pass** and **Read-Later Pass** are coupled on the park action: it would feel broken if a link cannot be added to Read later while browsing and reading through the morning pass. Highlighting into the vault and Evening Video Triage were not named as further stand-alone breaks.
