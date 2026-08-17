@@ -6,6 +6,24 @@ These are current-state overall use cases at discovery grain. They are not user 
 
 The named lists (News, read-later, YouTube channels, events) are the current set. More lists will be added later, including lists that mix YouTube videos with newsletter or RSS sources.
 
+## Add a Source to a List
+
+**Actor:** [The Solo Reader](personas.md#the-solo-reader)
+
+**Goal:** Get a new newsletter or feed onto the right curated list, including lists that only show the last day or last week.
+
+**Trigger:** A new source should appear in News, a timed list, or another list.
+
+**Steps today:**
+1. Newsletter: sign up, wait for the first email, copy the author name, open the list query, add an `if author=x` clause by hand.
+2. RSS / blog / Substack: paste the link; it is added as a feed source and appears as an individual source in the sources list. Membership in a specific list can still need query work, especially for timed windows.
+
+**Outcome:** The source’s items start showing in the intended list, with a recency window that matches how often that source publishes.
+
+**Costly edges:** Newsletter onboarding cannot finish until the first email arrives. Author name and feed ID hunting plus query edits are the standing pain.
+
+**Wanted:** A list of all sources, addable to lists in a few clicks. When adding to a timed list, choose the list and a per-source recency window (for example last week for this source).
+
 ## Morning News Pass
 
 **Actor:** [The Solo Reader](personas.md#the-solo-reader)
@@ -48,24 +66,6 @@ The named lists (News, read-later, YouTube channels, events) are the current set
 **Costly edges:** The export pipe itself is considered fine. The awkward part is assigning section titles while highlighting (note-on-highlight workaround). Highlighting currently requires the read-later round-trip.
 
 **Wanted:** Highlight on the original article on first open, without parking on read-later only to highlight. Sticky section titles: a section title applies to following highlights until the next section title, instead of a note on a single highlight.
-
-## Add a Source to a List
-
-**Actor:** [The Solo Reader](personas.md#the-solo-reader)
-
-**Goal:** Get a new newsletter or feed onto the right curated list, including lists that only show the last day or last week.
-
-**Trigger:** A new source should appear in News, a timed list, or another list.
-
-**Steps today:**
-1. Newsletter: sign up, wait for the first email, copy the author name, open the list query, add an `if author=x` clause by hand.
-2. RSS / blog / Substack: paste the link; it is added as a feed source and appears as an individual source in the sources list. Membership in a specific list can still need query work, especially for timed windows.
-
-**Outcome:** The source’s items start showing in the intended list, with a recency window that matches how often that source publishes.
-
-**Costly edges:** Newsletter onboarding cannot finish until the first email arrives. Author name and feed ID hunting plus query edits are the standing pain.
-
-**Wanted:** A list of all sources, addable to lists in a few clicks. When adding to a timed list, choose the list and a per-source recency window (for example last week for this source).
 
 ## Evening Video Triage
 

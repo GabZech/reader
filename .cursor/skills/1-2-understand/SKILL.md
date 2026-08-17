@@ -25,7 +25,7 @@ Build a shared picture of who the product is for, what they try to do end to end
 
 **Include:**
 - Personas: who is in focus, goals, context. Goals link to the named journeys that pursue them. Do not retell journey steps or paste constraints.
-- Journeys: as-is overall use cases. Same labels every time: actor, goal, trigger, steps today, outcome, costly edges, **Wanted**. Actor links to the persona. Related journeys link to each other. **Wanted** is what should differ on that path (or “None named”), not a redesigned walkthrough. Do not retell the persona portrait.
+- Journeys: as-is overall use cases. Same labels every time: actor, goal, trigger, steps today, outcome, costly edges, **Wanted**. Actor links to the persona. Related journeys link to each other. **Wanted** is what should differ on that path (or “None named”), not a redesigned walkthrough. Do not retell the persona portrait. List journeys in chronological order of occurrence for the actor: setup and prerequisites before the sessions they enable, then typical time-of-use. Do not invent a sequence for parallel paths.
 - Constraints: cross-cutting hard vs soft **limits** (cost, ownership, must-nots, quality bars). Not a parking lot for product wishes.
 - Open questions that still block a clear picture of users or journeys
 
