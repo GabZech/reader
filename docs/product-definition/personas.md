@@ -9,7 +9,7 @@ The portrait lives here. What they do end to end lives in [journeys](journeys.md
 **Who:** The client. A single reader who already has a working habit in an existing reading app and is replacing it to own the corpus, cut list-curation friction, and keep highlight export under their control.
 
 **Goals:**
-- Put sources onto the right lists: [Add a Source to a List](journeys.md#add-a-source-to-a-list)
+- Put sources (newsletters, feeds, and YouTube channels) onto the right lists: [Add a Source to a List](journeys.md#add-a-source-to-a-list)
 - Stay current on a small morning news set: [Morning News Pass](journeys.md#morning-news-pass)
 - Work through parked articles when there is time: [Read-Later Pass](journeys.md#read-later-pass)
 - Keep passages that matter in an Obsidian vault: [Park, Highlight, and Land in Obsidian](journeys.md#park-highlight-and-land-in-obsidian)

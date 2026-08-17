@@ -10,13 +10,14 @@ The lists in the picture now are **News**, **Read later**, and **Favourite chann
 
 **Actor:** [The Solo Reader](personas.md#the-solo-reader)
 
-**Goal:** Get a new newsletter or feed onto the right curated list, including lists that only show the last day or last week.
+**Goal:** Get a new newsletter, feed, or YouTube channel onto the right list, including lists that only show the last day or last week.
 
-**Trigger:** A new source should appear in News, a timed list, or another list.
+**Trigger:** A new source should appear in News, Favourite channels, a timed list, or another list.
 
 **Steps today:**
 1. Newsletter: sign up, wait for the first email, copy the author name, open the list query, add an `if author=x` clause by hand.
 2. RSS / blog / Substack: paste the link; it is added as a feed source and appears as an individual source in the sources list. Membership in a specific list can still need query work, especially for timed windows.
+3. YouTube channel: paste the channel weblink; it is added as a source.
 
 **Outcome:** The source’s items start showing in the intended list, with a recency window that matches how often that source publishes.
 
@@ -105,4 +106,4 @@ The lists in the picture now are **News**, **Read later**, and **Favourite chann
 
 **Costly edges:** None named beyond the Kickoff non-goal of local video save and auto-transcription, which stays out. See [constraints](constraints.md).
 
-**Wanted:** None named.
+**Wanted:** Show only full videos. Filter out Shorts.

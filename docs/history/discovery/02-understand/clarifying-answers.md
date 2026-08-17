@@ -112,3 +112,9 @@ Scope started, then paused: the Read later list was a missing primary journey. U
 **Devices:** Phone for morning News, usually home Wi-Fi unless away. Other reading, including Read later, mostly on the phone and sometimes on the computer. Computer is primary only for Favourite channels.
 
 **Weekend Events Scan:** Removed as a journey. Working that list was not a meaningfully different session from News.
+
+## Gap check (2026-08-17)
+
+**Add a YouTube channel (today):** Paste the channel weblink; it is added as a source.
+
+**Favourite channels (Wanted):** Show only full videos. Filter out Shorts.
