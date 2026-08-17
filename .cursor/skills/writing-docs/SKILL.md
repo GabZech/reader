@@ -68,8 +68,8 @@ Product front door after Kickoff; not a second copy of vision or the full templa
 ### When
 
 - **Kickoff (required):** on accept, replace the template README with this shape
-- **Understand and Foundation (optional):** after phase accept, one questioning-skill ask whether to refresh Overview (and only then edit). Keep How we work stable unless the engagement model itself changes
-- **Scope and Mockup:** do not offer this ask
+- **Understand (optional):** after phase accept, one questioning-skill ask whether to refresh Overview (and only then edit). Keep How we work stable unless the engagement model itself changes
+- **Scope, Mockup, and Foundation:** do not offer this ask
 - **Feature development:** do not offer this ask; Documentation owns living-doc alignment for features
 
 ## Roadmap (`docs/roadmap.md`)
