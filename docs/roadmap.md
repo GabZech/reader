@@ -8,9 +8,9 @@
 
 **📄 Summary:**
 
-- Understand accepted: who it is for, the as-is journeys, and the limits that shape them are locked, including the Read-Later Pass amendment
-- Scope is in progress: package those journeys into named capabilities (epics) and decide mockup / MVP / later. The clickable Figma dummy and the first product are not the same cut
-- Mockup is next after Scope is accepted: turn mockup-scope journeys into a clickable dummy, not product code
+- Understand accepted: who it is for, the as-is journeys, and the limits that shape them are locked
+- Scope catalog is drafted: named capabilities plus mockup / first-product / later cuts live in [epics](product-definition/epics.md). Gap check, then accept, before Mockup
+- Mockup is next after Scope is accepted: turn mockup-scope journeys into a clickable Figma dummy, not product code
 
 **❗ Decisions:**
 
@@ -23,6 +23,8 @@
   - Operating cost about $5 USD/month preferred, $10 USD/month hard ceiling, including any store or developer fees
   - List membership cannot stay as manual author-name or feed-ID query editing. The lists in the picture now are News, Read later, and Favourite channels. More lists may mix types later
   - In-app extraction of the sources actually read must be consistently readable; the browser is a rare escape, not the normal path
+  - First product completes add-to-list, morning news, Read later, and highlight-to-Obsidian. Evening video triage waits
+  - After Mockup, the first piece to implement is adding a source to a list
 - **Out**
   - Multi-user or shared accounts
   - YouTube local save and auto-transcription
@@ -34,7 +36,7 @@
 
 **⚠️ Open:**
 
-- Epics and mockup / MVP / later scope (Scope, when resumed)
+- Scope gap check and accept
 
 ## Concluded
 

@@ -25,3 +25,7 @@ The first product must complete **Add a Source to a List**, **Morning News Pass*
 ## What we are still unsure about (2026-08-17)
 
 Morning freshness, in-app extraction quality, the $10 USD/month cost ceiling, and newsletter add waiting for the first email are carried as risk. They do not change which journeys belong in the first product. The clickable dummy still settles the timed-list recency window and the highlight controls.
+
+## Epics and scopes confirmed (2026-08-17)
+
+Five named capabilities: **Add a Source to a List**, **Morning News Pass**, **Read-Later Pass**, and **Highlight and Land in Obsidian** in the first product; **Evening Video Triage** later. Mockup walks the four first-product capabilities; learning concentrates on the timed-list recency window and the highlight controls. First piece to implement after Mockup: **Add a Source to a List**. Catalog: [epics.md](../../../product-definition/epics.md).
