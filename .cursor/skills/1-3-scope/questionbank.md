@@ -14,7 +14,7 @@ The **mockup** is a clickable Figma dummy of the solution, not built software.
 | --- | --- | --- |
 | What the MVP must achieve | MVP scope | Name which journey outcomes must work or the first product is not worth using |
 | What the clickable mockup is for | Mockup scope | Name what the clickable walkthrough must let us learn, and which paths must be walkable for that |
-| What cannot stand alone | Epic packaging and both scopes | Name holes: what cannot ship or be walked through alone, and which journeys are one job vs two |
+| What cannot stand alone | Epic packaging and both scopes | Name what cannot ship or be walked through alone, and which journeys are one job vs two |
 | What we are still unsure about | Mockup scope; history | Name the riskiest remaining assumptions, and what the clickable mockup should settle vs what we will carry |
 
 Epics and the three scopes are **not** a question cluster. After the rounds above, infer them and confirm (see below).
@@ -37,7 +37,7 @@ Learning, not a preview of the whole MVP. Focus on what is uncertain or easy to 
 
 ### 3. What cannot stand alone
 
-Holes and packaging. How people doing the job see it, not technical layers.
+How people doing the job see it, not technical layers.
 
 - Where would it feel broken if one capability shipped without another?
 - Do any journeys share a capability so they should be one epic?
@@ -65,8 +65,8 @@ Present that package and ask once whether to confirm or adjust. Fold the confirm
 
 ## Question direction
 
-- Prefer outcomes the first product cannot do without, holes, and uncertainty over feature wish-lists, scoring, or stack.
-- Prefer a thin path that still reaches a recognisable result over a pile of disconnected pieces.
+- Prefer outcomes the first product cannot do without, what cannot stand alone, and uncertainty over feature wish-lists, scoring, or stack.
+- Prefer a first product that still reaches a recognisable result over disconnected pieces.
 - Never solicit MVP exclusions or epic lists with open questions; propose them for confirmation instead.
 
 ## Boundaries
@@ -75,7 +75,7 @@ Present that package and ask once whether to confirm or adjust. Fold the confirm
 - No Figma screens or as-should walkthroughs (Mockup).
 - No stack or architecture (Foundation).
 - Do not invent primary journeys; if a path is missing, reopen Understand.
-- Later is deferred on purpose, not a junk drawer, and is not a Kickoff non-goal.
+- Later is deferred on purpose, and is not a Kickoff non-goal.
 - Do not call the clickable dummy a prototype or an MVP.
 
 ## Boundary with the next phase
