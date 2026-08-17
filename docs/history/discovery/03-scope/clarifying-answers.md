@@ -10,4 +10,10 @@ The first product must complete **Add a Source to a List**, **Morning News Pass*
 
 ## What the clickable mockup is for (2026-08-17)
 
-**Add a Source to a List** and **Park, Highlight, and Land in Obsidian** are the paths most likely not to work well in the design. **Morning News Pass** and **Read-Later Pass** must still be walkable in the dummy. **Evening Video Triage** was not named for the clickable walkthrough. What “not work well” looks like on the two uncertain paths is still open.
+**Add a Source to a List** and **Park, Highlight, and Land in Obsidian** are the paths most likely not to work well in the design. **Morning News Pass** and **Read-Later Pass** must still be walkable in the dummy. **Evening Video Triage** was not named for the clickable walkthrough.
+
+**Timed-list failure:** adding a source to a timed list without an easy time-window choice, so every item from that source appears on the list.
+
+**Highlighting failure:** selecting text does not highlight it automatically; clicking a highlight offers no way to add a section title or delete the highlight.
+
+**Volunteered for Mockup (not designed here):** select text to highlight it; click a highlight to add a section title or delete it.
