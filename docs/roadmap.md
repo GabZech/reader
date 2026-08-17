@@ -2,14 +2,15 @@
 
 ## Where We Are
 
-**📍 Phase:** Scope (not started)
+**📍 Phase:** Scope (in progress)
 
 **🏁 Milestone:** none set
 
 **📄 Summary:**
 
 - Understand accepted: who it is for, the as-is journeys, and the limits that shape them are locked, including the Read-Later Pass amendment
-- Scope is next when you pick it up: package those journeys into epics and decide mockup / MVP / later. It is not started in this session
+- Scope is in progress: package those journeys into named capabilities (epics) and decide mockup / MVP / later. The clickable Figma dummy and the first product are not the same cut
+- Mockup is next after Scope is accepted: turn mockup-scope journeys into a clickable dummy, not product code
 
 **❗ Decisions:**
 
