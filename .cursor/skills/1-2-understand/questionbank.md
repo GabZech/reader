@@ -2,9 +2,9 @@
 
 Clarifying **content** for Understand. Deliver each ask with the questioning skill (`.cursor/skills/questioning/SKILL.md`) — style lives there; this file is only the menu.
 
-Pick and adapt; do not read as a script. Sole client = the user. Project-agnostic: reuse Kickoff answers; deepen, do not restart.
+Pick and adapt; do not read as a script. Reuse Kickoff answers; deepen, do not restart.
 
-Journeys here are **overall use cases** at discovery grain: named end-to-end scenarios with actor, goal, trigger, steps today, outcome, costly edges, and **Wanted**. User stories and acceptance criteria wait for Requirements.
+Journeys here are **overall use cases** at discovery level of detail: named end-to-end scenarios with actor, goal, trigger, steps today, outcome, costly edges, and **Wanted**. User stories and acceptance criteria wait for Requirements.
 
 ## Question clusters → artifacts
 
@@ -12,7 +12,7 @@ Journeys here are **overall use cases** at discovery grain: named end-to-end sce
 | --- | --- | --- |
 | Persona depth | Personas | Name who is in focus, their goals, contexts, and what success or failure looks like for them |
 | Situations and rhythm | Personas, journeys | Say when, where, and how often the work happens, and what starts or ends a session |
-| Journey inventory | Journeys | List the primary end-to-end scenarios by name (use-case grain) |
+| Journey inventory | Journeys | List the primary end-to-end scenarios by name (use-case level of detail) |
 | Journey walkthrough | Journeys | Narrate each primary journey: trigger → steps today → outcome, friction, and **Wanted** if they volunteer a change |
 | Edges and recovery | Journeys | Name costly failure, empty, late, or wrong cases and what people do then |
 | Cross-cutting constraints | Constraints | Separate hard vs soft limits that are not one journey |
@@ -30,14 +30,14 @@ Kickoff “who” stays headline-level; deepen situation and goals here. Prefer 
 
 ### 2. Situations and rhythm
 
-- Walk me through a typical time when this problem shows up.
+- Walk through a typical time when this problem shows up.
 - Where are they, and what device or channel are they on?
 - How often does this happen, and what starts or ends the session?
 - What else competes for attention in that moment?
 
 ### 3. Journey inventory (overall use cases)
 
-Name distinct goals worth following end to end. Stop at scenario grain; do not split into user stories.
+Name distinct goals worth following end to end. Stop at scenario level of detail; do not split into user stories.
 
 - What distinct goals would we need to follow end to end to cover the vision?
 - Which of those are central vs occasional?
@@ -47,11 +47,11 @@ Name distinct goals worth following end to end. Stop at scenario grain; do not s
 
 Prefer critical incidents and chronological follow-ups over generic funnel templates. Current-state first; do not design the to-be path here. If they volunteer what should change, record it as **Wanted** on that journey; do not rewrite the steps.
 
-- Tell me about the last time you (or they) did this.
+- Tell me about the last time this was done.
 - What were the steps from trigger to done?
 - Which tools, people, or channels sat on the path?
 - Where did it feel smooth? Where did it stall or need a workaround?
-- What were you thinking or worrying about at the sticky points?
+- What were they thinking or worrying about at the sticky points?
 
 ### 5. Edges and recovery
 

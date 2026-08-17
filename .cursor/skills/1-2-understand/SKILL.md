@@ -17,7 +17,7 @@ Build a shared picture of who the product is for, what they try to do end to end
 ## Artifacts
 
 - `docs/product-definition/personas.md`
-- `docs/product-definition/journeys.md` (named overall use cases at discovery grain)
+- `docs/product-definition/journeys.md` (named overall use cases at discovery level of detail)
 - `docs/product-definition/constraints.md`
 - `docs/history/discovery/02-understand/` (clarifying answers — never client prompts)
 
@@ -44,7 +44,7 @@ Goal: gather only what personas, journeys, and constraints need. Defer epics and
 1. **Reuse Kickoff.** Deepen who, outcomes, and assumptions; do not re-litigate vision or metrics unless contradicted.
 2. **Past and present over hypotheticals.** Critical incidents and concrete situations over “would you use…” or feature opinions.
 3. **Current-state journeys.** Map how goals are achieved today. Put path-specific desired changes as **Wanted** on that journey. Put cross-cutting limits in constraints. Do not rewrite journeys as the new app. As-should paths wait for Mockup.
-4. **Use-case grain, not stories.** Name end-to-end scenarios; stop before user-story split and acceptance criteria.
+4. **Use-case level of detail, not stories.** Name end-to-end scenarios; stop before user-story split and acceptance criteria.
 5. **Constraints by proposal.** Infer hard vs soft limits from answers and Kickoff; confirm or edit — do not open with a laundry-list ask.
 6. **Stay in Understand scope.** No epics, mockup / MVP / later, or architecture.
 
