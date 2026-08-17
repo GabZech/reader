@@ -7,7 +7,7 @@ description: >-
 
 # Scope
 
-Turn accepted journeys into named capabilities (epics) and decide mockup scope, MVP scope, and what waits. The mockup is a clickable Figma dummy of the solution, not built software. Decisive only: do not invent new personas or primary journeys here.
+Turn accepted journeys into named capabilities (epics) and decide mockup scope, MVP scope, and what waits. The mockup is a clickable dummy of the solution, not built software. Decisive only: do not invent new personas or primary journeys here.
 
 ## Entry
 
@@ -22,14 +22,14 @@ Turn accepted journeys into named capabilities (epics) and decide mockup scope, 
 
 **Include:**
 - Epics as named capabilities, each traced to at least one journey (and usually a persona). Same labels every time: capability, journeys, persona, MVP or later, mockup (yes / no / which part). Package how people doing the job see it, not by technical layer.
-- Mockup scope: which journeys or epics must be clickable in Figma, and what that walkthrough is for (learning)
+- Mockup scope: which journeys or epics must be clickable in the dummy, and what that walkthrough is for (learning)
 - MVP scope vs later
 - Which epic is the natural first piece of the MVP to implement after Mockup
 - Refresh `docs/roadmap.md` from those scopes (Milestone, Summary, Decisions, Open). The catalog stays in `epics.md`.
 
 **Clarifying questions:** deliver each ask using the **questioning** skill (`.cursor/skills/questioning/SKILL.md`). **What to ask:** [questionbank.md](questionbank.md). Walk clusters one at a time; skip what Understand or this conversation already answered well.
 
-Do not rewrite personas or invent primary journeys. If a path is missing, reopen Understand. Do not write user stories or acceptance criteria. Do not choose stack or architecture. Do not design Figma screens.
+Do not rewrite personas or invent primary journeys. If a path is missing, reopen Understand. Do not write user stories or acceptance criteria. Do not choose stack or architecture. Do not design dummy screens.
 
 **Human role:** Challenge the scopes; move work between mockup / MVP / later; confirm the first piece of the MVP to implement is clear.
 
@@ -44,7 +44,7 @@ Goal: gather only what epics and mockup / MVP / later scope need. Defer stories 
 3. **The clickable mockup is not the MVP.** Mockup scope tests the risky or unclear paths: whether people understand it, find it useful, and can complete the core path. It need not include everything in MVP scope; it may include something later if that is where the uncertainty is. Do not put the whole product in the clickable mockup.
 4. **MVP whole enough, not merely small.** The first product must complete a recognisable outcome. Do not omit something required to complete that outcome. Do not try to include everything.
 5. **Scopes by proposal.** Infer epics and mockup / MVP / later from answers and Understand; confirm or edit. Do not open with laundry lists or scoring workshops.
-6. **Stay in Scope.** No stories, no Figma screens, no architecture.
+6. **Stay in Scope.** No stories, no dummy screens, no architecture.
 
 ### Flow
 
