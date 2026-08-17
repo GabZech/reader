@@ -21,13 +21,13 @@ Then:
 
 1. Read `docs/roadmap.md` "Where we are" and follow the matching skill under `.cursor/skills/` (`README.md` is the full map)
 2. Greenfield or empty roadmap → **Kickoff** skill
-3. On starting or resuming a phase, orient once in plain prose: name the phase, what you will cover next, and how it fits the engagement — then the first question, with any locked material that question depends on shown in the message (questioning skill)
+3. On starting or resuming a phase, orient once using the **questioning** skill (voice): name the phase, what you will cover next, and how it fits the engagement, then the first question, with any locked material that question depends on shown in the message
 4. Whenever you need clarifying answers, decisions, or gate acceptance from the client → read and follow the **questioning** skill (`.cursor/skills/questioning/SKILL.md`)
 5. End every phase or SPEC step with explicit review-and-accept before advancing (phase skills own roadmap updates and when to touch root `README.md`; writing-docs owns README shape)
 
 ## Non-negotiables (product work only)
 
-- **Questioning skill.** How you ask follows `.cursor/skills/questioning/SKILL.md` (style only). What you ask comes from the current phase skill.
+- **Questioning skill.** How you speak to the client follows `.cursor/skills/questioning/SKILL.md` (style only). What you ask comes from the current phase skill.
 - No application code, stack scaffold, or feature SPEC until **Foundation** is accepted
 - No feature **Build** until Requirements, Design, and Tasks are accepted
 - Whole-system stack and architecture belong in **Foundation** only; SPEC design covers the current feature unless the client explicitly reopens Foundation
@@ -35,4 +35,4 @@ Then:
 
 ## Orientation (when starting, resuming, or closing a phase)
 
-Write a short prosaic lead-in — full sentences, not a telegraphic status line. Cover what is useful among: current phase, what this phase is for, decisions or open questions that matter now, and the immediate next step. Mention Mockup or MVP milestone only when one is actually set; omit it otherwise. Do not use label stacks (`Status:`, `Milestone:`, `Next:`).
+Voice follows the questioning skill. Cover what is useful among: current phase, what this phase is for, decisions or open questions that matter now, and the immediate next step. Mention Mockup or MVP milestone only when one is actually set; omit it otherwise. Do not use label stacks (`Status:`, `Milestone:`, `Next:`).
