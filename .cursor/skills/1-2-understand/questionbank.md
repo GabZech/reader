@@ -12,7 +12,7 @@ Journeys here are **overall use cases** at discovery level of detail: named end-
 | --- | --- | --- |
 | Persona depth | Personas | Name who is in focus, their goals, contexts, and what success or failure looks like for them |
 | Situations and rhythm | Personas, journeys | Say when, where, and how often the work happens, and what starts or ends a session |
-| Journey inventory | Journeys | List the primary end-to-end scenarios by name (use-case level of detail) |
+| Journey inventory | Journeys | List the primary end-to-end scenarios by name, in chronological order of occurrence (use-case level of detail) |
 | Journey walkthrough | Journeys | Narrate each primary journey: trigger → steps today → outcome, friction, and **Wanted** if they volunteer a change |
 | Edges and recovery | Journeys | Name costly failure, empty, late, or wrong cases and what people do then |
 | Cross-cutting constraints | Constraints | Separate hard vs soft limits that are not one journey |
@@ -42,10 +42,11 @@ Name distinct goals worth following end to end. Stop at scenario level of detail
 - What distinct goals would we need to follow end to end to cover the vision?
 - Which of those are central vs occasional?
 - For each, who is the actor and what kicks it off?
+- In what order do these typically occur, including setup before the sessions it enables?
 
 ### 4. Journey walkthrough (per primary journey)
 
-Prefer critical incidents and chronological follow-ups over generic funnel templates. Current-state first; do not design the to-be path here. If they volunteer what should change, record it as **Wanted** on that journey; do not rewrite the steps.
+Prefer critical incidents and chronological follow-ups over generic funnel templates. Walk primary journeys in the chronological order from the inventory. Current-state first; do not design the to-be path here. If they volunteer what should change, record it as **Wanted** on that journey; do not rewrite the steps.
 
 - Tell me about the last time this was done.
 - What were the steps from trigger to done?
