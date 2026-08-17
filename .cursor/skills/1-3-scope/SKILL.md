@@ -68,4 +68,4 @@ If those are still missing, keep asking: do not invent them. Epics and scopes ar
 
 ## Gate
 
-After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Mockup; Milestone → Mockup; refresh Summary / Decisions / Open from the scopes; add Scope under Concluded); follow writing-docs **Root README** When for this phase. Do not advance without confirmation.
+After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Mockup; Milestone → Mockup; refresh Summary / Decisions / Open from the scopes; add Scope under Concluded). Do not offer a README refresh. Do not advance without confirmation.
