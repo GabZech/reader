@@ -24,6 +24,7 @@ description: >-
 
 1. After a reply, default to the next question only. Do not recap or paraphrase what they just said.
 2. Comment only when the answer is high-stakes: it would drive a major architectural specification, or it may conflict with other features or locked decisions. Then one short comment on that overall impact, not a summary of their words, then the question.
-3. **Exactly one** question. Wait for the reply. No multi-part asks, no lists, no “also…”.
+3. **Exactly one** question. Wait for the reply. No multi-part asks, no “also…”.
+4. **Show what the question depends on.** If the client needs named product material (journeys, constraints, epics, decisions, samples) to answer, put that material in the message. A clickable URL may accompany it. Do not cite a repo path and expect them to open the file. When the ask is a judgment over a set, show the set in the chat; a link alone is not enough. Labeled inventory in the message is not a multi-part ask.
 
 Gate accepts count as one question.
