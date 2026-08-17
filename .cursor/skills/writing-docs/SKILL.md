@@ -2,9 +2,9 @@
 name: writing-docs
 description: >-
   Voice and structure for human-facing living docs under docs/ (vision, metrics,
-  personas, journeys, constraints, epics, architecture, development, operations,
-  roadmap, and similar) and the product root README. Use when writing or editing
-  those files. Do not use for docs/history/ or docs/specs/.
+  personas, journeys, constraints, epics, mockup, architecture, development,
+  operations, roadmap, and similar) and the product root README. Use when
+  writing or editing those files. Do not use for docs/history/ or docs/specs/.
 ---
 
 # Writing docs
@@ -91,6 +91,21 @@ Refresh Summary, Decisions, and Open when a phase gate advances; keep Decisions 
 ### Concluded
 
 Under **Concluded**, one ✅ bullet per accepted phase: phase name, links to living-doc results, and the phase history folder when it exists.
+
+## Mockup (`docs/product-definition/mockup.md`)
+
+Thin pointer to the clickable dummy. Write during Mockup once the dummy is walkable; refresh on accept. The dummy itself is not this file (HTML lives under `docs/mockup/`; Penpot/Figma stay in that tool).
+
+### Shape
+
+1. **Purpose** — what the walkthrough was for (from Scope), one or two sentences
+2. **Tool** — HTML, Penpot, or Figma
+3. **How to open** — local URL or share link; enough to walk it without a repo scavenger hunt
+4. **Paths walkable** — labeled list matching mockup-scope
+5. **What we learned**
+6. **Still open** — what the dummy cannot prove
+
+Do not paste screens, rewrite journeys, or treat the dummy as the product.
 
 ## Avoid
 

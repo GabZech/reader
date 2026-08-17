@@ -6,7 +6,7 @@ Pick and adapt; do not read as a script. Reuse Understand answers; decide, do no
 
 Epics here are **named capabilities** at a coarser level of detail than user stories. Each traces to at least one accepted journey. User stories wait for Requirements; screens wait for Mockup; stack waits for Foundation.
 
-The **mockup** is a clickable Figma dummy of the solution, not built software.
+The **mockup** is a clickable dummy of the solution, not built software. Which tool (HTML, Penpot, Figma) is chosen at Mockup start.
 
 ## Question clusters → artifacts
 
@@ -33,7 +33,7 @@ Learning, not a preview of the whole MVP. Focus on what is uncertain or easy to 
 
 - What needs to be clickable to know the solution is on the right track?
 - Which parts feel most uncertain, or most likely to go wrong in the design?
-- Which paths must be walkable in Figma for that, even if they are not in the MVP?
+- Which paths must be walkable in the dummy for that, even if they are not in the MVP?
 
 ### 3. What cannot stand alone
 
@@ -72,7 +72,7 @@ Present that package and ask once whether to confirm or adjust. Fold the confirm
 ## Boundaries
 
 - No user stories, acceptance criteria, or story maps in this phase.
-- No Figma screens or as-should walkthroughs (Mockup).
+- No dummy screens or as-should walkthroughs (Mockup).
 - No stack or architecture (Foundation).
 - Do not invent primary journeys; if a path is missing, reopen Understand.
 - Later is deferred on purpose, and is not a Kickoff non-goal.
@@ -80,4 +80,4 @@ Present that package and ask once whether to confirm or adjust. Fold the confirm
 
 ## Boundary with the next phase
 
-After Scope accept, Mockup makes the mockup-scope journeys a clickable Figma dummy and iterates on feedback. Do not design those screens here. If the client volunteers layout or interaction detail early, note it under history and reuse in Mockup.
+After Scope accept, Mockup makes the mockup-scope journeys a clickable dummy and iterates on feedback. Do not design those screens here. If the client volunteers layout or interaction detail early, note it under history and reuse in Mockup.
