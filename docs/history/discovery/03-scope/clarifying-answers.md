@@ -21,3 +21,7 @@ The first product must complete **Add a Source to a List**, **Morning News Pass*
 ## What cannot stand alone (2026-08-17)
 
 **Add a Source to a List** is a prerequisite: without it the other journeys would not work. **Morning News Pass** and **Read-Later Pass** are coupled on the park action: it would feel broken if a link cannot be added to Read later while browsing and reading through the morning pass. Highlighting into the vault and Evening Video Triage were not named as further stand-alone breaks.
+
+## What we are still unsure about (2026-08-17)
+
+Morning freshness, in-app extraction quality, the $10 USD/month cost ceiling, and newsletter add waiting for the first email are carried as risk. They do not change which journeys belong in the first product. The clickable dummy still settles the timed-list recency window and the highlight controls.
