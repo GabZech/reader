@@ -2,14 +2,15 @@
 
 ## Where We Are
 
-**📍 Phase:** Scope (not started)
+**📍 Phase:** Understand (in progress; reopened)
 
 **🏁 Milestone:** none set
 
 **📄 Summary:**
 
-- Understand accepted: who it is for, the as-is journeys, and the limits that shape them are locked
-- Scope is next when you pick it up: package those journeys into epics and decide mockup / MVP / later. It is not started in this session
+- Scope started, then paused: a primary path was missing
+- Understand is open again to add Read-Later Pass, drop events, and correct list names and devices
+- After this delta is accepted, Scope resumes with the revised journey set
 
 **❗ Decisions:**
 
@@ -18,9 +19,9 @@
   - Full ownership of ingested content and highlights in client-controlled formats
   - Obsidian export matches the settled markdown sample (frontmatter, title, summary, highlights, section headings)
   - Morning newsletters must already be in the News list by the phone pass, once the source has sent
-  - Phone for morning News (usually home Wi-Fi unless away); computer for evening read-later and video
+  - Phone for morning News (usually home Wi-Fi unless away). Other reading, including Read later, mostly on the phone and sometimes on the computer. Computer primary only for Favourite channels
   - Operating cost about $5 USD/month preferred, $10 USD/month hard ceiling, including any store or developer fees
-  - List membership cannot stay as manual author-name or feed-ID query editing; a list groups sources for a moment and may mix types later
+  - List membership cannot stay as manual author-name or feed-ID query editing. The lists in the picture now are News, Read later, and Favourite channels. More lists may mix types later
   - In-app extraction of the sources actually read must be consistently readable; the browser is a rare escape, not the normal path
 - **Out**
   - Multi-user or shared accounts
@@ -29,12 +30,12 @@
   - Built-in LLM or RAG querying in the first release
   - Perfect in-app reading for every site on the web
   - Going through a publisher paywall without their access
+  - An events list or a separate weekend-events session
 
 **⚠️ Open:**
 
-- Epics and mockup / MVP / later scope (Scope, when resumed)
+- Confirm this Understand delta, then return to Scope (epics and mockup / MVP / later)
 
 ## Concluded
 
 - ✅ **Kickoff:** [vision](product-definition/vision.md), [metrics](product-definition/metrics.md); session log under [history/discovery/01-kickoff](history/discovery/01-kickoff/)
-- ✅ **Understand:** [personas](product-definition/personas.md), [journeys](product-definition/journeys.md), [constraints](product-definition/constraints.md); session log under [history/discovery/02-understand](history/discovery/02-understand/)

@@ -96,3 +96,19 @@ Personas hold who/why; journeys hold as-is steps plus **Wanted** (what should di
 ## Accept (2026-08-16)
 
 Understand accepted. Scope is next but not started in this session.
+
+## Reopen: missing Read-Later path (2026-08-17)
+
+Scope started, then paused: the Read later list was a missing primary journey. Understand reopened to capture it and to correct lists and devices.
+
+**Read-Later Pass (today):** Triggered when there is time and the reader wants an interesting article from the list. Mostly on the phone, sometimes on the computer. Open Read later, read and highlight items in the library (saved to Read later but not yet archived). When finished with an article, archive it so it leaves the library but stays saved separately. Re-access is from the Obsidian note, not the archive. Session ends when the reader has had enough or has to do something else. If stopped mid-article, the item stays in the library marked seen, and reopen resumes where it left off. Resume failure was not named as something that happens.
+
+**Wanted on this path:** Toggle between library and archive on this list, not unseen versus seen (the split other lists use). Library is articles saved to Read later that have not been archived yet. Started / unstarted instead of seen. Keep resume on reopen.
+
+**Park, Highlight, and Land in Obsidian:** Stays the vault outcome. Evening sit-down on the computer is no longer how this path is told. Highlighting happens during Read-Later Pass (and, as already Wanted, on first open without parking only to highlight).
+
+**Lists:** Events is out of the picture: not a journey and not a list. The lists in the picture now are News, Read later, and Favourite channels. Mixed-source lists later still stand.
+
+**Devices:** Phone for morning News, usually home Wi-Fi unless away. Other reading, including Read later, mostly on the phone and sometimes on the computer. Computer is primary only for Favourite channels.
+
+**Weekend Events Scan:** Removed as a journey. Working that list was not a meaningfully different session from News.

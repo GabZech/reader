@@ -11,9 +11,10 @@ The portrait lives here. What they do end to end lives in [journeys](journeys.md
 **Goals:**
 - Put sources onto the right lists: [Add a Source to a List](journeys.md#add-a-source-to-a-list)
 - Stay current on a small morning news set: [Morning News Pass](journeys.md#morning-news-pass)
+- Work through parked articles when there is time: [Read-Later Pass](journeys.md#read-later-pass)
 - Keep passages that matter in an Obsidian vault: [Park, Highlight, and Land in Obsidian](journeys.md#park-highlight-and-land-in-obsidian)
-- Use the same hub later for slower reading, local events, and video: [Evening Video Triage](journeys.md#evening-video-triage), [Weekend Events Scan](journeys.md#weekend-events-scan)
+- Use the same hub later for video: [Evening Video Triage](journeys.md#evening-video-triage)
 
-**Context:** Morning reading is on the phone, usually home Wi-Fi unless the reader is not at home. Evening computer time is for slower work and video. Lists are chosen by moment, not only by recency. Which lists exist now, and that mixed-source lists come later, is in [journeys](journeys.md).
+**Context:** Morning News is on the phone, usually home Wi-Fi unless the reader is not at home. Other reading, including Read later, is mostly on the phone and sometimes on the computer. Favourite channels is primarily on the computer. Lists are chosen by moment, not only by recency. The lists in the picture now are News, Read later, and Favourite channels.
 
 **Success and failure:** A good day is those journeys completing on the reader’s own stack, with the vault format intact. What counts as a hard miss (missing morning items, sloppy extraction, query-edited lists, cost above the ceiling, paywall circumvention) is in [constraints](constraints.md).
