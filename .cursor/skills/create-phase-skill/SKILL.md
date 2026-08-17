@@ -5,7 +5,7 @@ description: >-
   its question bank: brainstorm with the client first, research and review,
   then write files. Use when authoring a phase skill, adding questionbank.md,
   or repeating the Kickoff/Understand skill-creation workflow for Scope,
-  Prototype, Foundation, or later phases.
+  Mockup, Foundation, or later phases.
 ---
 
 # Create phase skill
@@ -18,7 +18,7 @@ Authoring craft (succinct copy, split style vs content, SKILL.md shape) lives in
 
 - Client asks to create or improve a phase skill / question bank
 - A phase skill lacks clarifying guidance that Kickoff or Understand already have
-- Preparing Scope, Prototype, Foundation, or a later phase the same way
+- Preparing Scope, Mockup, Foundation, or a later phase the same way
 
 ## Sequence (mandatory order)
 
@@ -27,7 +27,7 @@ Authoring craft (succinct copy, split style vs content, SKILL.md shape) lives in
 Propose, in conversation:
 
 - Phase strategy (what this phase locks; what it must not do)
-- Artifact list and grain (e.g. journeys = overall use cases; stories later)
+- Artifact list and level of detail (e.g. journeys = overall use cases; stories later)
 - Question clusters → which artifact each feeds → “ask until you can…” exits
 - Boundaries with the previous and next phase
 - What to propose-for-confirm vs ask open (mirror Kickoff non-goals / Understand constraints)
@@ -64,8 +64,8 @@ Summarize what was added or changed and which phase to run next (or resume). Do 
 | Agnosticism | Skills and banks apply to any idea; product facts stay in `docs/` |
 | Question banks | Progressive disclosure: long menus in `questionbank.md`, not in `SKILL.md` |
 | Delivery style | Never duplicate questioning skill rules inside the bank |
-| Cuts and stack | Discovery banks stay descriptive until Scope (cuts) or Foundation (stack) |
-| User stories | Not in discovery banks; Requirements owns story + AC grain |
+| Scopes and stack | Discovery banks stay descriptive until Scope (mockup / MVP / later) or Foundation (stack) |
+| User stories | Not in discovery banks; Requirements owns story + AC level of detail |
 | Client prompts | Never save verbatim chat into skills or `docs/` |
 
 ## Anti-patterns
@@ -73,4 +73,4 @@ Summarize what was added or changed and which phase to run next (or resume). Do 
 - Researching or writing files before the client has seen a structure proposal
 - Encoding the current product’s personas, journeys, or stack into the phase skill
 - Turning the bank into a rigid script instead of a pick-and-adapt menu
-- Soliciting open “what should we leave out?” lists when the phase should propose non-goals or constraints for confirm/edit
+- Soliciting open “what should we leave out?” lists when the phase should propose non-goals, constraints, or scopes for confirm/edit

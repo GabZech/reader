@@ -1,6 +1,6 @@
 # Constraints
 
-Cross-cutting **limits** confirmed in Understand. They steer Scope. They are not epic cuts, not stack choices, and not a list of product wishes. What should change on a path sits as **Wanted** on that [journey](journeys.md).
+Cross-cutting **limits** confirmed in Understand. They steer Scope. They are not epics or mockup / MVP / later scope, not stack choices, and not a list of product wishes. What should change on a path sits as **Wanted** on that [journey](journeys.md).
 
 Hard limits are fixed for this product direction until explicitly reopened. Soft limits are real preferences that can yield if they collide with cost or complexity.
 

@@ -2,7 +2,7 @@
 
 Clarifying **content** for Kickoff. Deliver each ask with the questioning skill (`.cursor/skills/questioning/SKILL.md`) — style lives there; this file is only the menu.
 
-Pick and adapt; do not read as a script. Sole client = the user.
+Pick and adapt; do not read as a script.
 
 ## Question clusters → artifacts
 
@@ -12,7 +12,7 @@ Pick and adapt; do not read as a script. Sole client = the user.
 | Who & impact | Problem, vision | Name who is affected and how (high level) |
 | Problem / opportunity | Problem statement | Write one focused problem without a solution inside it |
 | Status quo | Problem, vision | Describe today’s workaround and what already works |
-| Desired outcomes | Vision, metrics | Separate user outcomes from client/business outcomes |
+| Desired outcomes | Vision, metrics | Separate outcomes for people affected from commissioning-side outcomes |
 | Success measures | Metrics | Name outcome signals, not delivery tasks |
 | Assumptions & unknowns | History notes; later phases | List what must be learned or proved next |
 
@@ -41,25 +41,25 @@ Aim for a brief problem statement: background, people affected, impact if unsolv
 - Where does this problem show up?
 - When does it typically occur?
 - Why does it matter to the people affected?
-- Why does it matter to you?
+- Why does it matter to whoever is commissioning this?
 
 Avoid embedding “so we will build X” in the problem itself.
 
-If the client starts from a solution (“I want an app that…”), pick **one** of: What job is that meant to do? What fails today without it? How do people cope now?
+If the conversation starts from a solution, pick **one** of: What job is that meant to do? What fails today without it? How do people cope now?
 
 ### 4. Status quo and alternatives
 
 - How is this handled today (tools, spreadsheets, people, ignoring it)?
-- What have you already tried?
+- What has already been tried?
 - What worked a little from those attempts?
-- What else have you considered, including doing nothing?
+- What else has been considered, including doing nothing?
 
-Prefer specific past behaviour over opinions of your idea.
+Prefer specific past behaviour over opinions of the idea.
 
 ### 5. Desired outcomes
 
-- If this succeeds, what is different for users in concrete terms?
-- What outcomes do *you* need (revenue, time saved, risk reduced, learning, personal goal)?
+- If this succeeds, what is different for the people affected, in concrete terms?
+- What outcomes does the commissioning side need (revenue, time saved, risk reduced, learning)?
 - What would “good enough for a first release” feel like?
 - How does that differ from the long-term ambition?
 

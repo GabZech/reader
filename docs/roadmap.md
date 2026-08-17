@@ -9,7 +9,7 @@
 **📄 Summary:**
 
 - Understand accepted: who it is for, the as-is journeys, and the limits that shape them are locked
-- Scope is next when you pick it up: package those journeys into epics and decide prototype / first release / later. It is not started in this session
+- Scope is next when you pick it up: package those journeys into epics and decide mockup / MVP / later. It is not started in this session
 
 **❗ Decisions:**
 
@@ -32,7 +32,7 @@
 
 **⚠️ Open:**
 
-- Epics and the prototype / first-release / later cut (Scope, when resumed)
+- Epics and mockup / MVP / later scope (Scope, when resumed)
 
 ## Concluded
 

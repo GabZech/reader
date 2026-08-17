@@ -53,7 +53,7 @@ Goal: gather only what `vision.md` and `metrics.md` need. Defer deep user/journe
 3. **Outcomes over outputs.** Success metrics measure changed behaviour or value, not “shipped X.”
 4. **Non-goals by proposal.** Do not ask open “what should we leave out?” questions. Near the end of clarifying, infer likely non-goals from prior answers (adjacent problems, audiences, tempting extras, hard must-nots if signaled) and propose a short list for confirmation or edit.
 5. **Assumptions on the table.** Surface what is believed but unproven; note what later discovery must learn or prove.
-6. **Stay in Kickoff scope.** High-level “who” and “why” yes; full personas, journeys, epic cuts, and architecture no.
+6. **Stay in Kickoff scope.** High-level “who” and “why” yes; full personas, journeys, epics, and architecture no.
 
 ### Flow
 

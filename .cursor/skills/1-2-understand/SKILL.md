@@ -8,7 +8,7 @@ description: >-
 
 # Understand
 
-Build a shared picture of who the product is for, what they try to do end to end, and the constraints that shape those paths. Descriptive only — no epics and no prototype / MVP / later cuts.
+Build a shared picture of who the product is for, what they try to do end to end, and the constraints that shape those paths. Descriptive only — no epics and no mockup / MVP / later scope.
 
 ## Entry
 
@@ -17,7 +17,7 @@ Build a shared picture of who the product is for, what they try to do end to end
 ## Artifacts
 
 - `docs/product-definition/personas.md`
-- `docs/product-definition/journeys.md` (named overall use cases at discovery grain)
+- `docs/product-definition/journeys.md` (named overall use cases at discovery level of detail)
 - `docs/product-definition/constraints.md`
 - `docs/history/discovery/02-understand/` (clarifying answers — never client prompts)
 
@@ -31,22 +31,22 @@ Build a shared picture of who the product is for, what they try to do end to end
 
 **Clarifying questions:** deliver each ask using the **questioning** skill (`.cursor/skills/questioning/SKILL.md`). **What to ask:** [questionbank.md](questionbank.md). Walk clusters one at a time; skip what Kickoff or this conversation already answered well.
 
-Do not write epics. Do not assign prototype / MVP / later. Do not invent stack or architecture. Do not write user stories or acceptance criteria.
+Do not write epics. Do not assign mockup / MVP / later. Do not invent stack or architecture. Do not write user stories or acceptance criteria.
 
 **Human role:** Confirm personas and journeys feel right; add missing users or paths; challenge weak constraints; check **Wanted** is a short change note, not a to-be redesign; accept when the picture is good enough to scope.
 
 ## Clarifying questions
 
-Goal: gather only what personas, journeys, and constraints need. Defer epic cuts to Scope; defer stories to Requirements; defer stack to Foundation.
+Goal: gather only what personas, journeys, and constraints need. Defer epics and mockup / MVP / later scope to Scope; defer stories to Requirements; defer stack to Foundation.
 
 ### Principles
 
 1. **Reuse Kickoff.** Deepen who, outcomes, and assumptions; do not re-litigate vision or metrics unless contradicted.
 2. **Past and present over hypotheticals.** Critical incidents and concrete situations over “would you use…” or feature opinions.
-3. **Current-state journeys.** Map how goals are achieved today. Put path-specific desired changes as **Wanted** on that journey. Put cross-cutting limits in constraints. Do not rewrite journeys as the new app. As-should paths wait for Prototype.
-4. **Use-case grain, not stories.** Name end-to-end scenarios; stop before user-story split and acceptance criteria.
+3. **Current-state journeys.** Map how goals are achieved today. Put path-specific desired changes as **Wanted** on that journey. Put cross-cutting limits in constraints. Do not rewrite journeys as the new app. As-should paths wait for Mockup.
+4. **Use-case level of detail, not stories.** Name end-to-end scenarios; stop before user-story split and acceptance criteria.
 5. **Constraints by proposal.** Infer hard vs soft limits from answers and Kickoff; confirm or edit — do not open with a laundry-list ask.
-6. **Stay in Understand scope.** No epics, MVP cuts, or architecture.
+6. **Stay in Understand scope.** No epics, mockup / MVP / later, or architecture.
 
 ### Flow
 
@@ -54,7 +54,7 @@ Goal: gather only what personas, journeys, and constraints need. Defer epic cuts
 2. If answers are vague, ask for one concrete example or “last time” next.
 3. After primary journeys are clear, propose inferred constraints (limits only); one confirmation ask.
 4. Draft personas, journeys, and constraints when the checklist below is met; present the summary.
-5. **Gap check (before accept):** Name one or two thin spots that still belong in Understand (not Scope/Foundation). One ask: anything to add there or elsewhere in Understand? Incorporate, then continue.
+5. **Gap check (before accept):** Name one or two thin spots that still belong in Understand (not Scope/Mockup/Foundation). One ask: anything to add there or elsewhere in Understand? Incorporate, then continue.
 6. One accept ask for Understand.
 
 ### Ready to draft artifacts when
@@ -64,7 +64,7 @@ Goal: gather only what personas, journeys, and constraints need. Defer epic cuts
 - Each primary journey narratable end to end (trigger, steps today, outcome, main friction), with **Wanted** where a change was named
 - Costly edges called out where they matter
 - Cross-cutting **limits** confirmed (or adjusted) from the agent’s proposal, with hard vs soft clear enough to steer Scope. Product wishes are not filed as constraints.
-- Open unknowns listed when they still block an honest cut
+- Open unknowns listed when they still block honest mockup / MVP / later scope
 
 If persona, primary journeys, or constraints are still missing, keep asking — do not invent them.
 
