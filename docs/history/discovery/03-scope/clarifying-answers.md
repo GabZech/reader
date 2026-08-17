@@ -29,3 +29,9 @@ Morning freshness, in-app extraction quality, the $10 USD/month cost ceiling, an
 ## Epics and scopes confirmed (2026-08-17)
 
 Five named capabilities: **Add a Source to a List**, **Morning News Pass**, **Read-Later Pass**, and **Highlight and Land in Obsidian** in the first product; **Evening Video Triage** later. Mockup walks the four first-product capabilities; learning concentrates on the timed-list recency window and the highlight controls. First piece to implement after Mockup: **Add a Source to a List**. Catalog: [epics.md](../../../product-definition/epics.md).
+
+## Gap check (2026-08-17)
+
+**List triage:** Removing an item from a list is first-product behavior on every list. A YouTube item is triaged the same way as any other list item, so adding a YouTube channel stays in **Add a Source to a List**. **Evening Video Triage** later is in-app watching, the evening session, and filtering Shorts, not a different delete model.
+
+**Mockup shell:** The dummy includes the home page and overall basic functionality of the app (lists in the picture, source inventory, navigation, remove-from-list), not only the two uncertain cuts.
