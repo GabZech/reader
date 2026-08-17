@@ -2,15 +2,15 @@
 
 ## Where We Are
 
-**📍 Phase:** Understand (in progress; reopened)
+**📍 Phase:** Scope (in progress)
 
 **🏁 Milestone:** none set
 
 **📄 Summary:**
 
-- Scope started, then paused: a primary path was missing
-- Understand is open again to add Read-Later Pass, drop events, and correct list names and devices
-- After this delta is accepted, Scope resumes with the revised journey set
+- Understand accepted, including the Read-Later Pass amendment
+- Scope is underway: package the journeys into epics and decide mockup / MVP / later
+- Mockup is next after Scope is accepted
 
 **❗ Decisions:**
 
@@ -23,6 +23,7 @@
   - Operating cost about $5 USD/month preferred, $10 USD/month hard ceiling, including any store or developer fees
   - List membership cannot stay as manual author-name or feed-ID query editing. The lists in the picture now are News, Read later, and Favourite channels. More lists may mix types later
   - In-app extraction of the sources actually read must be consistently readable; the browser is a rare escape, not the normal path
+  - YouTube channels are added by pasting the channel weblink
 - **Out**
   - Multi-user or shared accounts
   - YouTube local save and auto-transcription
@@ -34,8 +35,9 @@
 
 **⚠️ Open:**
 
-- Confirm this Understand delta, then return to Scope (epics and mockup / MVP / later)
+- Epics and mockup / MVP / later scope (Scope)
 
 ## Concluded
 
 - ✅ **Kickoff:** [vision](product-definition/vision.md), [metrics](product-definition/metrics.md); session log under [history/discovery/01-kickoff](history/discovery/01-kickoff/)
+- ✅ **Understand:** [personas](product-definition/personas.md), [journeys](product-definition/journeys.md), [constraints](product-definition/constraints.md); session log under [history/discovery/02-understand](history/discovery/02-understand/)

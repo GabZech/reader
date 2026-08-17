@@ -118,3 +118,7 @@ Scope started, then paused: the Read later list was a missing primary journey. U
 **Add a YouTube channel (today):** Paste the channel weblink; it is added as a source.
 
 **Favourite channels (Wanted):** Show only full videos. Filter out Shorts.
+
+## Accept (2026-08-17)
+
+Understand accepted, including this amendment. Scope resumes with the revised journey set.
