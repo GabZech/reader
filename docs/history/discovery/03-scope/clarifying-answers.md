@@ -39,3 +39,7 @@ Five named capabilities: **Add a Source to a List**, **Morning News Pass**, **Re
 ## Catalog wording (2026-08-17)
 
 Epics catalog rewritten in ordinary language: dropped specialist phrasing (grain, cut, morning freshness, walkable, dummy, triage as a special model). Substance of the scopes is unchanged.
+
+## Accept (2026-08-17)
+
+Scope accepted. Mockup is next but not started in this session.
