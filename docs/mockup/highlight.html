@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Highlight</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="top">
+        <div class="actions">
+          <a data-from href="article.html">Close</a>
+        </div>
+        <h1>Highlight</h1>
+      </header>
+      <p class="lede">Traders pointed to a run of stronger US data and a quieter calendar in London.</p>
+      <section class="list">
+        <a class="item" data-from href="section-title.html">
+          <span class="title">Add section title</span>
+          <span class="sub">
+            <span class="byline">This highlight and those that follow, until the next title</span>
+          </span>
+        </a>
+        <a class="item" data-from href="subsection-title.html">
+          <span class="title">Add subsection title</span>
+          <span class="sub">
+            <span class="byline">Same rule, one level under a section title</span>
+          </span>
+        </a>
+        <a class="item" data-copy-delete data-from href="article.html?clear=1">
+          <span class="title">Copy text and delete highlight</span>
+        </a>
+        <a class="item" data-from href="article.html?clear=1">
+          <span class="title">Delete highlight</span>
+        </a>
+      </section>
+    </div>
+    <nav class="tabbar" aria-label="Main">
+      <a class="tab" href="index.html">Home</a>
+      <a class="tab is-active" href="lists.html">Lists</a>
+      <a class="tab" href="sources.html">Sources</a>
+    </nav>
+    <script src="article.js"></script>
+    <script>
+      document.querySelector("[data-copy-delete]")?.addEventListener("click", () => {
+        const text = document.querySelector(".lede")?.textContent?.trim() || "";
+        navigator.clipboard.writeText(text).catch(() => {});
+      });
+    </script>
+  </body>
+</html>

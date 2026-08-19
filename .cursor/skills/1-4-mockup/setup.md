@@ -29,7 +29,7 @@ When you capture:
 
 Do not dump a first-seen screen into chat without a capture pass. If capture is rate-limited or broken, say so and either switch tool or ask the client to look while you name what to check.
 
-Review images may live under `docs/history/discovery/04-mockup/review/`. Do not treat them as the dummy.
+Review images may live under `docs/history/discovery/04-mockup/review/` during the phase. Do not treat them as the dummy.
 
 ---
 

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>How far back</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="top">
+        <a class="back" data-choose-back href="add-choose-list.html">List</a>
+        <h1>News</h1>
+      </header>
+      <p class="lede">How far back should <span data-source-title>Lenny's Newsletter</span> go on this list?</p>
+      <section class="list">
+        <a class="item" href="add-done.html">
+          <span class="title">Last day</span>
+          <span class="sub">
+            <span class="byline">Only items from the last 24 hours</span>
+          </span>
+        </a>
+        <a class="item" href="add-done.html">
+          <span class="title">Last week</span>
+          <span class="sub">
+            <span class="byline">Items from the last 7 days</span>
+          </span>
+        </a>
+      </section>
+    </div>
+    <nav class="tabbar" aria-label="Main">
+      <a class="tab" href="index.html">Home</a>
+      <a class="tab" href="lists.html">Lists</a>
+      <a class="tab is-active" href="sources.html">Sources</a>
+    </nav>
+    <script src="sources-data.js"></script>
+    <script src="source.js"></script>
+  </body>
+</html>

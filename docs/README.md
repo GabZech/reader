@@ -10,6 +10,7 @@ Living product and engineering docs for this engagement. History under `docs/his
 - [Journeys](product-definition/journeys.md): how those people move through the product (Understand)
 - [Constraints](product-definition/constraints.md): cross-cutting limits (Understand)
 - [Epics](product-definition/epics.md): epics and mockup / MVP / later scope (Scope)
+- [Mockup](product-definition/mockup.md): clickable dummy, overall look, what the dummy settled and what it cannot prove
 
 ## Engagement
 

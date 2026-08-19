@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>News</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="top top-row">
+        <h1 data-list-title="news">News</h1>
+        <a class="top-edit" href="list-name.html?list=news&amp;back=news.html">Edit</a>
+      </header>
+      <div class="actions">
+        <a class="is-active" href="news.html">Unseen (6)</a>
+        <a href="news-seen.html">Seen (2)</a>
+      </div>
+
+      <section class="list">
+        <a class="item has-thumb" href="article.html?from=news">
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">FT morning briefing</span>
+          <span class="sub">
+            <span class="byline">Financial Times · Today</span>
+            <span class="length">8 min</span>
+          </span>
+        </a>
+        <a class="item has-thumb" href="batch.html?from=news">
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">The Batch</span>
+          <span class="sub">
+            <span class="byline">DeepLearning.AI · Today</span>
+            <span class="length">6 min</span>
+          </span>
+        </a>
+        <div class="item">
+          <span class="title">Stratechery</span>
+          <span class="sub">
+            <span class="byline">Ben Thompson · Yesterday</span>
+            <span class="length">12 min</span>
+          </span>
+        </div>
+        <div class="item">
+          <span class="title">Platformer</span>
+          <span class="sub">
+            <span class="byline">Casey Newton · Yesterday</span>
+            <span class="length">9 min</span>
+          </span>
+        </div>
+        <div class="item">
+          <span class="title">The Economist Espresso</span>
+          <span class="sub">
+            <span class="byline">The Economist · 17/08/26</span>
+            <span class="length">5 min</span>
+          </span>
+        </div>
+        <div class="item">
+          <span class="title">Import AI</span>
+          <span class="sub">
+            <span class="byline">Jack Clark · 16/08/26</span>
+            <span class="length">11 min</span>
+          </span>
+        </div>
+      </section>
+    </div>
+
+    <nav class="tabbar" aria-label="Main">
+      <a class="tab" href="index.html">Home</a>
+      <a class="tab is-active" href="lists.html">Lists</a>
+      <a class="tab" href="sources.html">Sources</a>
+    </nav>
+    <script src="list-names.js"></script>
+  </body>
+</html>

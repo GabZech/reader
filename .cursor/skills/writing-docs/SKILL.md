@@ -94,7 +94,7 @@ Under **Concluded**, one ✅ bullet per accepted phase: phase name, links to liv
 
 ## Mockup (`docs/product-definition/mockup.md`)
 
-Thin pointer to the clickable dummy. Write during Mockup once the dummy is walkable; refresh on accept. The dummy itself is not this file (HTML lives under `docs/mockup/`; Penpot/Figma stay in that tool).
+Thin pointer to the clickable dummy. Write during Mockup once the dummy is walkable; refresh on accept. The dummy itself is not this file (HTML lives under `docs/mockup/`; Penpot/Figma stay in that tool). Keep this file under product-definition until Foundation is accepted; Foundation then moves it to `docs/history/discovery/04-mockup/`.
 
 ### Shape
 

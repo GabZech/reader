@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Home lists</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="top top-row">
+        <h1>Home lists</h1>
+        <a class="top-edit" href="index.html">Done</a>
+      </header>
+
+      <section class="list" data-home-edit>
+        <div class="item" data-list-id="news">
+          <span class="title" data-list-title="news">News</span>
+          <span class="sub">
+            <span class="edit-moves">
+              <button type="button" class="edit-btn" data-up>Move up</button>
+              <button type="button" class="edit-btn" data-down>Move down</button>
+            </span>
+            <button type="button" class="edit-btn edit-toggle" data-toggle>On Home</button>
+          </span>
+        </div>
+        <div class="item" data-list-id="later">
+          <span class="title" data-list-title="later">Read later</span>
+          <span class="sub">
+            <span class="edit-moves">
+              <button type="button" class="edit-btn" data-up>Move up</button>
+              <button type="button" class="edit-btn" data-down>Move down</button>
+            </span>
+            <button type="button" class="edit-btn edit-toggle" data-toggle>On Home</button>
+          </span>
+        </div>
+        <div class="item" data-list-id="fav">
+          <span class="title" data-list-title="fav">Favourite channels</span>
+          <span class="sub">
+            <span class="edit-moves">
+              <button type="button" class="edit-btn" data-up>Move up</button>
+              <button type="button" class="edit-btn" data-down>Move down</button>
+            </span>
+            <button type="button" class="edit-btn edit-toggle" data-toggle>On Home</button>
+          </span>
+        </div>
+      </section>
+    </div>
+
+    <nav class="tabbar" aria-label="Main">
+      <a class="tab is-active" href="index.html">Home</a>
+      <a class="tab" href="lists.html">Lists</a>
+      <a class="tab" href="sources.html">Sources</a>
+    </nav>
+
+    <script src="home-layout.js"></script>
+    <script src="list-names.js"></script>
+    <script src="home-edit.js"></script>
+  </body>
+</html>

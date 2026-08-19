@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Source</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="top">
+        <a class="back" href="sources.html">Sources</a>
+        <h1 data-source-title>Lenny's Newsletter</h1>
+      </header>
+      <p class="lede" data-source-byline>Newsletter · Not on a list</p>
+      <section class="list">
+        <a class="item" data-items href="source-items.html">
+          <span class="title">See items of this source</span>
+        </a>
+        <a class="item" data-add href="add-choose-list.html">
+          <span class="title">Add source to list</span>
+        </a>
+        <a class="item" data-delete href="sources.html">
+          <span class="title">Delete source</span>
+        </a>
+      </section>
+    </div>
+    <nav class="tabbar" aria-label="Main">
+      <a class="tab" href="index.html">Home</a>
+      <a class="tab" href="lists.html">Lists</a>
+      <a class="tab is-active" href="sources.html">Sources</a>
+    </nav>
+    <script src="sources-data.js"></script>
+    <script src="source.js"></script>
+  </body>
+</html>

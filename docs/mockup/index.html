@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Home</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="top top-row">
+        <h1>Home</h1>
+        <a class="top-edit" href="home-edit.html">Edit</a>
+      </header>
+
+      <section class="list" data-list data-home-list="news" aria-labelledby="news-heading">
+        <a class="list-head" href="news.html">
+          <h2 id="news-heading" data-list-title="news">News</h2>
+          <span class="count">6</span>
+        </a>
+        <a class="item has-thumb" href="article.html">
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">FT morning briefing</span>
+          <span class="sub">
+            <span class="byline">Financial Times · Today</span>
+            <span class="length">8 min</span>
+          </span>
+        </a>
+        <a class="item has-thumb" href="batch.html">
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">The Batch</span>
+          <span class="sub">
+            <span class="byline">DeepLearning.AI · Today</span>
+            <span class="length">6 min</span>
+          </span>
+        </a>
+        <div class="item">
+          <span class="title">Stratechery</span>
+          <span class="sub">
+            <span class="byline">Ben Thompson · Yesterday</span>
+            <span class="length">12 min</span>
+          </span>
+        </div>
+        <div class="item is-more" hidden>
+          <span class="title">Platformer</span>
+          <span class="sub">
+            <span class="byline">Casey Newton · Yesterday</span>
+            <span class="length">9 min</span>
+          </span>
+        </div>
+        <div class="item is-more" hidden>
+          <span class="title">The Economist Espresso</span>
+          <span class="sub">
+            <span class="byline">The Economist · 17/08/26</span>
+            <span class="length">5 min</span>
+          </span>
+        </div>
+        <div class="item is-more" hidden>
+          <span class="title">Import AI</span>
+          <span class="sub">
+            <span class="byline">Jack Clark · 16/08/26</span>
+            <span class="length">11 min</span>
+          </span>
+        </div>
+        <button class="show-more" type="button">Show more</button>
+      </section>
+
+      <section class="list" data-list data-home-list="later" aria-labelledby="later-heading">
+        <a class="list-head" href="read-later.html">
+          <h2 id="later-heading" data-list-title="later">Read later</h2>
+          <span class="count">6</span>
+        </a>
+        <a class="item has-thumb" href="article-later.html">
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">How transformers actually work</span>
+          <span class="sub">
+            <span class="byline">Chip Huyen · Today</span>
+            <span class="length">22 min</span>
+          </span>
+        </a>
+        <a class="item" href="article-resume.html#resume">
+          <span class="title">Why the Fed changed course</span>
+          <span class="sub">
+            <span class="byline">The Atlantic · Yesterday</span>
+            <span class="length">14 min</span>
+          </span>
+        </a>
+        <div class="item has-thumb">
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">A practical guide to evals</span>
+          <span class="sub">
+            <span class="byline">Hamel Husain · Yesterday</span>
+            <span class="length">18 min</span>
+          </span>
+        </div>
+        <div class="item is-more" hidden>
+          <span class="title">What the web still gets wrong</span>
+          <span class="sub">
+            <span class="byline">Molly White · Yesterday</span>
+            <span class="length">11 min</span>
+          </span>
+        </div>
+        <div class="item is-more has-thumb" hidden>
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">Notes on local-first software</span>
+          <span class="sub">
+            <span class="byline">Ink &amp; Switch · 15/08/26</span>
+            <span class="length">16 min</span>
+          </span>
+        </div>
+        <div class="item is-more" hidden>
+          <span class="title">The case for boring technology</span>
+          <span class="sub">
+            <span class="byline">Dan McKinley · 12/08/26</span>
+            <span class="length">9 min</span>
+          </span>
+        </div>
+        <button class="show-more" type="button">Show more</button>
+      </section>
+
+      <section class="list" data-list data-home-list="fav" aria-labelledby="fav-heading">
+        <a class="list-head" href="favourite-channels.html">
+          <h2 id="fav-heading" data-list-title="fav">Favourite channels</h2>
+          <span class="count">6</span>
+        </a>
+        <a class="item has-thumb" href="video.html">
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">The most common mistake in statistics</span>
+          <span class="sub">
+            <span class="byline">Veritasium · Today</span>
+            <span class="length">18 min</span>
+          </span>
+        </a>
+        <div class="item has-thumb">
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">Attention in neural networks</span>
+          <span class="sub">
+            <span class="byline">3Blue1Brown · Yesterday</span>
+            <span class="length">12 min</span>
+          </span>
+        </div>
+        <div class="item has-thumb">
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">Why flying is so expensive</span>
+          <span class="sub">
+            <span class="byline">Wendover Productions · Yesterday</span>
+            <span class="length">21 min</span>
+          </span>
+        </div>
+        <div class="item is-more has-thumb" hidden>
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">The longest-running experiment</span>
+          <span class="sub">
+            <span class="byline">Veritasium · 17/08/26</span>
+            <span class="length">16 min</span>
+          </span>
+        </div>
+        <div class="item is-more has-thumb" hidden>
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">How lockpicking actually works</span>
+          <span class="sub">
+            <span class="byline">LockPickingLawyer · 14/08/26</span>
+            <span class="length">8 min</span>
+          </span>
+        </div>
+        <div class="item is-more has-thumb" hidden>
+          <span class="thumb" aria-hidden="true"></span>
+          <span class="title">A better way to think about Fourier</span>
+          <span class="sub">
+            <span class="byline">3Blue1Brown · 10/08/26</span>
+            <span class="length">26 min</span>
+          </span>
+        </div>
+        <button class="show-more" type="button">Show more</button>
+      </section>
+    </div>
+
+    <nav class="tabbar" aria-label="Main">
+      <a class="tab is-active" href="index.html">Home</a>
+      <a class="tab" href="lists.html">Lists</a>
+      <a class="tab" href="sources.html">Sources</a>
+    </nav>
+
+    <script src="home-layout.js"></script>
+    <script src="home.js"></script>
+    <script src="list-names.js"></script>
+  </body>
+</html>
