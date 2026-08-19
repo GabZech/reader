@@ -41,7 +41,7 @@ Goal: gather only what epics and mockup / MVP / later scope need. Defer stories 
 
 1. **Reuse Understand.** Deepen what is in or later; do not re-litigate personas, journeys, or constraints unless contradicted. Missing primary path: reopen Understand.
 2. **Recognisable capabilities.** Name epics the way someone would describe the job. Combine journeys into one epic only if they are the same job or a real outcome cannot complete without both. Split if the name would become vague. **Level of detail:** named capabilities, not user stories or tasks.
-3. **The clickable mockup is not the MVP.** Mockup scope tests the risky or unclear paths: whether people understand it, find it useful, and can complete the core path. It need not include everything in MVP scope; it may include something later if that is where the uncertainty is. Do not put the whole product in the clickable mockup.
+3. **The clickable mockup is not the MVP.** Mockup scope tests the risky or unclear paths: whether people understand it, find it useful, and can complete the core path. Mockup will also settle overall look on those paths. It need not include everything in MVP scope; it may include something later if that is where the uncertainty is. Do not put the whole product in the clickable mockup.
 4. **MVP whole enough, not merely small.** The first product must complete a recognisable outcome. Do not omit something required to complete that outcome. Do not try to include everything.
 5. **Scopes by proposal.** Infer epics and mockup / MVP / later from answers and Understand; confirm or edit. Do not open with laundry lists or scoring workshops.
 6. **Stay in Scope.** No stories, no dummy screens, no architecture.

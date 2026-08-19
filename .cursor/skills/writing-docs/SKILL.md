@@ -98,12 +98,12 @@ Thin pointer to the clickable dummy. Write during Mockup once the dummy is walka
 
 ### Shape
 
-1. **Purpose** — what the walkthrough was for (from Scope), one or two sentences
+1. **Purpose** — journey learning purpose from Scope, and that the dummy settles overall look on those paths
 2. **Tool** — HTML, Penpot, or Figma
 3. **How to open** — local URL or share link; enough to walk it without a repo scavenger hunt
 4. **Paths walkable** — labeled list matching mockup-scope
-5. **What we learned**
-6. **Still open** — what the dummy cannot prove
+5. **What we learned** — include overall look that was accepted
+6. **Still open** — unproven journey questions and look-risk carried into Foundation
 
 Do not paste screens, rewrite journeys, or treat the dummy as the product.
 

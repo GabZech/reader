@@ -8,7 +8,7 @@ description: >-
 
 # Foundation
 
-Design the system once and build its skeleton: architecture, stack, application shell, and operational basics.
+Design the system once and build its skeleton: architecture, stack, application shell, and operational basics. The application shell follows the overall look accepted in the mockup; do not restyle from scratch.
 
 ## Gate
 

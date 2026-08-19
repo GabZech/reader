@@ -4,21 +4,21 @@ Clarifying **content** for Mockup. Deliver each ask with the questioning skill (
 
 Pick and adapt; do not read as a script. Reuse Scope; design the dummy, do not restart epic packaging.
 
-The **mockup** is a clickable dummy of the solution, not built software and not the MVP. Tool choice (HTML, Penpot, Figma) is the first ask in the phase skill, not a cluster here.
+The **mockup** is a clickable dummy of the solution, not built software and not the MVP. It has two standing goals: the Scope mockup paths (and named failures) are walkable, and overall look on those paths is compatible with how the client envisions the app. Tool choice (HTML, Penpot, Figma) is the first ask in the phase skill, not a cluster here.
 
 ## Question clusters → artifacts
 
 | Cluster | Feeds | Ask until you can… |
 | --- | --- | --- |
 | Devices and surfaces | Screen list | Name which device(s) the dummy is walked on, and which is primary |
-| How finished it should look | Visual approach | Name the lowest visual finish that still answers Scope’s learning questions |
+| Overall look | Visual approach | Name enough visual character that the client can accept or reject the overall UI on the mockup-scope screens |
 | Labels and sample content | Screens | Name whether wording should be realistic enough to judge “is this obvious,” vs placeholder |
 | States that must exist | Screen list | Name empty, first-use, typical, and error states the walkthrough cannot skip |
 | What “clickable” means | Links in the dummy | Name which taps go somewhere vs which are scenery |
 
 The screen inventory is **not** a question cluster. After the rounds above, infer it and confirm (see below).
 
-Setup and self-review are **not** clusters. Feedback rounds are not a cluster: the client walks the dummy and says what is confusing.
+Setup and self-review are **not** clusters. Feedback rounds are not a cluster: after each shared step, one ask (does this look right, or is something needed on this step missing). When the client says the step is good, the phase skill names the next journey and starts it. Do not batch remaining journeys.
 
 ### 1. Devices and surfaces
 
@@ -27,12 +27,12 @@ Reuse Understand constraints and Scope mockup paths.
 - Which device is the walkthrough primarily on?
 - Does any mockup-scope path need a second surface, or can that wait?
 
-### 2. How finished it should look
+### 2. Overall look
 
-Fidelity is independent for visuals, clicks, and words. Prefer the lowest visual finish that still lets someone judge the learning questions. Polished pictures pull attention to colour and type.
+Visual finish, clicks, and words stay independent. The dummy must look real enough to judge overall look on the mockup-scope screens (layout, density, chrome, visual character). It is not a design-system interview and not a polish pass.
 
-- What would make the dummy look “finished” in a way that would distract from the learning questions?
-- Is mid-fidelity (real layout, plausible spacing, little branding) enough?
+- What does the dummy need to show so you can judge whether the overall look is right for the mockup-scope journeys?
+- Where should visual finish stay unfinished so we do not chase detail?
 
 ### 3. Labels and sample content
 
@@ -57,19 +57,20 @@ Simple On click → next screen. Paid prototype logic (variables, conditionals) 
 
 ### Screen list and visual approach (propose, then confirm)
 
-Do not ask the client to invent the screen inventory. Near the end, from Scope mockup paths and the rounds above, draft:
+Do not ask the client to invent the screen inventory or a design system. Near the end, from Scope mockup paths and the rounds above, draft:
 
 - Named screens (or HTML pages) covering those paths, including must-have states
+- Which screen is first (entry / shell) and in what order the mockup-scope journeys will be walked (prerequisites first)
 - Which taps are linked
-- Visual approach (usually mid-fidelity, little branding)
+- Visual approach: overall look for those screens (coherent layout, density, chrome, and visual character). Scenery and later-scope chrome stay low-finish.
 
-Present that package and ask once whether to confirm or adjust. Then build.
+Present that package and ask once whether to confirm or adjust. Then build the first screen only.
 
-After the last walkthrough, propose what the dummy settled vs what we still carry as risk; confirm; fold into `mockup.md`.
+After the last signed-off journey, propose what the dummy settled vs what we still carry as risk (journeys and look); confirm; fold into `mockup.md`.
 
 ## Question direction
 
-- Prefer what the walkthrough must let us learn over visual wish-lists or extra screens.
+- Prefer learning questions and overall look on in-scope screens over extra screens and visual polish.
 - Prefer realistic labels where “is it obvious?” is the question.
 - Never solicit the screen inventory with an open list; propose it for confirmation instead.
 
@@ -84,4 +85,4 @@ After the last walkthrough, propose what the dummy settled vs what we still carr
 
 ## Boundary with the next phase
 
-After Mockup accept, Foundation designs the system once and builds its skeleton: architecture, stack, application shell, operational basics. Do not choose stack here. If the client volunteers tech preferences, note them under history and reuse in Foundation.
+After Mockup accept, Foundation designs the system once and builds its skeleton: architecture, stack, application shell, operational basics. The accepted dummy’s overall look is an input to the application shell; Foundation must not invent a conflicting visual shell. Do not choose stack here. If the client volunteers tech preferences, note them under history and reuse in Foundation.

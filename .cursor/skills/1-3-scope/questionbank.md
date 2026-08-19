@@ -80,4 +80,4 @@ Present that package and ask once whether to confirm or adjust. Fold the confirm
 
 ## Boundary with the next phase
 
-After Scope accept, Mockup makes the mockup-scope journeys a clickable dummy and iterates on feedback. Do not design those screens here. If the client volunteers layout or interaction detail early, note it under history and reuse in Mockup.
+After Scope accept, Mockup makes the mockup-scope journeys a clickable dummy, settles overall look on those paths, and iterates on feedback. Do not design those screens here. If the client volunteers layout or interaction detail early, note it under history and reuse in Mockup.

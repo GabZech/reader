@@ -18,14 +18,16 @@ State that recommendation in the same message as the three options.
 
 ## Self-review (all tools)
 
-After each new screen or small batch of edits:
+Decide whether to capture. Do it when a change could look wrong: a first-seen screen, layout, density, chrome, new controls, or visual character. Skip when the risk of looking wrong is low: a label, a sentence, a link target, a dead-end note. Do not ask the client whether to capture.
 
-1. Capture a picture of the screen (HTML screenshot, Penpot `export_shape`, Figma `get_screenshot`).
-2. Look at it. Check overlap, truncated labels, missing controls for the learning questions, wrong viewport.
+When you capture:
+
+1. Take a picture of the screen (HTML screenshot, Penpot `export_shape`, Figma `get_screenshot`).
+2. Look at it. Check overlap, truncated labels, missing controls for the learning questions, wrong viewport, and whether overall look matches the confirmed visual approach. Do not polish scenery.
 3. Fix; recapture if the issue was visual.
 4. **Then** share a link or invite the client to walk it.
 
-Do not dump unreviewed screens into chat. If capture is rate-limited or broken, say so and either switch tool or ask the client to look while you name what to check.
+Do not dump a first-seen screen into chat without a capture pass. If capture is rate-limited or broken, say so and either switch tool or ask the client to look while you name what to check.
 
 Review images may live under `docs/history/discovery/04-mockup/review/`. Do not treat them as the dummy.
 
