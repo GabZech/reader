@@ -74,3 +74,4 @@ Summarize what was added or changed and which phase to run next (or resume). Do 
 - Encoding the current product’s personas, journeys, or stack into the phase skill
 - Turning the bank into a rigid script instead of a pick-and-adapt menu
 - Soliciting open “what should we leave out?” lists when the phase should propose non-goals, constraints, or scopes for confirm/edit
+- Writing bank items as open specialist quizzes (operations, vendors, stack) with no ordinary-language frame and no recommendation; questioning owns how, banks must mark those clusters as propose-and-confirm

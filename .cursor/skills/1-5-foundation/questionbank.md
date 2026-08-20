@@ -37,23 +37,28 @@ Reuse Understand devices and Mockup surfaces. Ask only what is still open.
 
 Hosting control must match who will actually keep it running.
 
-- Who deploys and maintains it day to day?
-- How much operational work is acceptable (updates, backups, incidents)?
-- How much hosting control can they handle: a managed platform, or running their own machines?
+Who deploys is a lived fact; ask if unknown. Do not ask them to pick a host type or ops burden from a specialist menu. Infer a recommendation from who they are, cost ceiling, whether they have a machine, and how much breakage-handling they already accepted; walk through what that means day to day; confirm.
+
+- Who deploys and maintains it day to day? (lived fact)
+- How much operational work is acceptable, and how much hosting control they can handle: settle by recommendation, not an open menu
 
 ### 4. What must stay in your hands
 
 GOV.UK: keep full control of data you store. Infer from ownership constraints; confirm gaps.
 
-- Which data must remain in client-controlled, exportable form?
-- Which jobs must not depend on a vendor remaining available or cheap?
+Do not ask them to list which jobs must not depend on a vendor. Infer a split from ownership, cost ceiling, and landscape. Walk through what still works if a vendor dies or gets expensive. Recommend which data and jobs stay in their hands vs may ride a vendor; one confirm.
+
+- Which data stays in client-controlled, exportable form
+- Which jobs may ride a vendor vs must still work if that vendor is gone or no longer cheap
 
 ### 5. How the outside world gets in
 
 Name the path at “this must work.” Do not pick the vendor here.
 
-- What inbound paths does the first product need (mail, feeds, files, APIs, webhooks)?
-- Which of those must already work for the skeleton to be honest, vs waiting for the first feature?
+Infer inbound paths from journeys and the first epic. Recommend which must already work for an honest skeleton vs can wait for the first feature; confirm. Probe only if a path is still ambiguous.
+
+- What inbound paths the first product needs (mail, feeds, files, APIs, webhooks)
+- Which of those the skeleton must already prove
 
 Park feature behaviour and story split; capture the unknown so Requirements can use it.
 
@@ -86,7 +91,7 @@ When inferring tradeoffs, consider these tensions only if they apply (do not dum
 
 - Prefer landscape, operator, ownership, and inbound need over language preference, vendor shopping, or a speed-vs-control quiz.
 - Prefer a simple whole that can evolve over premature splits.
-- Never solicit the stack, component map, or tradeoff axes with an open list; propose them for confirmation instead.
+- Never solicit the stack, component map, tradeoff axes, vendor-dependent jobs, or host type with an open list; infer a recommendation and confirm instead.
 
 ## Boundaries
 

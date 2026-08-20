@@ -35,7 +35,7 @@ Design the system once and build a walking skeleton: a tiny, permanent, tested e
 
 Do not restyle. Do not write a feature SPEC or first-epic behaviour. Do not split into many parts unless a confirmed constraint forces it. Do not start a second decision log (`docs/history/decisions/` is Documentation). If the accepted look cannot be built, say so. Live inbound credentials wait for the first feature unless the skeleton cannot run without them.
 
-**Human role:** Answer clarifying questions; confirm or edit the system package and its tradeoffs before any product code; judge the running skeleton (look, and whether this is the right place to hang the first feature); accept when remaining risk is explicit.
+**Human role:** Answer lived-fact asks; confirm or edit recommended splits (ownership, operations, inbound) and the system package before any product code; judge the running skeleton (look, and whether this is the right place to hang the first feature); accept when remaining risk is explicit.
 
 ## Clarifying questions
 
@@ -45,7 +45,7 @@ Goal: gather only what architecture, stack, operations, UI guidelines, and the s
 
 1. **Reuse locks.** Devices, cost, ownership, first epic, and overall look are inputs. Reopen Understand, Scope, or Mockup only if the system cannot honour them.
 2. **Few parts.** Prefer one deployable unit. Split only when a confirmed constraint forces it.
-3. **System by proposal.** Infer architecture, stack, build-vs-buy, skeleton joints, and tradeoffs. Do not ask the client to invent the stack or pick from a generic optimisation quiz.
+3. **System by proposal.** Infer architecture, stack, build-vs-buy, operational split, skeleton joints, and tradeoffs. Do not ask the client to invent the stack, name which jobs can depend on a vendor, or pick from a generic optimisation quiz.
 4. **Tradeoffs before code.** Name the forces actually in tension, which way the proposal leans, and what we give up. One confirm. No application code until aligned.
 5. **Walking skeleton, not a spike.** Permanent tested code that links the main parts with a tiny end-to-end function. The dummy was the throwaway. The first epic adds the flesh.
 6. **Prove the intended run path.** Local run plus tests if the product is local-only; hosted deploy plus smoke test if it must be hosted. Reliability theatre stays out unless who-operates-it demands it.
@@ -54,7 +54,7 @@ Goal: gather only what architecture, stack, operations, UI guidelines, and the s
 ### Flow
 
 1. Orient once: real system and a thin walking skeleton, not the first feature. The dummy is the look spec.
-2. Clarifying rounds from [questionbank.md](questionbank.md).
+2. Clarifying rounds from [questionbank.md](questionbank.md). Decision clusters (operator split, ownership, inbound) are recommend-and-confirm, not open specialist lists.
 3. Propose the system package (map, architecture, stack, inbound, skeleton joints, look extraction, tradeoffs); one confirm. Stop if not aligned: revise, do not scaffold.
 4. Write the four docs; extract look into UI guidelines. Fold confirmed tradeoffs into `architecture.md`.
 5. Set up the toolchain; build the skeleton; prove the intended run path.
