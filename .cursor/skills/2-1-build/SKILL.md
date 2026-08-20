@@ -11,7 +11,7 @@ description: >-
 
 # Build
 
-Make the current epic usable on a local instance of the real product, one tryable increment at a time. Clarify only what the next slice needs, build it, let the client try it locally, then the next slice. Continuous integration: run the usual local checks before showing a slice. Continuous delivery: keep signed-off work releasable, but do not release it here. This is not a SPEC, not throwaway, and not Deploy.
+Make the current epic usable on a local instance of the real product, one tryable increment at a time. Infer the job of the named slice before coding it, build that set, let the client try it locally, then the next slice. Continuous integration: run the usual local checks before showing a slice. Continuous delivery: keep signed-off work releasable, but do not release it here. This is not a SPEC, not throwaway, and not Deploy.
 
 ## Entry
 
@@ -22,7 +22,7 @@ Make the current epic usable on a local instance of the real product, one tryabl
 ## Artifacts
 
 - Working software on the local product (same app as the walking skeleton)
-- `docs/epics/<epic-slug>/clarifying-answers.md` (thin session facts for this open Build: in/out, increment map, leftover risk, current-slice gaps, which increments are signed off; never client prompts)
+- `docs/epics/<epic-slug>/clarifying-answers.md` (thin session facts for this open Build: in/out, increment map, current-slice job, leftover risk, lived-fact gaps, which increments are signed off; never client prompts)
 
 ## Do
 
@@ -30,14 +30,14 @@ Make the current epic usable on a local instance of the real product, one tryabl
 - Work on a branch for this epic. Follow `docs/development.md` when present.
 - Clarifying questions via the **questioning** skill. **What to ask:** [questionbank.md](questionbank.md). Skip what earlier phases or this conversation already answered.
 - Which epic this loop covers, then that epic's in/out and increment map; each one confirm. Vertical slices the client can try, not layers.
-- For the current increment only: fill lived-fact gaps, then build. Run the usual local checks before showing. How to try is the local run path in `docs/development.md`. Phone or device judgment uses that same local instance, not the production host.
+- For the current increment only: slice analysis, remaining lived-fact gaps, then build the confirmed set. Run the usual local checks before showing. How to try is the local run path in `docs/development.md`. Phone or device judgment uses that same local instance, not the production host.
 - After each increment: how to try it locally; one ask (good, or something needed missing). Iterate until signed off. Do not start the next increment until then. Record which increments are signed off.
 - If the client asks to put the current state live: enter **Deploy** with only signed-off increments. Do not ship an unfinished slice. Do not offer a production push after every increment.
 - Record those session facts in clarifying-answers. Do not copy living docs, and do not grow a behaviour spec the running slice can show.
 
 Do not write requirements, design, or task files. Do not reopen Foundation unless the client asks. Do not pull in other epics. Do not restyle. Do not update overview docs or write decision records (Deploy owns those). Do not deploy to the production host.
 
-**Human role:** Confirm which epic this loop covers; judge each running increment locally; say if it is good or something needed is missing; hold work outside this epic; ask to Deploy the last signed-off state at any time; when the map is done, confirm leftover risk so Deploy can ship the epic.
+**Human role:** Confirm which epic this loop covers; confirm the job of each increment before it is built; judge each running increment locally; say if it is good or something needed is missing; hold work outside this epic; ask to Deploy the last signed-off state at any time; when the map is done, confirm leftover risk so Deploy can ship the epic.
 
 ## Clarifying questions
 
@@ -48,17 +48,18 @@ Goal: gather only what the next increment needs. Defer living-doc alignment and 
 1. **Reuse locks.** Journeys, dummy, epics, and Foundation are inputs. Reopen only if this epic cannot honour them.
 2. **Epic by proposal.** Show the defined catalog and recommend which loop to start. Confirm; do not ask the client to invent the sequence.
 3. **Increment map by proposal.** Infer ordered tryable slices. Prefer high value and low complexity first unless a leftover joint blocks the rest. Confirm; do not ask the client to invent the backlog.
-4. **Clarify the current slice only.** Do not specify the whole epic before the first increment.
-5. **Try it, do not specify it.** Behaviour still open is cheaper to settle on a running slice than in a document. Clarifying-answers hold that slice's gaps, not a spec of the epic.
-6. **Agent verifies, client judges.** Tests, lint, and build are continuous integration. Whether the increment is good is the client's.
-7. **Stay in Build.** No overview docs, no SPEC trilogy, no next epic, no production deploy.
+4. **Job before the ask.** Infer the user-recognised job the named slice must finish (map or client request). Propose it; confirm; build that set, not the wording of the ask. Split only if hard to try as one piece, then put the rest on the map now. Do not defer a missing reverse to the try-loop. Do not pull in a different job or another epic.
+5. **Clarify the current slice only.** Fill remaining lived facts for this increment. Do not specify the whole epic before the first increment.
+6. **Try it, do not specify it.** Copy, spacing, colour, and other open feel are cheaper to settle on a running slice than in a document. Clarifying-answers hold that slice's gaps, not a spec of the epic.
+7. **Agent verifies, client judges.** Tests, lint, and build are continuous integration. Whether the increment is good is the client's.
+8. **Stay in Build.** No overview docs, no SPEC trilogy, no next epic, no production deploy.
 
 ### Flow
 
 1. Orient once: local instance, one increment at a time; production release is Deploy (when the epic is done, or when the client asks to ship signed-off work). If this loop's epic is not yet confirmed: show defined epics in the message (name, MVP or later, already built or not); recommend which to start (Scope's named first piece if still unbuilt, otherwise remaining MVP work by dependency); one confirm. Do not start in/out until that epic is confirmed. Skip this confirm when resuming that epic with work already underway.
 2. Propose in/out, the increment list, and which is first; one confirm.
-3. Clarifying rounds from [questionbank.md](questionbank.md) for the current increment only.
-4. Build that increment; self-check; share how to try locally; one ask. Iterate until good.
+3. Slice analysis then remaining lived-fact gaps from [questionbank.md](questionbank.md) for the current increment only.
+4. Build the confirmed set; self-check; share how to try locally; one ask. Iterate until good.
 5. Name the next increment; repeat from step 3 until the map is done, leftover risk is enough, or the client asks to Deploy.
 6. Enter Deploy per Gate.
 
@@ -67,7 +68,8 @@ Goal: gather only what the next increment needs. Defer living-doc alignment and 
 - Epic for this loop is confirmed
 - Epic in/out is confirmed
 - Increment map is confirmed (it may shrink after trying)
-- Gaps for this increment are filled
+- Slice analysis for this increment is confirmed
+- Remaining lived-fact gaps for this increment are filled
 
 ### Ready to show an increment when
 

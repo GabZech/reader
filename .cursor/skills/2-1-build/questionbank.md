@@ -13,12 +13,13 @@ Increments here are **vertical slices**: a thin path the client can try on the l
 | Epic choice | Which epic this loop covers | Name the epic after showing the catalog and a recommendation |
 | Epic boundary | In/out of this epic | Name what this loop includes vs what waits for another epic |
 | Increment map | Build order | Name ordered tryable slices and which is first |
-| Current increment | That slice | Fill only the gaps that slice needs |
+| Slice analysis | This increment’s real shape | Name the job, its reverse, where the result is visible, how the flow ends, and identifying corrections |
+| Current increment | Remaining gaps | Fill only lived facts that analysis could not settle |
 | Open unknowns | Clarifying-answers; Deploy | List leftover risk this epic will not settle |
 
 Trying an increment is **not** a cluster. That ask lives in the phase skill after the slice is running. A request to ship is **not** a cluster; it enters Deploy from the phase skill.
 
-Epic choice, epic boundary, and increment map are **propose-and-confirm**, not open lists.
+Epic choice, epic boundary, increment map, and slice analysis are **propose-and-confirm**, not open lists.
 
 ### 1. Epic choice (propose, then confirm)
 
@@ -44,15 +45,25 @@ Infer from the named epic, first-product cut, dummy, and Foundation leftovers.
 
 After an increment is tried, the map may shrink or split; confirm the change. Do not silently grow into another epic.
 
-### 4. Current increment
+### 4. Slice analysis (propose, then confirm)
 
-Ask only what this slice still needs. Lived facts: how something enters, waits, counts, empty states, duplicates. Do not pre-ask the rest of the map.
+When a slice is named (map or client request), infer the user-recognised job it must finish. Infer from journeys, dummy, Foundation, and what already ships. Show the set; recommend; one confirm. Do not ask the client to invent this inventory.
 
-- What the client must be able to do when this slice is done
+- The job this increment finishes: may be larger than the named ask; still one job, not several
+- Reverse of the state change this slice makes
+- Where the result is visible; which already-shipped screens must change
+- How the flow ends: clear outcome, what happens next, way back or cancel
+- Corrections to identifying details the user supplied on this slice
+- What is a different job or another epic and stays out
+
+### 5. Current increment
+
+Ask only lived facts this slice still needs after slice analysis. How something enters, waits, counts, empty states, duplicates. Do not pre-ask the rest of the map.
+
 - What happens when the input is missing, invalid, or already exists, if that can happen on this slice
 - What “nothing has arrived yet” means if this slice depends on an outside system
 
-### 5. Open unknowns
+### 6. Open unknowns
 
 - What this epic will carry as explicit remaining risk into Deploy
 - What a later epic must own
@@ -60,12 +71,14 @@ Ask only what this slice still needs. Lived facts: how something enters, waits, 
 ## Question direction
 
 - Prefer the next tryable path over completeness of the epic
-- Never solicit which epic to build, or the increment inventory, as an open list; propose both
+- Never solicit which epic to build, the increment inventory, or slice companions as an open list; propose them
+- Never start coding from the wording of a client ask or map item until slice analysis is confirmed
 - Never ask the client to write stories, EARS, or a design
 
 ## Boundaries
 
 - No `requirements.md`, `design.md`, or `tasks.md`
+- Completeness of this job, not a spec of the epic
 - No overview-doc rewrites (Deploy)
 - No production deploy (Deploy)
 - No stack or whole-system redesign (Foundation)
