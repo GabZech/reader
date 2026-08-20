@@ -4,7 +4,7 @@ description: >-
   Voice and structure for human-facing living docs under docs/ (vision, metrics,
   personas, journeys, constraints, epics, mockup, architecture, development,
   operations, roadmap, and similar) and the product root README. Use when
-  writing or editing those files. Do not use for docs/history/ or docs/specs/.
+  writing or editing those files. Do not use for docs/history/ or docs/epics/.
 ---
 
 # Writing docs
@@ -13,8 +13,8 @@ Style for reports and living docs under `docs/` meant for humans. Purpose and co
 
 ## Scope
 
-- **Apply** to human-facing living docs under `docs/` (e.g. product-definition, architecture, development, operations, roadmap, conventions, ui-guidelines) and the product root `README.md`
-- **Skip** `docs/history/` and `docs/specs/` (engagement log and epic notes keep their own shape)
+- **Apply** to human-facing living docs under `docs/` (e.g. vision, architecture, development, operations, roadmap, conventions, ui-guidelines) and the product root `README.md`
+- **Skip** `docs/history/` and `docs/epics/` (engagement log and epic notes keep their own shape)
 
 ## Voice
 
@@ -56,12 +56,12 @@ When the doc’s job is technical accuracy (user journeys, architecture, constra
 
 ## Root README (`README.md`)
 
-Product front door after Kickoff; not a second copy of vision or the full template manual.
+Product front door after Kickoff; not a second copy of the proposition or the full template manual.
 
 ### Shape
 
 1. **Title** — product or working name
-2. **Overview** — short prosaic pitch: problem and consequence first, then direction. Write in sentences, not a capability or feature inventory. Refresh when discovery locks change what a newcomer should know. Do not paste full vision, personas, or epic lists
+2. **Overview** — short prosaic pitch: problem and consequence first, then direction. Write in sentences, not a capability or feature inventory. Refresh when discovery locks change what a newcomer should know. Do not paste the full proposition, personas, or epic lists
 3. **How we work** — why before how: open with why structure beats jumping to code, then the two stages in short prose (discovery and foundation once; feature development repeats as Build then Document per epic). Name discovery phases in running sentences with their goals; do not use telegraphic bullet or arrow lists. No artifact inventories. Point to the template for discovery and foundation detail: [GabZech/template-spec-workflow](https://github.com/GabZech/template-spec-workflow). This repo’s feature loop is Build then Document, not that template’s SPEC stairs.
 4. Optional short pointers into `docs/` when useful; omit template “How to Start” once the product is underway
 
@@ -86,15 +86,15 @@ Fixed field order and icons:
 4. **❗ Decisions** — durable locks that steer later work, as prosaic bullets (not telegraphic labels). Nest **In** and **Out** sublists when both apply. Pull Out from confirmed non-goals; keep In to who, ownership, cost, must-haves, and hard reliability bets
 5. **⚠️ Open** — only what the current phase must still resolve. Do not add a separate Next line
 
-Refresh Summary, Decisions, and Open when a phase gate advances; keep Decisions aligned with accepted vision/non-goals (and later constraints) without pasting those docs.
+Refresh Summary, Decisions, and Open when a phase gate advances; keep Decisions aligned with accepted proposition and non-goals (and later constraints) without pasting those docs.
 
 ### Concluded
 
 Under **Concluded**, one ✅ bullet per accepted phase: phase name, links to living-doc results, and the phase history folder when it exists.
 
-## Mockup (`docs/product-definition/mockup.md`)
+## Mockup (`docs/vision/mockup.md`)
 
-Thin pointer to the clickable dummy. Write during Mockup once the dummy is walkable; refresh on accept. The dummy itself is not this file (HTML lives under `docs/mockup/`; Penpot/Figma stay in that tool). Keep this file under product-definition until Foundation is accepted; Foundation then moves it to `docs/history/discovery/04-mockup/`.
+Thin pointer to the clickable dummy. Write during Mockup once the dummy is walkable; refresh on accept. The dummy itself is not this file (HTML lives under `docs/mockup/`; Penpot/Figma stay in that tool). Keep this file under vision until Foundation is accepted; Foundation then moves it to `docs/history/discovery/04-mockup/`.
 
 ### Shape
 

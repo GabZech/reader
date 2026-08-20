@@ -4,7 +4,7 @@ Run **every time** Mockup starts or resumes. Assume nothing is installed. Tool c
 
 Do not commit secrets (Penpot MCP keys, Figma tokens). Prefer Cursor **user-level** MCP config, not a repo file.
 
-On resume: if `docs/product-definition/mockup.md` already names a tool and a file or folder, reuse it. Do not create a second dummy.
+On resume: if `docs/vision/mockup.md` already names a tool and a file or folder, reuse it. Do not create a second dummy.
 
 ## Inferring the tool recommendation
 

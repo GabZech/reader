@@ -28,7 +28,7 @@ Morning freshness, in-app extraction quality, the $10 USD/month cost ceiling, an
 
 ## Epics and scopes confirmed (2026-08-17)
 
-Five named capabilities: **Add a Source to a List**, **Morning News Pass**, **Read-Later Pass**, and **Highlight and Land in Obsidian** in the first product; **Evening Video Triage** later. Mockup walks the four first-product capabilities; learning concentrates on the timed-list recency window and the highlight controls. First piece to implement after Mockup: **Add a Source to a List**. Catalog: [epics.md](../../../product-definition/epics.md).
+Five named capabilities: **Add a Source to a List**, **Morning News Pass**, **Read-Later Pass**, and **Highlight and Land in Obsidian** in the first product; **Evening Video Triage** later. Mockup walks the four first-product capabilities; learning concentrates on the timed-list recency window and the highlight controls. First piece to implement after Mockup: **Add a Source to a List**. Catalog: [epics.md](../../../vision/epics.md).
 
 ## Gap check (2026-08-17)
 

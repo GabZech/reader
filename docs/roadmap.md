@@ -44,8 +44,8 @@
 
 ## Concluded
 
-- ✅ **Kickoff:** [vision](product-definition/vision.md), [metrics](product-definition/metrics.md); session log under [history/discovery/01-kickoff](history/discovery/01-kickoff/)
-- ✅ **Understand:** [personas](product-definition/personas.md), [journeys](product-definition/journeys.md), [constraints](product-definition/constraints.md); session log under [history/discovery/02-understand](history/discovery/02-understand/)
-- ✅ **Scope:** [epics](product-definition/epics.md); session log under [history/discovery/03-scope](history/discovery/03-scope/)
+- ✅ **Kickoff:** [proposition](vision/proposition.md), [metrics](vision/metrics.md); session log under [history/discovery/01-kickoff](history/discovery/01-kickoff/)
+- ✅ **Understand:** [personas](vision/personas.md), [journeys](vision/journeys.md), [constraints](vision/constraints.md); session log under [history/discovery/02-understand](history/discovery/02-understand/)
+- ✅ **Scope:** [epics](vision/epics.md); session log under [history/discovery/03-scope](history/discovery/03-scope/)
 - ✅ **Mockup:** [mockup](history/discovery/04-mockup/mockup.md); session log under [history/discovery/04-mockup](history/discovery/04-mockup/)
 - ✅ **Foundation:** [architecture](architecture.md), [development](development.md), [operations](operations.md), [UI guidelines](ui-guidelines.md); session log under [history/discovery/05-foundation](history/discovery/05-foundation/)

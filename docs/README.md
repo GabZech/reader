@@ -1,21 +1,22 @@
 # Docs
 
-This folder is the living record of the product and how we work on it. Read it to see what has been agreed, not to hunt for filenames. History under `docs/history/` and epic notes under `docs/specs/` keep their own shape. Everything else here follows the writing-docs skill.
+This folder is the living record of the product and how we work on it. Read it to see what has been agreed, not to hunt for filenames. History under `docs/history/` and per-epic Build notes under `docs/epics/` keep their own shape. Everything else here follows the writing-docs skill.
 
-## Product Definition
+## Vision
 
 These files settle who the product is for and what it must do, before a stack is chosen.
 
-- **[Vision](product-definition/vision.md).** The problem that motivates a replacement, the direction we are building toward, and what stays out until we explicitly reopen it.
-- **[Metrics](product-definition/metrics.md).** How we will tell whether the product is working, including guardrails such as cost and morning reliability.
-- **[Personas](product-definition/personas.md).** Who the product is for. Written in Understand.
-- **[Journeys](product-definition/journeys.md).** The overall use cases those people already have, and what should change on each path.
-- **[Constraints](product-definition/constraints.md).** Cross-cutting limits that steer every later choice (devices, ownership, cost, freshness).
-- **[Epics](product-definition/epics.md).** Named capabilities, which belong in the first product, and which wait. After Foundation, the first thing to build is Add a Source to a List.
+- **[Proposition](vision/proposition.md).** The problem that motivates a replacement, the direction we are building toward, and what stays out until we explicitly reopen it.
+- **[Metrics](vision/metrics.md).** How we will tell whether the product is working, including guardrails such as cost and morning reliability.
+- **[Personas](vision/personas.md).** Who the product is for. Written in Understand.
+- **[Journeys](vision/journeys.md).** The overall use cases those people already have, and what should change on each path.
+- **[Constraints](vision/constraints.md).** Cross-cutting limits that steer every later choice (devices, ownership, cost, freshness).
+- **[Epics](vision/epics.md).** Named capabilities, which belong in the first product, and which wait. After Foundation, the first thing to build is Add a Source to a List.
 
 ## Engagement
 
 - **[Roadmap](roadmap.md).** Where the engagement stands now: current phase, milestone, locked decisions, and what this phase still has to resolve.
+- **Epic notes** (`epics/<slug>/`). Clarifying answers from Build and the close note from Document for that epic. The catalog of named capabilities stays in [epics.md](vision/epics.md).
 
 ## System
 

@@ -64,7 +64,7 @@ Note: This is watching via the current app's lists. That is separate from the Ki
 
 ## Constraints (confirmed, 2026-08-16)
 
-Confirmed from Kickoff plus Understand answers. Client moved click-to-add sources and extraction quality to hard. Overlay original-page default and distraction-free toggle stay soft. Living docs: [personas](../../../product-definition/personas.md), [journeys](../../../product-definition/journeys.md), [constraints](../../../product-definition/constraints.md).
+Confirmed from Kickoff plus Understand answers. Client moved click-to-add sources and extraction quality to hard. Overlay original-page default and distraction-free toggle stay soft. Living docs: [personas](../../../vision/personas.md), [journeys](../../../vision/journeys.md), [constraints](../../../vision/constraints.md).
 
 **Hard**
 - Solo personal tool; not shared or multi-user.

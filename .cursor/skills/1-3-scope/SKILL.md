@@ -11,11 +11,11 @@ Turn accepted journeys into named capabilities (epics) and decide mockup scope, 
 
 ## Entry
 
-- Understand is accepted (`docs/product-definition/personas.md`, `journeys.md`, `constraints.md`)
+- Understand is accepted (`docs/vision/personas.md`, `journeys.md`, `constraints.md`)
 
 ## Artifacts
 
-- `docs/product-definition/epics.md` (one file: epics plus mockup / MVP / later scope)
+- `docs/vision/epics.md` (one file: epics plus mockup / MVP / later scope)
 - `docs/history/discovery/03-scope/` (clarifying answers — never client prompts)
 
 ## Do

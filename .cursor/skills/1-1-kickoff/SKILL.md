@@ -18,8 +18,8 @@ Capture the product idea, set how the engagement runs, clarify what matters, and
 ## Artifacts
 
 - `docs/roadmap.md` (initialised with where we are)
-- `docs/product-definition/vision.md`
-- `docs/product-definition/metrics.md`
+- `docs/vision/proposition.md`
+- `docs/vision/metrics.md`
 - `README.md` (product overview + concise workflow; replaces the template manual)
 - `docs/history/discovery/01-kickoff/` (engagement explanation, clarifying answers — never client prompts)
 
@@ -28,7 +28,7 @@ Capture the product idea, set how the engagement runs, clarify what matters, and
 **Include:**
 - Restate the client’s idea once, briefly, then explain the workflow in a few sentences
 - Clarifying questions from this skill (see below); deliver each ask using the **questioning** skill (`.cursor/skills/questioning/SKILL.md`)
-- Problem statement, product vision, and explicit non-goals in `vision.md`
+- Problem statement, product vision, and explicit non-goals in `proposition.md`
 - How success will be measured in `metrics.md`
 - Initialise `docs/roadmap.md` per the **Roadmap** section in the writing-docs skill (`.cursor/skills/writing-docs/SKILL.md`)
 
@@ -40,7 +40,7 @@ Do not write personas, journeys, epics, or stack choices yet.
 
 ## Clarifying questions
 
-Goal: gather only what `vision.md` and `metrics.md` need. Defer deep user/journey detail to Understand; defer stack to Foundation.
+Goal: gather only what `proposition.md` and `metrics.md` need. Defer deep user/journey detail to Understand; defer stack to Foundation.
 
 **Style:** follow `.cursor/skills/questioning/SKILL.md`.
 
@@ -61,8 +61,8 @@ Goal: gather only what `vision.md` and `metrics.md` need. Defer deep user/journe
 2. Clarifying rounds from [questionbank.md](questionbank.md), one question per message via the questioning skill — skip the non-goals cluster; do not solicit exclusions.
 3. If answers are vague, ask for one concrete example next.
 4. Propose inferred non-goals; one confirmation ask (accept, edit, or reject items).
-5. Draft vision + metrics when the checklist below is met; present the summary.
-6. **Gap check (before accept):** From this conversation, name one or two topic categories the client might still want in Kickoff (gaps or thin spots that still belong in vision/metrics — not Understand/Foundation work). One ask: anything to add in those areas (or elsewhere in Kickoff)? Incorporate answers, then continue.
+5. Draft proposition + metrics when the checklist below is met; present the summary.
+6. **Gap check (before accept):** From this conversation, name one or two topic categories the client might still want in Kickoff (gaps or thin spots that still belong in proposition/metrics — not Understand/Foundation work). One ask: anything to add in those areas (or elsewhere in Kickoff)? Incorporate answers, then continue.
 7. One accept ask for Kickoff.
 
 ### Ready to draft artifacts when

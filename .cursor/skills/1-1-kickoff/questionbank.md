@@ -85,7 +85,7 @@ Park deep research design for later phases; capture the unknowns so Understand /
 
 ### Non-goals (propose, then confirm)
 
-Do not ask the client to invent exclusions or “what to leave out.” Near the end, from everything already said, draft a short list of likely non-goals: adjacent problems, audiences not in focus, tempting extras, and any hard must-nots the answers already imply. Present that list and ask once whether to confirm or adjust. Fold the confirmed list into `vision.md`.
+Do not ask the client to invent exclusions or “what to leave out.” Near the end, from everything already said, draft a short list of likely non-goals: adjacent problems, audiences not in focus, tempting extras, and any hard must-nots the answers already imply. Present that list and ask once whether to confirm or adjust. Fold the confirmed list into `proposition.md`.
 
 ## Question direction
 

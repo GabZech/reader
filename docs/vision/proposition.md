@@ -1,4 +1,4 @@
-# Vision
+# Proposition
 
 ## ⚡ Problem Statement
 

@@ -12,13 +12,13 @@ Build a shared picture of who the product is for, what they try to do end to end
 
 ## Entry
 
-- Kickoff is accepted (`docs/product-definition/vision.md` and `docs/product-definition/metrics.md`)
+- Kickoff is accepted (`docs/vision/proposition.md` and `docs/vision/metrics.md`)
 
 ## Artifacts
 
-- `docs/product-definition/personas.md`
-- `docs/product-definition/journeys.md` (named overall use cases at discovery level of detail)
-- `docs/product-definition/constraints.md`
+- `docs/vision/personas.md`
+- `docs/vision/journeys.md` (named overall use cases at discovery level of detail)
+- `docs/vision/constraints.md`
 - `docs/history/discovery/02-understand/` (clarifying answers — never client prompts)
 
 ## Do

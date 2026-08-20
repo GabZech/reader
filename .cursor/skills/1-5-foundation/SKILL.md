@@ -13,8 +13,8 @@ Design the system once and build a walking skeleton: a tiny, permanent, tested e
 
 ## Entry
 
-- Mockup is accepted (`docs/product-definition/mockup.md` records look and remaining risk)
-- First MVP epic to implement is named in `docs/product-definition/epics.md`
+- Mockup is accepted (`docs/vision/mockup.md` records look and remaining risk)
+- First MVP epic to implement is named in `docs/vision/epics.md`
 
 ## Artifacts
 
@@ -84,4 +84,4 @@ If those are missing, keep asking or building: do not invent them.
 
 ## Gate
 
-After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Build for the first MVP epic named in `epics.md`; Milestone → MVP; refresh Summary / Decisions / Open; add Foundation under Concluded with links to architecture, development, operations, UI guidelines, and history); move `docs/product-definition/mockup.md` to `docs/history/discovery/04-mockup/mockup.md` and drop it from Product Definition in `docs/README.md` (accepted look must already be in `docs/ui-guidelines.md`). Do not offer a README refresh. Do not advance without confirmation.
+After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Build for the first MVP epic named in `epics.md`; Milestone → MVP; refresh Summary / Decisions / Open; add Foundation under Concluded with links to architecture, development, operations, UI guidelines, and history); move `docs/vision/mockup.md` to `docs/history/discovery/04-mockup/mockup.md` and drop it from Vision in `docs/README.md` (accepted look must already be in `docs/ui-guidelines.md`). Do not offer a README refresh. Do not advance without confirmation.

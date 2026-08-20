@@ -15,7 +15,7 @@ Stop building. Make the living docs match the product as it actually is, record 
 
 - Build for this epic is accepted
 - Still on the same branch as that Build
-- Read `docs/specs/<epic-slug>/clarifying-answers.md`, `docs/architecture.md`, and `docs/operations.md`
+- Read `docs/epics/<epic-slug>/clarifying-answers.md`, `docs/architecture.md`, and `docs/operations.md`
 
 ## Artifacts
 
@@ -25,7 +25,7 @@ Update as needed:
 - `docs/ui-guidelines.md` when visual or interaction rules change
 - `docs/roadmap.md` when something ships or priorities shift
 - New decision records under `docs/history/decisions/` when the choice is hard to reverse
-- `docs/specs/<epic-slug>/`: short epic note (what shipped, still open, how to try) plus frozen clarifying-answers
+- `docs/epics/<epic-slug>/`: short epic note (what shipped, still open, how to try) plus frozen clarifying-answers
 
 ## Do
 

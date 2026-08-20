@@ -13,12 +13,12 @@ Make the mockup-scope journeys a clickable dummy, and settle whether the overall
 
 ## Entry
 
-- Scope is accepted (`docs/product-definition/epics.md` names mockup paths and learning purpose)
+- Scope is accepted (`docs/vision/epics.md` names mockup paths and learning purpose)
 
 ## Artifacts
 
 - Clickable dummy in the tool chosen at phase start (HTML folder, Penpot file, or Figma file)
-- `docs/product-definition/mockup.md` (tool, how to open, paths walkable, what we learned, what is still open)
+- `docs/vision/mockup.md` (tool, how to open, paths walkable, what we learned, what is still open)
 - `docs/history/discovery/04-mockup/` (setup notes, feedback rounds: never client prompts)
 - HTML only: throwaway pages under `docs/mockup/` (not the product)
 
@@ -82,4 +82,4 @@ If those are missing, keep asking or building: do not invent them.
 
 ## Gate
 
-After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Foundation; refresh Summary / Decisions / Open; add Mockup under Concluded with links to `mockup.md` and history); add `mockup.md` under Product Definition in `docs/README.md`; delete self-review captures under `docs/history/discovery/04-mockup/review/` (walkthrough pictures; not needed after this phase). Do not offer a README refresh. Do not advance without confirmation.
+After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Foundation; refresh Summary / Decisions / Open; add Mockup under Concluded with links to `mockup.md` and history); add `mockup.md` under Vision in `docs/README.md`; delete self-review captures under `docs/history/discovery/04-mockup/review/` (walkthrough pictures; not needed after this phase). Do not offer a README refresh. Do not advance without confirmation.
