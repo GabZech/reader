@@ -85,4 +85,4 @@ After the last signed-off journey, propose what the dummy settled vs what we sti
 
 ## Boundary with the next phase
 
-After Mockup accept, Foundation designs the system once and builds its skeleton: architecture, stack, application shell, operational basics. The accepted dummy’s overall look is an input to the application shell; Foundation must not invent a conflicting visual shell. Do not choose stack here. If the client volunteers tech preferences, note them under history and reuse in Foundation.
+After Mockup accept, Foundation designs the system once and builds a walking skeleton: architecture, stack, operational basics, and a thin end-to-end slice that follows the accepted look. Tradeoffs are confirmed before product code. Do not choose stack here. If the client volunteers tech preferences, note them under history and reuse in Foundation.

@@ -107,6 +107,61 @@ Thin pointer to the clickable dummy. Write during Mockup once the dummy is walka
 
 Do not paste screens, rewrite journeys, or treat the dummy as the product.
 
+## Architecture (`docs/architecture.md`)
+
+Whole-system shape. Write during Foundation after the system package is confirmed; refresh when Documentation aligns it with a later build. Feature-level design stays in SPECs.
+
+### Shape
+
+1. **Purpose:** what the running system is, in one short paragraph
+2. **❗ Tradeoffs:** what we optimize for, what we give up, and why (the confirmed Foundation package). Omit axes that were not in tension
+3. **Parts:** named components and how data moves between them. Prefer few parts
+4. **Stack:** languages, frameworks, stores, hosts: current choices, not a catalogue of rejects
+5. **Outside connections:** inbound and outbound paths at mechanism level (not live credentials)
+6. **⚠️ Skeleton:** what the walking skeleton proved vs what the first feature still has to stand up
+
+Do not paste SPECs, vendor tutorials, or a second decision log. Hard-to-reverse choices that arise later go under `docs/history/decisions/` in Documentation.
+
+## Development (`docs/development.md`)
+
+How to run and change the skeleton locally. Commands in this file must have been run.
+
+### Shape
+
+1. **Purpose:** what a developer needs this file for
+2. **Prerequisites:** toolchain and versions
+3. **Run:** how to start the skeleton locally
+4. **Test:** how to run the checks continuous integration will use, when those exist
+5. **Local config:** what varies on a machine (names of variables, not secret values)
+
+## Operations (`docs/operations.md`)
+
+How the system is hosted, deployed, and kept on. Proportionate to who operates it and the cost ceiling.
+
+### Shape
+
+1. **Purpose:** what operating this system involves
+2. **Where it runs:** intended run path (local-only or hosted)
+3. **Deploy:** how a new version reaches that path
+4. **Config and secrets:** how they are injected; secrets stay out of the repo
+5. **Backup and data control:** how client-controlled data is kept and exported
+6. **Cost:** what keeping it on is expected to cost, against the ceiling
+7. **Smoke test:** the fast check that the intended run path still works
+
+## UI Guidelines (`docs/ui-guidelines.md`)
+
+Durable look copied from the accepted dummy. Foundation must write this before moving `mockup.md` to history. Not a design system.
+
+### Shape
+
+1. **Purpose:** overall look the real UI must follow
+2. **Layout, density, chrome:** structure of screens and scaffolding
+3. **Type:** and colour only if the accepted look uses it
+4. **Surfaces:** devices or widths the shell must honour
+5. **Out of scope:** feature interactions and later-scope screens wait for SPECs
+
+Do not restyle. Do not paste the dummy.
+
 ## Avoid
 
 - Marketing fluff, academic filler

@@ -28,7 +28,8 @@ Then:
 ## Non-negotiables (product work only)
 
 - **Questioning skill.** How you speak to the client follows `.cursor/skills/questioning/SKILL.md` (style only). What you ask comes from the current phase skill.
-- No application code, stack scaffold, or feature SPEC until **Foundation** is accepted
+- No application code or stack scaffold until Foundation’s system package and tradeoffs are confirmed
+- No feature SPEC until **Foundation** is accepted
 - No feature **Build** until Requirements, Design, and Tasks are accepted
 - Whole-system stack and architecture belong in **Foundation** only; SPEC design covers the current feature unless the client explicitly reopens Foundation
 - During discovery before Foundation: only constraint questions that feed Kickoff, Understand, or Foundation
