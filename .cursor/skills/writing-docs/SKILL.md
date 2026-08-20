@@ -62,7 +62,7 @@ Product front door after Kickoff; not a second copy of the proposition or the fu
 
 1. **Title** — product or working name
 2. **Overview** — short prosaic pitch: problem and consequence first, then direction. Write in sentences, not a capability or feature inventory. Refresh when discovery locks change what a newcomer should know. Do not paste the full proposition, personas, or epic lists
-3. **How we work** — why before how: open with why structure beats jumping to code, then the two stages in short prose (discovery and foundation once; feature development repeats as Build then Document per epic). Name discovery phases in running sentences with their goals; do not use telegraphic bullet or arrow lists. No artifact inventories. Point to the template for discovery and foundation detail: [GabZech/template-spec-workflow](https://github.com/GabZech/template-spec-workflow). This repo’s feature loop is Build then Document, not that template’s SPEC stairs.
+3. **How we work** — why before how: open with why structure beats jumping to code, then the two stages in short prose (discovery and foundation once; feature development repeats as Build then Deploy per epic). Name discovery phases in running sentences with their goals; do not use telegraphic bullet or arrow lists. No artifact inventories. Point to the template for discovery and foundation detail: [GabZech/template-spec-workflow](https://github.com/GabZech/template-spec-workflow). This repo’s feature loop is Build then Deploy, not that template’s SPEC stairs. Build is local try-and-sign-off with continuous integration before each slice is shown. Deploy is the continuous-delivery release: production host, smoke, living docs; not continuous deployment of every change.
 4. Optional short pointers into `docs/` when useful; omit template “How to Start” once the product is underway
 
 ### When
@@ -70,7 +70,7 @@ Product front door after Kickoff; not a second copy of the proposition or the fu
 - **Kickoff (required):** on accept, replace the template README with this shape
 - **Understand (optional):** after phase accept, one questioning-skill ask whether to refresh Overview (and only then edit). Keep How we work stable unless the engagement model itself changes
 - **Scope, Mockup, and Foundation:** do not offer this ask
-- **Feature development:** do not offer this ask; Document owns living-doc alignment for features
+- **Feature development:** do not offer this ask; Deploy owns living-doc alignment for features
 
 ## Roadmap (`docs/roadmap.md`)
 
@@ -109,7 +109,7 @@ Do not paste screens, rewrite journeys, or treat the dummy as the product.
 
 ## Architecture (`docs/architecture.md`)
 
-Whole-system shape. Write during Foundation after the system package is confirmed; refresh when Document aligns it with a later build. Do not put an epic’s increment design here.
+Whole-system shape. Write during Foundation after the system package is confirmed; refresh when Deploy aligns it with a later ship. Do not put an epic’s increment design here.
 
 ### Shape
 
@@ -120,7 +120,7 @@ Whole-system shape. Write during Foundation after the system package is confirme
 5. **Outside connections:** inbound and outbound paths at mechanism level (not live credentials)
 6. **⚠️ Skeleton:** what the walking skeleton proved vs what the first feature still has to stand up
 
-Do not paste epic notes, vendor tutorials, or a second decision log. Hard-to-reverse choices that arise later go under `docs/history/decisions/` in Document.
+Do not paste epic notes, vendor tutorials, or a second decision log. Hard-to-reverse choices that arise later go under `docs/history/decisions/` in Deploy.
 
 ## Development (`docs/development.md`)
 

@@ -98,7 +98,7 @@ When inferring tradeoffs, consider these tensions only if they apply (do not dum
 - No first-epic behaviour (Build).
 - Do not restyle or invent a design system (look is copied from Mockup into UI guidelines).
 - Do not expand MVP scope or reopen epic packaging unless the system cannot honour Scope.
-- Do not write decision records under `docs/history/decisions/` (Document owns those).
+- Do not write decision records under `docs/history/decisions/` (Deploy owns those).
 - Reliability theatre (many environments, 24/7 ops) stays out unless who-operates-it demands it.
 - The dummy stays throwaway; the skeleton is production code.
 

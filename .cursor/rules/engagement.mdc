@@ -30,10 +30,11 @@ Then:
 - **Questioning skill.** How you speak to the client follows `.cursor/skills/questioning/SKILL.md` (style only). What you ask comes from the current phase skill.
 - No application code or stack scaffold until Foundation’s system package and tradeoffs are confirmed
 - No epic **Build** until **Foundation** is accepted
-- Overview docs for a feature move only in **Document**
+- Overview docs for a feature move only in **Deploy**
+- Production release after Foundation’s first standup happens only in **Deploy**. An explicit request to ship during Build enters Deploy with signed-off work only
 - Whole-system stack and architecture belong in **Foundation** only; Build covers the current epic unless the client explicitly reopens Foundation
 - During discovery before Foundation: only constraint questions that feed Kickoff, Understand, or Foundation
-- **Where truth lives.** Code and tests are behaviour. Living docs under `docs/` (not `history/` or epic `clarifying-answers.md`) are the current agreed picture. `clarifying-answers.md` is session facts for the open phase; freeze it when that phase accepts (Document for an epic). `docs/history/` is how we got here: do not refresh it to match later code
+- **Where truth lives.** Code and tests are behaviour. Living docs under `docs/` (not `history/` or epic `clarifying-answers.md`) are the current agreed picture. `clarifying-answers.md` is session facts while that Build is open; freeze it when that epic’s complete Deploy accepts. A mid-epic Deploy leaves it open. `docs/history/` is how we got here: do not refresh it to match later code
 
 ## Orientation (when starting, resuming, or closing a phase)
 

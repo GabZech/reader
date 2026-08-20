@@ -8,9 +8,9 @@ The product is built for a solo reader who wants full ownership of their corpus,
 
 ## How we work
 
-Left alone, an agent will start coding before either side understands the product. Discovery and foundation run once: agree what matters, design the system, and hang a walking skeleton. After that, each epic is Build then Document. Build is a short try-and-sign-off loop like Mockup, on real software. Document is when living docs catch up with what shipped. Every phase ends with an explicit accept before the next begins.
+Left alone, an agent will start coding before either side understands the product. Discovery and foundation run once: agree what matters, design the system, and hang a walking skeleton. After that, each epic is Build then Deploy. Build is a short try-and-sign-off loop like Mockup, on a local instance of the real software, with the usual checks (continuous integration) before each slice is shown. Deploy is the continuous-delivery release: put signed-off work on the production host when the epic is done or when you ask to ship, smoke the live path, and let living docs catch up. That is not continuous deployment of every local change. Every phase ends with an explicit accept before the next begins.
 
-For discovery and foundation, see the [template workflow overview](https://github.com/GabZech/template-spec-workflow#workflow-overview). Feature work in this repo is Build then Document, not that template’s SPEC stairs.
+For discovery and foundation, see the [template workflow overview](https://github.com/GabZech/template-spec-workflow#workflow-overview). Feature work in this repo is Build then Deploy, not that template’s SPEC stairs.
 
 ## Docs
 

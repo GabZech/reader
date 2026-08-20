@@ -2,7 +2,7 @@
 
 This folder is the living record of the product and how we work on it. Read it to see what has been agreed, not to hunt for filenames.
 
-**Where truth lives.** The running app and its tests are behaviour. The living files below are the current agreed picture. History under `docs/history/` is how we got here; do not update it to match later code. Per-epic `clarifying-answers.md` is session facts while that Build is open; Document freezes it and writes the close note. Everything else here follows the writing-docs skill.
+**Where truth lives.** The running app and its tests are behaviour. The living files below are the current agreed picture. History under `docs/history/` is how we got here; do not update it to match later code. Per-epic `clarifying-answers.md` is session facts while that Build is open; a complete Deploy freezes it and writes the close note. A mid-epic Deploy leaves it open. Everything else here follows the writing-docs skill.
 
 ## Vision
 
@@ -18,11 +18,11 @@ These files settle who the product is for and what it must do, before a stack is
 ## Engagement
 
 - **[Roadmap](roadmap.md).** Where the engagement stands now: current phase, milestone, locked decisions, and what this phase still has to resolve.
-- **Epic notes** (`epics/<slug>/`). Session facts from Build (frozen at Document) and the close note for that epic. The catalog of named capabilities stays in [epics.md](vision/epics.md).
+- **Epic notes** (`epics/<slug>/`). Session facts from Build (frozen when that epic’s Deploy completes) and the close note for that epic. The catalog of named capabilities stays in [epics.md](vision/epics.md).
 
 ## System
 
-Written in Foundation after the system package was confirmed. Refresh later when Document aligns them with a built epic.
+Written in Foundation after the system package was confirmed. Refresh later when Deploy aligns them with a shipped increment.
 
 - **[Architecture](architecture.md).** How the running system is put together: parts, data flow, stack, inbound mail and feeds, and the tradeoffs we accepted. The skeleton section says what this slice proved and what the first feature still has to stand up.
 - **[Development](development.md).** How to run and test the app on a local machine. Commands in that file have been run.
