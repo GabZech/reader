@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Edit{% endblock %}
+{% block body %}
+      <form method="post" action="/lists/{{ slug }}/edit">
+        <header class="top top-row">
+          <h1>Edit</h1>
+          <button class="top-edit" type="submit">Done</button>
+        </header>
+        {% if error %}
+        <p class="lede">{{ error }}</p>
+        {% endif %}
+        <input class="field" name="name" type="text" autocomplete="off" value="{{ name }}">
+      </form>
+      <form method="post" action="/lists/{{ slug }}/delete">
+        <section class="list">
+          <button class="item" type="submit">
+            <span class="title">Delete list</span>
+          </button>
+        </section>
+      </form>
+{% endblock %}

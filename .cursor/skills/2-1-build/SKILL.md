@@ -30,6 +30,7 @@ Make the current epic usable on a local instance of the real product, one tryabl
 - Work on a branch for this epic. Follow `docs/development.md` when present.
 - Clarifying questions via the **questioning** skill. **What to ask:** [questionbank.md](questionbank.md). Skip what earlier phases or this conversation already answered.
 - Which epic this loop covers, then that epic's in/out and increment map; each one confirm. Vertical slices the client can try, not layers.
+- Honour the catalog: infer in/out from In/out, Done when, and Depends on. If those fields are missing, propose start/change/stop in or out now. If a reverse was parked as later, honour that. If a missing reverse is a different job, reopen Scope rather than stretching this loop.
 - For the current increment only: slice analysis, remaining lived-fact gaps, then build the confirmed set. Run the usual local checks before showing. How to try is the local run path in `docs/development.md`. Phone or device judgment uses that same local instance, not the production host.
 - After each increment: how to try it locally; one ask (good, or something needed missing). Iterate until signed off. Do not start the next increment until then. Record which increments are signed off.
 - If the client asks to put the current state live: enter **Deploy** with only signed-off increments. Do not ship an unfinished slice. Do not offer a production push after every increment.
@@ -46,7 +47,7 @@ Goal: gather only what the next increment needs. Defer living-doc alignment and 
 ### Principles
 
 1. **Reuse locks.** Journeys, dummy, epics, and Foundation are inputs. Reopen only if this epic cannot honour them.
-2. **Epic by proposal.** Show the defined catalog and recommend which loop to start. Confirm; do not ask the client to invent the sequence.
+2. **Epic by proposal.** Show the defined catalog and recommend which loop to start. Prefer Scope’s named first piece if still unbuilt and its Depends on is satisfied; otherwise remaining MVP work by Depends on. Confirm; do not ask the client to invent the sequence.
 3. **Increment map by proposal.** Infer ordered tryable slices. Prefer high value and low complexity first unless a leftover joint blocks the rest. Confirm; do not ask the client to invent the backlog.
 4. **Job before the ask.** Infer the user-recognised job the named slice must finish (map or client request). Propose it; confirm; build that set, not the wording of the ask. Split only if hard to try as one piece, then put the rest on the map now. Do not defer a missing reverse to the try-loop. Do not pull in a different job or another epic.
 5. **Clarify the current slice only.** Fill remaining lived facts for this increment. Do not specify the whole epic before the first increment.
@@ -56,7 +57,7 @@ Goal: gather only what the next increment needs. Defer living-doc alignment and 
 
 ### Flow
 
-1. Orient once: local instance, one increment at a time; production release is Deploy (when the epic is done, or when the client asks to ship signed-off work). If this loop's epic is not yet confirmed: show defined epics in the message (name, MVP or later, already built or not); recommend which to start (Scope's named first piece if still unbuilt, otherwise remaining MVP work by dependency); one confirm. Do not start in/out until that epic is confirmed. Skip this confirm when resuming that epic with work already underway.
+1. Orient once: local instance, one increment at a time; production release is Deploy (when the epic is done, or when the client asks to ship signed-off work). If this loop's epic is not yet confirmed: show defined epics in the message (name, MVP or later, Depends on, already built or not); recommend which to start (Scope's named first piece if still unbuilt and its Depends on is satisfied, otherwise remaining MVP work by Depends on); one confirm. Do not start in/out until that epic is confirmed. Skip this confirm when resuming that epic with work already underway.
 2. Propose in/out, the increment list, and which is first; one confirm.
 3. Slice analysis then remaining lived-fact gaps from [questionbank.md](questionbank.md) for the current increment only.
 4. Build the confirmed set; self-check; share how to try locally; one ask. Iterate until good.
@@ -75,6 +76,7 @@ Goal: gather only what the next increment needs. Defer living-doc alignment and 
 
 - The slice is tryable end to end
 - Local checks have been run, or the agent has said why not
+- The local app on port 8000 was restarted per `docs/development.md` so it is this revision. If 8000 is busy, stop that process and start again; do not switch ports
 - How to try it is stated from the local run path
 
 ### Ready to enter Deploy when

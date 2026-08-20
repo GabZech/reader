@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Add to a list{% endblock %}
+{% block body %}
+      <header class="top">
+        <a class="back" href="/sources/add/count?{{ count_query }}">How many</a>
+        <h1>{{ title }}</h1>
+      </header>
+      <p class="lede">Choose a list for this source.</p>
+      <section class="list">
+        {% for slug, name, note in lists %}
+        <form method="post" action="/sources/add/list">
+          <input type="hidden" name="feed_url" value="{{ feed_url }}">
+          <input type="hidden" name="title" value="{{ title }}">
+          <input type="hidden" name="item_count" value="{{ item_count }}">
+          <input type="hidden" name="backfill" value="{{ backfill }}">
+          <input type="hidden" name="list_slug" value="{{ slug }}">
+          <button class="item" type="submit">
+            <span class="title">{{ name }}</span>
+            <span class="sub"><span class="byline">{{ note }}</span></span>
+          </button>
+        </form>
+        {% endfor %}
+        <a class="item" href="/sources/add/new-list?{{ list_query }}">
+          <span class="title">Create new list</span>
+        </a>
+      </section>
+      <section class="list is-apart">
+        <form method="post" action="/sources/add/list">
+          <input type="hidden" name="feed_url" value="{{ feed_url }}">
+          <input type="hidden" name="title" value="{{ title }}">
+          <input type="hidden" name="item_count" value="{{ item_count }}">
+          <input type="hidden" name="backfill" value="{{ backfill }}">
+          <input type="hidden" name="list_slug" value="">
+          <button class="item" type="submit">
+            <span class="title">I'll do this later</span>
+          </button>
+        </form>
+      </section>
+{% endblock %}

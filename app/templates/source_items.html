@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "macros.html" import item_row %}
+{% block title %}{{ source.title }}{% endblock %}
+{% block body %}
+      <header class="top">
+        <a class="back" href="/sources/{{ source.id }}">Back</a>
+        <h1>{{ source.title }}</h1>
+      </header>
+      {% if items %}
+      <section class="list">
+        {% for item in items %}
+          {{ item_row(item, source_id=source.id) }}
+        {% endfor %}
+      </section>
+      {% endif %}
+{% endblock %}

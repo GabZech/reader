@@ -23,19 +23,20 @@ Epic choice, epic boundary, increment map, and slice analysis are **propose-and-
 
 ### 1. Epic choice (propose, then confirm)
 
-Show the defined catalog in the message (name, MVP or later, already built or not). A link to `epics.md` is not enough.
+Show the defined catalog in the message (name, MVP or later, Depends on, already built or not). A link to `epics.md` is not enough.
 
-- Recommend which loop to start: Scope's named first piece of the MVP if still unbuilt; otherwise remaining MVP work by dependency
+- Recommend which loop to start: Scope's named first piece of the MVP if still unbuilt and its Depends on is satisfied; otherwise remaining MVP work by Depends on
 - One confirm before in/out or increment map
 - Skip when resuming that epic with work already underway (including return from a mid-epic Deploy), not merely because the epic folder exists
 
 ### 2. Epic boundary (propose, then confirm)
 
-Infer from the named epic, first-product cut, dummy, and Foundation leftovers.
+Infer from the named epic's In/out, Done when, and Depends on, plus dummy and Foundation leftovers. If those fields are missing, propose start/change/stop in or out now.
 
 - What must work or this epic is not usable
 - What waits for another epic even if related
 - Live resources this epic still has to stand up vs what Foundation already proved
+- If a missing reverse is a different job, reopen Scope rather than stretching this loop
 
 ### 3. Increment map (propose, then confirm)
 

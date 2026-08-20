@@ -25,7 +25,7 @@ Build a shared picture of who the product is for, what they try to do end to end
 
 **Include:**
 - Personas: who is in focus, goals, context. Goals link to the named journeys that pursue them. Do not retell journey steps or paste constraints.
-- Journeys: as-is overall use cases. Same labels every time: actor, goal, trigger, steps today, outcome, costly edges, **Wanted**. Actor links to the persona. Related journeys link to each other. **Wanted** is what should differ on that path (or “None named”), not a redesigned walkthrough. Do not retell the persona portrait. List journeys in chronological order of occurrence for the actor: setup and prerequisites before the sessions they enable, then typical time-of-use. Do not invent a sequence for parallel paths.
+- Journeys: as-is overall use cases. Same labels every time: actor, goal, trigger, steps today, outcome, costly edges, **Wanted**. Actor links to the persona. Related journeys link to each other. **Wanted** is what should differ on that path (or “None named”), not a redesigned walkthrough. Do not retell the persona portrait. List journeys in chronological order of occurrence for the actor: setup and prerequisites before the sessions they enable, then typical time-of-use. If later journeys assume a durable object already exists, include a setup or maintenance journey for how it comes into being and how it is retired, or record that it is assumed to already exist. Do not invent a sequence for parallel paths.
 - Constraints: cross-cutting hard vs soft **limits** (cost, ownership, must-nots, quality bars). Not a parking lot for product wishes.
 - Open questions that still block a clear picture of users or journeys
 
@@ -44,7 +44,7 @@ Goal: gather only what personas, journeys, and constraints need. Defer epics and
 1. **Reuse Kickoff.** Deepen who, outcomes, and assumptions; do not re-litigate vision or metrics unless contradicted.
 2. **Past and present over hypotheticals.** Critical incidents and concrete situations over “would you use…” or feature opinions.
 3. **Current-state journeys.** Map how goals are achieved today. Put path-specific desired changes as **Wanted** on that journey. Put cross-cutting limits in constraints. Do not rewrite journeys as the new app. As-should paths wait for Mockup.
-4. **Use-case level of detail, not increments.** Name end-to-end scenarios; stop before splitting into tryable Build slices.
+4. **Use-case level of detail, not Build steps.** Name end-to-end scenarios; stop before splitting into tryable Build steps.
 5. **Constraints by proposal.** Infer hard vs soft limits from answers and Kickoff; confirm or edit — do not open with a laundry-list ask.
 6. **Stay in Understand scope.** No epics, mockup / MVP / later, or architecture.
 
@@ -54,13 +54,14 @@ Goal: gather only what personas, journeys, and constraints need. Defer epics and
 2. If answers are vague, ask for one concrete example or “last time” next.
 3. After primary journeys are clear, propose inferred constraints (limits only); one confirmation ask.
 4. Draft personas, journeys, and constraints when the checklist below is met; present the summary.
-5. **Gap check (before accept):** Name one or two thin spots that still belong in Understand (not Scope/Mockup/Foundation). One ask: anything to add there or elsewhere in Understand? Incorporate, then continue.
+5. **Gap check (before accept):** Recommend one or two remaining thin spots that still belong in Understand (not Scope/Mockup/Foundation). One confirm (add, skip, or something else). Incorporate, then continue.
 6. One accept ask for Understand.
 
 ### Ready to draft artifacts when
 
 - At least one grounded persona (goals and context, not demographics alone), with goals linking to journeys rather than retelling them
 - A named set of primary journeys covering the vision’s outcomes, each naming the persona as actor with a link
+- Durable objects that later sessions assume already exist have a setup or maintenance journey, or an explicit assumed-to-exist note
 - Each primary journey narratable end to end (trigger, steps today, outcome, main friction), with **Wanted** where a change was named
 - Costly edges called out where they matter
 - Cross-cutting **limits** confirmed (or adjusted) from the agent’s proposal, with hard vs soft clear enough to steer Scope. Product wishes are not filed as constraints.

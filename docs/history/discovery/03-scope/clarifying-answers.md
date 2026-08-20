@@ -43,3 +43,9 @@ Epics catalog rewritten in ordinary language: dropped specialist phrasing (grain
 ## Accept (2026-08-17)
 
 Scope accepted. Mockup is next but not started in this session.
+
+## Catalog reopen (2026-08-20)
+
+Reopened after Build showed the catalog was add-only and had no list-management capability. Clickable picture is the HTML dummy, not Figma.
+
+Seven capabilities, in order: **Manage lists**, **Manage sources**, **Bring the Library Over**, **Morning News Pass**, **Read-Later Pass**, **Highlight and Land in Obsidian**, **Evening Video Triage** (later for watch, evening session, Shorts). Each has done-when, in/out, and depends-on. News, Read later, and Favourite channels are already there. No new journey for creating lists; **Manage lists** traces to [Add a Source to a List](../../../vision/journeys.md#add-a-source-to-a-list). First piece to implement: **Manage lists**, then **Manage sources**. Home Edit stays out of **Manage lists**. Catalog: [epics.md](../../../vision/epics.md).

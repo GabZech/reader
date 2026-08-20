@@ -28,10 +28,3 @@ def database_path() -> Path:
         path = ROOT / path
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
-
-
-def skeleton_feed_url() -> str:
-    return os.environ.get(
-        "SKELETON_FEED_URL",
-        "https://www.darktable.org/news/index.xml",
-    )

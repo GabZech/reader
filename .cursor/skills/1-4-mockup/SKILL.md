@@ -58,7 +58,7 @@ Goal: gather only what the dummy needs. Defer increment behaviour to Build; defe
 5. Propose screen list + visual approach (overall look for those paths), which screen is first, and journey order (prerequisites first); one confirm.
 6. Build only the first screen (entry / shell). Self-review that first-seen screen; share; one ask: does this look right, or is something needed on this screen missing. Iterate until the client says it is good.
 7. Explicitly name the next mockup-scope journey, build what that path still needs, self-review first-seen screens, share, and ask the same. Do not start the next journey until the client says the current one is good. Repeat until every mockup-scope journey (with its named failures) is signed off.
-8. Draft `mockup.md` and history; gap check; accept.
+8. Draft `mockup.md` and history. **Gap check:** recommend one or two remaining thin spots that still belong in Mockup; one confirm (add, skip, or something else). Then accept.
 
 ### Ready to draw when
 

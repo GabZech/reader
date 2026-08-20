@@ -19,12 +19,25 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 python -m pytest
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --reload-dir app --port 8000
 ```
 
 On macOS or Linux, activate with `source .venv/bin/activate`.
 
+`--reload-dir app` watches only the app. Watching the whole repo stalls the restarter on Windows.
+
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Home syncs a public RSS feed into SQLite when the browser is online, keeps only the latest five items from that demo feed, and those items stay available if you go offline (PWA cache after the first load).
+
+Before trying a Python change, restart on 8000 so the running app is this revision. If 8000 is already taken, stop that process and start again. Do not switch ports.
+
+Windows, stop whatever is on 8000:
+
+```text
+Get-NetTCPConnection -LocalPort 8000 -State Listen |
+  ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+```
+
+macOS or Linux: `lsof -ti :8000 | xargs kill`
 
 ## Test
 

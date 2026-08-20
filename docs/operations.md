@@ -28,7 +28,7 @@ flyctl deploy --remote-only --ha=false
 
 Do not allocate a dedicated IPv4. Shared IPv4 on fly.dev is enough.
 
-**Public name and home-screen mark when the first product ships.** Keep `reader-skeleton` and the current GitHub repo name through feature work. Fly cannot rename an app in place; the fly.dev URL is the app name. The skeleton install icon is a plain SVG rectangle, which many phones will not show as a proper home-screen logo. When Add a Source to a List, Morning News Pass, Read-Later Pass, and Highlight and Land in Obsidian are done, and you are about to put the lasting URL on the phone, do this before that deploy's smoke:
+**Public name and home-screen mark when the MVP ships.** Keep `reader-skeleton` and the current GitHub repo name through feature work. Fly cannot rename an app in place; the fly.dev URL is the app name. The skeleton install icon is a plain SVG rectangle, which many phones will not show as a proper home-screen logo. When Add a Source to a List, Bring the Library Over, Morning News Pass, Read-Later Pass, and Highlight and Land in Obsidian are done, and you are about to put the lasting URL on the phone, do this before that deploy's smoke:
 
 1. Choose the short Fly app name (it becomes `https://<name>.fly.dev/`) and the matching GitHub repo name. Do not keep `reader-skeleton` as the public URL.
 2. Create a logo (the home-screen and browser-tab mark only). Wire it so Add to Home Screen, the app switcher, and the tab icon show that mark: PNG icons the phone actually uses (including an Apple touch icon), listed in the web app manifest, not only an SVG favicon. This is not an in-app icon set; screens stay word chrome.

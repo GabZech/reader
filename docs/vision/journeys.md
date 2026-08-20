@@ -107,3 +107,22 @@ The lists in the picture now are **News**, **Read later**, and **Favourite chann
 **Costly edges:** None named beyond the Kickoff non-goal of local video save and auto-transcription, which stays out. See [constraints](constraints.md).
 
 **Wanted:** Show only full videos. Filter out Shorts.
+
+## Bring the Library Over
+
+**Actor:** [The Solo Reader](personas.md#the-solo-reader)
+
+**Goal:** Move sources and saved items out of the current reading app so this product can be used without rebuilding the library by hand.
+
+**Trigger:** Switching away from the current reading app, or wanting this product to start from the library already collected there.
+
+**Steps today:**
+1. Sources and saved items live in the current reading app.
+2. Leaving it means adding each source again, and losing parked or saved items unless they are copied out by some other means.
+3. The current app can export subscriptions (an OPML file), a table of items (a CSV file), and a folder of saved files.
+
+**Outcome:** The sources that matter are on lists here, and the saved items are in this library, without a one-by-one rebuild.
+
+**Costly edges:** Re-adding every source by hand. Saved items that only exist in the current app.
+
+**Wanted:** Import sources from that subscriptions export. Import items from the CSV and from the folder of files.
