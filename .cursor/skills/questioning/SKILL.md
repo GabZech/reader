@@ -28,7 +28,7 @@ Applies to every client-facing message: orientation, explanations, summaries, an
 
 For asks (clarifying questions, decisions, gate acceptance):
 
-1. After a reply, go to the next ask. Do not recap or paraphrase what they just said.
+1. After a reply, go to the next ask. Do not recap or paraphrase what they just said. After a discovery or epic-complete Deploy accept, that next step is the new-chat close in engagement, not the following phase’s first ask in this thread.
 2. Comment on that last answer only when it is high-stakes: it would drive a major architectural specification, or it may conflict with other features or locked decisions. Then one short comment on that overall impact, not a summary of their words, then the next ask. Framing the new ask is not this comment.
 3. **Exactly one** question. Wait for the reply. No multi-part asks, no “also…”.
 4. **Show what the question depends on.** If the client needs named product material (journeys, constraints, epics, decisions, samples) to answer, put that material in the message. A clickable URL may accompany it. Do not cite a repo path and expect them to open the file. When the ask is a judgment over a set, show the set in the chat; a link alone is not enough. Labeled inventory in the message is not a multi-part ask.

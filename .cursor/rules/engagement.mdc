@@ -23,7 +23,7 @@ Then:
 2. Greenfield or empty roadmap → **Kickoff** skill
 3. On starting or resuming a phase, orient once using the **questioning** skill (voice): name the phase, what you will cover next, and how it fits the engagement, then the first question, with any locked material that question depends on shown in the message
 4. Whenever you need clarifying answers, decisions, or gate acceptance from the client → read and follow the **questioning** skill (`.cursor/skills/questioning/SKILL.md`)
-5. End every phase with explicit review-and-accept before advancing (phase skills own roadmap updates and when to touch root `README.md`; writing-docs owns README shape)
+5. End every phase with explicit review-and-accept before advancing (phase skills own roadmap updates and when to touch root `README.md`; writing-docs owns README shape). After accept, close per Orientation.
 
 ## Non-negotiables (product work only)
 
@@ -39,3 +39,5 @@ Then:
 ## Orientation (when starting, resuming, or closing a phase)
 
 Voice follows the questioning skill. Cover what is useful among: current phase, what this phase is for, decisions or open questions that matter now, and the immediate next step. Mention Mockup or MVP milestone only when one is actually set; omit it otherwise. Do not use label stacks (`Status:`, `Milestone:`, `Next:`).
+
+On close, after the on-accept file updates: recommend ending this chat and starting a new one after each discovery phase, and after an epic-complete Deploy. Living docs and the roadmap are the handoff. Do not start that next discovery phase or epic here unless they ask to continue. Stay in this chat through the current phase, including every Build increment of one epic, mid-epic Deploys, and that epic’s complete Deploy. Do not recommend a new chat after a clarifying answer, a signed-off increment, or a mid-epic Deploy that returns to Build.
