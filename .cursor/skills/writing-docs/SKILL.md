@@ -14,7 +14,7 @@ Style for reports and living docs under `docs/` meant for humans. Purpose and co
 ## Scope
 
 - **Apply** to human-facing living docs under `docs/` (e.g. product-definition, architecture, development, operations, roadmap, conventions, ui-guidelines) and the product root `README.md`
-- **Skip** `docs/history/` and `docs/specs/` (engagement log and feature contracts keep their own shape)
+- **Skip** `docs/history/` and `docs/specs/` (engagement log and epic notes keep their own shape)
 
 ## Voice
 
@@ -62,7 +62,7 @@ Product front door after Kickoff; not a second copy of vision or the full templa
 
 1. **Title** — product or working name
 2. **Overview** — short prosaic pitch: problem and consequence first, then direction. Write in sentences, not a capability or feature inventory. Refresh when discovery locks change what a newcomer should know. Do not paste full vision, personas, or epic lists
-3. **How we work** — why before how: open with why structure beats jumping to code, then the two stages in short prose (discovery and foundation once; feature development repeats). Name discovery phases in running sentences with their goals; do not use telegraphic bullet or arrow lists. No artifact inventories. Point to the template for detail: [GabZech/template-spec-workflow](https://github.com/GabZech/template-spec-workflow)
+3. **How we work** — why before how: open with why structure beats jumping to code, then the two stages in short prose (discovery and foundation once; feature development repeats as Build then Document per epic). Name discovery phases in running sentences with their goals; do not use telegraphic bullet or arrow lists. No artifact inventories. Point to the template for discovery and foundation detail: [GabZech/template-spec-workflow](https://github.com/GabZech/template-spec-workflow). This repo’s feature loop is Build then Document, not that template’s SPEC stairs.
 4. Optional short pointers into `docs/` when useful; omit template “How to Start” once the product is underway
 
 ### When
@@ -70,7 +70,7 @@ Product front door after Kickoff; not a second copy of vision or the full templa
 - **Kickoff (required):** on accept, replace the template README with this shape
 - **Understand (optional):** after phase accept, one questioning-skill ask whether to refresh Overview (and only then edit). Keep How we work stable unless the engagement model itself changes
 - **Scope, Mockup, and Foundation:** do not offer this ask
-- **Feature development:** do not offer this ask; Documentation owns living-doc alignment for features
+- **Feature development:** do not offer this ask; Document owns living-doc alignment for features
 
 ## Roadmap (`docs/roadmap.md`)
 
@@ -109,7 +109,7 @@ Do not paste screens, rewrite journeys, or treat the dummy as the product.
 
 ## Architecture (`docs/architecture.md`)
 
-Whole-system shape. Write during Foundation after the system package is confirmed; refresh when Documentation aligns it with a later build. Feature-level design stays in SPECs.
+Whole-system shape. Write during Foundation after the system package is confirmed; refresh when Document aligns it with a later build. Do not put an epic’s increment design here.
 
 ### Shape
 
@@ -120,7 +120,7 @@ Whole-system shape. Write during Foundation after the system package is confirme
 5. **Outside connections:** inbound and outbound paths at mechanism level (not live credentials)
 6. **⚠️ Skeleton:** what the walking skeleton proved vs what the first feature still has to stand up
 
-Do not paste SPECs, vendor tutorials, or a second decision log. Hard-to-reverse choices that arise later go under `docs/history/decisions/` in Documentation.
+Do not paste epic notes, vendor tutorials, or a second decision log. Hard-to-reverse choices that arise later go under `docs/history/decisions/` in Document.
 
 ## Development (`docs/development.md`)
 
@@ -158,7 +158,7 @@ Durable look copied from the accepted dummy. Foundation must write this before m
 2. **Layout, density, chrome:** structure of screens and scaffolding
 3. **Type:** and colour only if the accepted look uses it
 4. **Surfaces:** devices or widths the shell must honour
-5. **Out of scope:** feature interactions and later-scope screens wait for SPECs
+5. **Out of scope:** feature interactions and later-scope screens wait for that epic’s Build
 
 Do not restyle. Do not paste the dummy.
 

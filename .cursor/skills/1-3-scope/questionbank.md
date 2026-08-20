@@ -4,7 +4,7 @@ Clarifying **content** for Scope. Deliver each ask with the questioning skill (`
 
 Pick and adapt; do not read as a script. Reuse Understand answers; decide, do not restart.
 
-Epics here are **named capabilities** at a coarser level of detail than user stories. Each traces to at least one accepted journey. User stories wait for Requirements; screens wait for Mockup; stack waits for Foundation.
+Epics here are **named capabilities** at a coarser level of detail than Build increments. Each traces to at least one accepted journey. Increments wait for Build; screens wait for Mockup; stack waits for Foundation.
 
 The **mockup** is a clickable dummy of the solution, not built software. Which tool (HTML, Penpot, Figma) is chosen at Mockup start.
 

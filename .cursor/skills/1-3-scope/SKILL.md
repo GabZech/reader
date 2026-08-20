@@ -35,7 +35,7 @@ Do not rewrite personas or invent primary journeys. If a path is missing, reopen
 
 ## Clarifying questions
 
-Goal: gather only what epics and mockup / MVP / later scope need. Defer stories to Requirements; defer screens to Mockup; defer stack to Foundation.
+Goal: gather only what epics and mockup / MVP / later scope need. Defer increment behaviour to Build; defer screens to Mockup; defer stack to Foundation.
 
 ### Principles
 

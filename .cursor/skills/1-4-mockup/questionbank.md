@@ -81,7 +81,7 @@ After the last signed-off journey, propose what the dummy settled vs what we sti
 - Do not rewrite as-is journeys; the dummy is the as-should picture.
 - Do not call the dummy an MVP or the product.
 - HTML dummy: no framework, no product package.json, no backend.
-- Later product work is not a Kickoff non-goal; it waits for Foundation and SPECs.
+- Later product work is not a Kickoff non-goal; it waits for Foundation and Build.
 
 ## Boundary with the next phase
 

@@ -2,15 +2,15 @@
 
 ## Where We Are
 
-**📍 Phase:** Requirements for Add a Source to a List (not started)
+**📍 Phase:** Build for Add a Source to a List (not started)
 
 **🏁 Milestone:** MVP
 
 **📄 Summary:**
 
 - Foundation accepted: architecture, development, operations, UI guidelines, and a walking skeleton that follows the accepted look, including a live Fly URL
-- Requirements is next: user stories and acceptance criteria for adding a source to a list
-- The live isolated mailbox remains explicit remaining risk; it is not this phase's stories
+- Build is next: add a source to a list in tryable increments on the real app
+- The live isolated mailbox remains explicit remaining risk; it is part of this epic, not a later one
 
 **❗ Decisions:**
 
@@ -40,7 +40,7 @@
 
 **⚠️ Open:**
 
-- User stories and acceptance criteria for Add a Source to a List (Requirements), including how many RSS items to ingest when a feed is first added
+- How Add a Source to a List is split into tryable increments, including how a new source enters and the isolated mailbox
 
 ## Concluded
 

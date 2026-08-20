@@ -35,4 +35,4 @@ Colour is stone and ink only. Do not add a product accent.
 
 ## Out of scope
 
-Feature interactions (add to list, time window, highlighting, list edit, home edit, mark as seen, archive) wait for their SPECs. Later-scope evening video watching is out. Do not restyle to match a component library. A home-screen and tab logo for Add to Home Screen waits until the first product ships; it does not add icons inside the app.
+Feature interactions (add to list, time window, highlighting, list edit, home edit, mark as seen, archive) wait for that epic’s Build. Later-scope evening video watching is out. Do not restyle to match a component library. A home-screen and tab logo for Add to Home Screen waits until the first product ships; it does not add icons inside the app.

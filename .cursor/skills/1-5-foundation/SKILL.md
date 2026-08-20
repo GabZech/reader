@@ -33,13 +33,13 @@ Design the system once and build a walking skeleton: a tiny, permanent, tested e
 - Walking skeleton: look, navigation, connected joints, tests, then the intended run path. If the product must be hosted, that path is a first deploy plus smoke test on a real surface (not only local). Compare the running UI to the guidelines before the client judges it.
 - Record artifacts per writing-docs.
 
-Do not restyle. Do not write a feature SPEC or first-epic behaviour. Do not split into many parts unless a confirmed constraint forces it. Do not start a second decision log (`docs/history/decisions/` is Documentation). If the accepted look cannot be built, say so. Live inbound credentials wait for the first feature unless the skeleton cannot run without them.
+Do not restyle. Do not build first-epic behaviour. Do not split into many parts unless a confirmed constraint forces it. Do not start a second decision log (`docs/history/decisions/` is Document). If the accepted look cannot be built, say so. Live inbound credentials wait for the first epic’s Build unless the skeleton cannot run without them.
 
 **Human role:** Answer lived-fact asks; confirm or edit recommended splits (ownership, operations, inbound) and the system package before any product code; judge the running skeleton (look, and whether this is the right place to hang the first feature); for a hosted product, complete first-time host signup and the smoke on a real device; accept when remaining risk is explicit.
 
 ## Clarifying questions
 
-Goal: gather only what architecture, stack, operations, UI guidelines, and the skeleton need. Defer stories to Requirements.
+Goal: gather only what architecture, stack, operations, UI guidelines, and the skeleton need. Defer first-epic behaviour to Build.
 
 ### Principles
 
@@ -48,8 +48,8 @@ Goal: gather only what architecture, stack, operations, UI guidelines, and the s
 3. **System by proposal.** Infer architecture, stack, build-vs-buy, operational split, skeleton joints, and tradeoffs. Do not ask the client to invent the stack, name which jobs can depend on a vendor, or pick from a generic optimisation quiz.
 4. **Tradeoffs before code.** Name the forces actually in tension, which way the proposal leans, and what we give up. One confirm. No application code until aligned.
 5. **Walking skeleton, not a spike.** Permanent tested code that links the main parts with a tiny end-to-end function. The dummy was the throwaway. The first epic adds the flesh.
-6. **Prove the intended run path.** Local run plus tests if the product is local-only. If it must be hosted: first deploy of the skeleton plus smoke test before accept. Missing Docker or a host CLI is work in this phase, not a reason to skip. Feature **Deploy** (2.7) ships later revisions to that host; it is not the first standup. Reliability theatre stays out unless who-operates-it demands it.
-7. **Stay in Foundation.** No stories, no feature SPEC, no design system.
+6. **Prove the intended run path.** Local run plus tests if the product is local-only. If it must be hosted: first deploy of the skeleton plus smoke test before accept. Missing Docker or a host CLI is work in this phase, not a reason to skip. Later revisions ship during **Build** using `operations.md`; this phase is the first standup. Reliability theatre stays out unless who-operates-it demands it.
+7. **Stay in Foundation.** No first-epic behaviour, no design system.
 
 ### Flow
 
@@ -84,4 +84,4 @@ If those are missing, keep asking or building: do not invent them.
 
 ## Gate
 
-After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Requirements for the first MVP epic named in `epics.md`; Milestone → MVP; refresh Summary / Decisions / Open; add Foundation under Concluded with links to architecture, development, operations, UI guidelines, and history); move `docs/product-definition/mockup.md` to `docs/history/discovery/04-mockup/mockup.md` and drop it from Product Definition in `docs/README.md` (accepted look must already be in `docs/ui-guidelines.md`). Do not offer a README refresh. Do not advance without confirmation.
+After the gap check, ask for explicit accept. On accept: update `docs/roadmap.md` per writing-docs (phase → Build for the first MVP epic named in `epics.md`; Milestone → MVP; refresh Summary / Decisions / Open; add Foundation under Concluded with links to architecture, development, operations, UI guidelines, and history); move `docs/product-definition/mockup.md` to `docs/history/discovery/04-mockup/mockup.md` and drop it from Product Definition in `docs/README.md` (accepted look must already be in `docs/ui-guidelines.md`). Do not offer a README refresh. Do not advance without confirmation.

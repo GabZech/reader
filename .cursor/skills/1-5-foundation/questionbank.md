@@ -60,7 +60,7 @@ Infer inbound paths from journeys and the first epic. Recommend which must alrea
 - What inbound paths the first product needs (mail, feeds, files, APIs, webhooks)
 - Which of those the skeleton must already prove
 
-Park feature behaviour and story split; capture the unknown so Requirements can use it.
+Park first-epic behaviour; capture the unknown so Build can use it.
 
 ### System package and tradeoffs (propose, then confirm)
 
@@ -95,13 +95,13 @@ When inferring tradeoffs, consider these tensions only if they apply (do not dum
 
 ## Boundaries
 
-- No user stories, acceptance criteria, or feature SPEC (Requirements).
+- No first-epic behaviour (Build).
 - Do not restyle or invent a design system (look is copied from Mockup into UI guidelines).
 - Do not expand MVP scope or reopen epic packaging unless the system cannot honour Scope.
-- Do not write decision records under `docs/history/decisions/` (Documentation owns those).
+- Do not write decision records under `docs/history/decisions/` (Document owns those).
 - Reliability theatre (many environments, 24/7 ops) stays out unless who-operates-it demands it.
 - The dummy stays throwaway; the skeleton is production code.
 
 ## Boundary with the next phase
 
-After Foundation accept, Requirements writes stories and acceptance criteria for the first MVP epic named in Scope. Do not write that SPEC here. If the client volunteers story-level detail early, note it under history and reuse in Requirements.
+After Foundation accept, Build makes the first MVP epic named in Scope usable in increments. Do not start that epic here. If the client volunteers increment-level detail early, note it under history and reuse in Build.

@@ -15,23 +15,23 @@ Not every chat is product work. Apply the sections below only when the user is b
 
 ## When product engagement applies
 
-Triggered when the user asks to build or ship product functionality, references a phase, SPEC, epic, or roadmap, resumes discovery or feature work, or starts greenfield.
+Triggered when the user asks to build or ship product functionality, references a phase, epic, or roadmap, resumes discovery or feature work, or starts greenfield.
 
 Then:
 
-1. Read `docs/roadmap.md` "Where we are" and follow the matching skill under `.cursor/skills/` (`README.md` is the full map)
+1. Read `docs/roadmap.md` "Where we are" and follow the matching skill under `.cursor/skills/`
 2. Greenfield or empty roadmap → **Kickoff** skill
 3. On starting or resuming a phase, orient once using the **questioning** skill (voice): name the phase, what you will cover next, and how it fits the engagement, then the first question, with any locked material that question depends on shown in the message
 4. Whenever you need clarifying answers, decisions, or gate acceptance from the client → read and follow the **questioning** skill (`.cursor/skills/questioning/SKILL.md`)
-5. End every phase or SPEC step with explicit review-and-accept before advancing (phase skills own roadmap updates and when to touch root `README.md`; writing-docs owns README shape)
+5. End every phase with explicit review-and-accept before advancing (phase skills own roadmap updates and when to touch root `README.md`; writing-docs owns README shape)
 
 ## Non-negotiables (product work only)
 
 - **Questioning skill.** How you speak to the client follows `.cursor/skills/questioning/SKILL.md` (style only). What you ask comes from the current phase skill.
 - No application code or stack scaffold until Foundation’s system package and tradeoffs are confirmed
-- No feature SPEC until **Foundation** is accepted
-- No feature **Build** until Requirements, Design, and Tasks are accepted
-- Whole-system stack and architecture belong in **Foundation** only; SPEC design covers the current feature unless the client explicitly reopens Foundation
+- No epic **Build** until **Foundation** is accepted
+- Overview docs for a feature move only in **Document**
+- Whole-system stack and architecture belong in **Foundation** only; Build covers the current epic unless the client explicitly reopens Foundation
 - During discovery before Foundation: only constraint questions that feed Kickoff, Understand, or Foundation
 
 ## Orientation (when starting, resuming, or closing a phase)

@@ -8,9 +8,9 @@ The product is built for a solo reader who wants full ownership of their corpus,
 
 ## How we work
 
-Left alone, an agent will start coding before either side understands the product. This repo uses a SPEC-driven workflow (from [template-spec-workflow](https://github.com/GabZech/template-spec-workflow)): agree what matters, then build only what was accepted. Every step ends with an explicit accept before the next begins.
+Left alone, an agent will start coding before either side understands the product. Discovery and foundation run once: agree what matters, design the system, and hang a walking skeleton. After that, each epic is Build then Document. Build is a short try-and-sign-off loop like Mockup, on real software. Document is when living docs catch up with what shipped. Every phase ends with an explicit accept before the next begins.
 
-Discovery and foundation run once. After that, work repeats one feature at a time. For the full playbook, see the [template workflow overview](https://github.com/GabZech/template-spec-workflow#workflow-overview).
+For discovery and foundation, see the [template workflow overview](https://github.com/GabZech/template-spec-workflow#workflow-overview). Feature work in this repo is Build then Document, not that template’s SPEC stairs.
 
 ## Docs
 

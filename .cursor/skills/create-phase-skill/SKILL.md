@@ -18,7 +18,7 @@ Authoring craft (succinct copy, split style vs content, SKILL.md shape) lives in
 
 - Client asks to create or improve a phase skill / question bank
 - A phase skill lacks clarifying guidance that Kickoff or Understand already have
-- Preparing Scope, Mockup, Foundation, or a later phase the same way
+- Preparing Scope, Mockup, Foundation, Build, Document, or a later phase the same way
 
 ## Sequence (mandatory order)
 
@@ -65,7 +65,7 @@ Summarize what was added or changed and which phase to run next (or resume). Do 
 | Question banks | Progressive disclosure: long menus in `questionbank.md`, not in `SKILL.md` |
 | Delivery style | Never duplicate questioning skill rules inside the bank |
 | Scopes and stack | Discovery banks stay descriptive until Scope (mockup / MVP / later) or Foundation (stack) |
-| User stories | Not in discovery banks; Requirements owns story + AC level of detail |
+| Increments | Not in discovery banks; Build owns tryable vertical slices, not story or AC files |
 | Client prompts | Never save verbatim chat into skills or `docs/` |
 
 ## Anti-patterns

@@ -1,6 +1,6 @@
 # Docs
 
-This folder is the living record of the product and how we work on it. Read it to see what has been agreed, not to hunt for filenames. History under `docs/history/` and feature contracts under `docs/specs/` keep their own shape. Everything else here follows the writing-docs skill.
+This folder is the living record of the product and how we work on it. Read it to see what has been agreed, not to hunt for filenames. History under `docs/history/` and epic notes under `docs/specs/` keep their own shape. Everything else here follows the writing-docs skill.
 
 ## Product Definition
 
@@ -19,7 +19,7 @@ These files settle who the product is for and what it must do, before a stack is
 
 ## System
 
-Written in Foundation after the system package was confirmed. Refresh later when Documentation aligns them with a built feature.
+Written in Foundation after the system package was confirmed. Refresh later when Document aligns them with a built epic.
 
 - **[Architecture](architecture.md).** How the running system is put together: parts, data flow, stack, inbound mail and feeds, and the tradeoffs we accepted. The skeleton section says what this slice proved and what the first feature still has to stand up.
 - **[Development](development.md).** How to run and test the app on a local machine. Commands in that file have been run.
