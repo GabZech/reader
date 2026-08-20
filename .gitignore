@@ -35,6 +35,10 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
+# App data
+data/*.db
+data/*.db-*
+
 # Logs and temp
 *.log
 tmp/

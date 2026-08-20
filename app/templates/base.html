@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#fafaf9" />
+    <title>{% block title %}Reader{% endblock %}</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div class="page">
+      {% block body %}{% endblock %}
+    </div>
+    <nav class="tabbar" aria-label="Main">
+      <a class="tab{% if nav == 'home' %} is-active{% endif %}" href="/">Home</a>
+      <a class="tab{% if nav == 'lists' %} is-active{% endif %}" href="/lists">Lists</a>
+      <a class="tab{% if nav == 'sources' %} is-active{% endif %}" href="/sources">Sources</a>
+    </nav>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

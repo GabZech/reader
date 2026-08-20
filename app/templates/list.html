@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "macros.html" import item_row %}
+{% block title %}{{ list_name }}{% endblock %}
+{% block body %}
+      <header class="top top-row">
+        <h1>{{ list_name }}</h1>
+        <span class="top-edit">Edit</span>
+      </header>
+
+      <section class="list">
+        {% for item in items %}
+          {{ item_row(item) }}
+        {% endfor %}
+      </section>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Lists{% endblock %}
+{% block body %}
+      <header class="top">
+        <h1>Lists</h1>
+      </header>
+
+      <section class="list">
+        {% for list in lists %}
+        <a class="list-head" href="/lists/{{ list.slug }}">
+          <h2>{{ list.name }}</h2>
+          <span class="count">{{ list.count }}</span>
+        </a>
+        {% endfor %}
+      </section>
+{% endblock %}

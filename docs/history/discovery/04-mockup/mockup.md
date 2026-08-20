@@ -1,6 +1,6 @@
 # Mockup
 
-Throwaway clickable dummy of the solution, not the product. Foundation will build the real shell from what this file records. After Foundation is accepted, this file moves to Mockup history.
+Throwaway clickable dummy of the solution, not the product. The accepted look now lives in [UI guidelines](../../../ui-guidelines.md). This file is Mockup history.
 
 ## 🎯 Purpose
 
@@ -49,4 +49,4 @@ Home has Edit: which lists appear, and in what order. A list view has Edit: rena
 - **Later video work.** Watching inside the app, the evening session, and filtering Shorts wait; they were never in this dummy.
 - **Not for a dummy to prove.** Morning newsletters already in News once the source has sent; in-app reading staying readable for the sources actually used; operating cost at or under $10 USD/month; adding a newsletter finishing before the first email arrives.
 - **Dummy limits.** Home does not live-update after Mark as seen or Archive (the real app will take those items off Home). Open original states that it would use the default browser; it does not leave the dummy.
-- **Inbound email.** How mail is received is a Foundation system choice. Standing up the live inbox belongs with building Add a Source to a List.
+- **Inbound email.** Foundation chose IMAP of an isolated forwarded mailbox. Standing up the live inbox belongs with building Add a Source to a List.

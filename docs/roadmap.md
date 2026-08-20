@@ -2,15 +2,15 @@
 
 ## Where We Are
 
-**📍 Phase:** Foundation (not started)
+**📍 Phase:** Requirements for Add a Source to a List (not started)
 
-**🏁 Milestone:** Mockup
+**🏁 Milestone:** MVP
 
 **📄 Summary:**
 
-- Mockup accepted: the clickable dummy and overall look are locked in [mockup](product-definition/mockup.md)
-- Foundation is next: stack, architecture, operational basics, and an application shell that follows that look
-- After Foundation, the first feature to build is adding a source to a list
+- Foundation accepted: architecture, development, operations, UI guidelines, and a walking skeleton that follows the accepted look
+- Requirements is next: user stories and acceptance criteria for adding a source to a list
+- Hosted Fly deploy and the live isolated mailbox remain explicit remaining risk; they are not this phase's stories
 
 **❗ Decisions:**
 
@@ -18,14 +18,15 @@
   - Built for one person only; not a shared or multi-user product
   - Full ownership of ingested content and highlights in client-controlled formats
   - Obsidian export matches the settled markdown sample (frontmatter, title, summary, highlights, section headings)
-  - Morning newsletters must already be in the News list by the phone pass, once the source has sent
+  - Morning newsletters must be in the News list after a typical-morning sync on open (target under 5 seconds, 10 seconds ceiling), once the source has sent; they stay readable if the connection then drops. First sync and backlog may take longer
   - Phone for morning News (usually home Wi-Fi unless away). Other reading, including Read later, mostly on the phone and sometimes on the computer. Computer primary only for Favourite channels
   - Operating cost about $5 USD/month preferred, $10 USD/month hard ceiling, including any store or developer fees
   - List membership cannot stay as manual author-name or feed-ID query editing. The lists in the picture now are News, Read later, and Favourite channels. More lists may mix types later
   - In-app extraction of the sources actually read must be consistently readable; the browser is a rare escape, not the normal path
   - First product completes add-to-list, morning news, Read later, and highlight-to-Obsidian. Any item can be removed from the list it is on, including YouTube items. Watching videos inside the app in the evening, and filtering Shorts, wait
   - Overall look follows the accepted dummy: layout, density, chrome, and quiet type. No icons and no brand colour system
-  - How inbound email works is chosen in Foundation. Standing up the live inbox is part of building Add a Source to a List
+  - One Python web app, SQLite library file, Docker image, PWA cache on the device. Fly.io is the intended host until there is a domain or a machine at home
+  - Newsletters: dedicated alias, forward into a separate mailbox used only for this app, IMAP on sync. Never personal-mailbox credentials. Live inbox is part of building Add a Source to a List
   - After Foundation, the first thing to build is adding a source to a list
 - **Out**
   - Multi-user or shared accounts
@@ -38,11 +39,12 @@
 
 **⚠️ Open:**
 
-- Stack, architecture, application shell, and operational basics, including how email is received (Foundation)
+- User stories and acceptance criteria for Add a Source to a List (Requirements), including how many RSS items to ingest when a feed is first added
 
 ## Concluded
 
 - ✅ **Kickoff:** [vision](product-definition/vision.md), [metrics](product-definition/metrics.md); session log under [history/discovery/01-kickoff](history/discovery/01-kickoff/)
 - ✅ **Understand:** [personas](product-definition/personas.md), [journeys](product-definition/journeys.md), [constraints](product-definition/constraints.md); session log under [history/discovery/02-understand](history/discovery/02-understand/)
 - ✅ **Scope:** [epics](product-definition/epics.md); session log under [history/discovery/03-scope](history/discovery/03-scope/)
-- ✅ **Mockup:** [mockup](product-definition/mockup.md); session log under [history/discovery/04-mockup](history/discovery/04-mockup/)
+- ✅ **Mockup:** [mockup](history/discovery/04-mockup/mockup.md); session log under [history/discovery/04-mockup](history/discovery/04-mockup/)
+- ✅ **Foundation:** [architecture](architecture.md), [development](development.md), [operations](operations.md), [UI guidelines](ui-guidelines.md); session log under [history/discovery/05-foundation](history/discovery/05-foundation/)

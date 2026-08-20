@@ -1,0 +1,27 @@
+# fly.toml app configuration file generated for the walking skeleton.
+# Create the app and volume once: fly apps create, fly volumes create reader_data --size 1
+
+app = "reader-skeleton"
+primary_region = "ams"
+
+[build]
+
+[env]
+  DATABASE_PATH = "/data/reader.db"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[mounts]]
+  source = "reader_data"
+  destination = "/data"
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1

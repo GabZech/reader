@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "macros.html" import item_row %}
+{% block title %}Home{% endblock %}
+{% block body %}
+      <header class="top top-row">
+        <h1>Home</h1>
+        <span class="top-edit" id="sync-status">Edit</span>
+      </header>
+
+      {% for section in lists %}
+      <section class="list" data-list aria-labelledby="{{ section.slug }}-heading">
+        <a class="list-head" href="/lists/{{ section.slug }}">
+          <h2 id="{{ section.slug }}-heading">{{ section.name }}</h2>
+          <span class="count">{{ section.count }}</span>
+        </a>
+        {% for item in section['items'][:6] %}
+          {{ item_row(item, extra=(loop.index0 >= 3)) }}
+        {% endfor %}
+        {% if section['items']|length > 3 %}
+        <button class="show-more" type="button">Show more</button>
+        {% endif %}
+      </section>
+      {% endfor %}
+{% endblock %}

@@ -14,4 +14,11 @@ Discovery and foundation run once. After that, work repeats one feature at a tim
 
 ## Docs
 
-Living product definition and engagement status live under [`docs/`](docs/README.md). Start with [`docs/roadmap.md`](docs/roadmap.md) for where we are.
+The `Docs/` folder is split by the kind of question you are asking. The list below is the front door; the [index](docs/README.md) has the rest.
+
+- **[Roadmap](docs/roadmap.md):** Start here to see the current phase, what is already locked, and what this phase still has to settle.
+- **[Architecture](docs/architecture.md):** The shape of the running system, covering what we build, what we rent, how mail and feeds get in, and which tradeoffs we accepted so later work does not reopen the whole stack.
+- **[Development](docs/development.md):** How to run the app on this machine, including toolchain, start command, tests, and local config names.
+- **[Operations](docs/operations.md):** How that same app is meant to stay on a host, including backup of the library file and the monthly cost ceiling.
+- **[UI guidelines](docs/ui-guidelines.md):** The overall look copied from the accepted dummy, so later screens follow layout, density, chrome, and quiet type instead of inventing a new visual language.
+
