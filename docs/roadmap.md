@@ -8,9 +8,9 @@
 
 **📄 Summary:**
 
-- Foundation accepted: architecture, development, operations, UI guidelines, and a walking skeleton that follows the accepted look
+- Foundation accepted: architecture, development, operations, UI guidelines, and a walking skeleton that follows the accepted look, including a live Fly URL
 - Requirements is next: user stories and acceptance criteria for adding a source to a list
-- Hosted Fly deploy and the live isolated mailbox remain explicit remaining risk; they are not this phase's stories
+- The live isolated mailbox remains explicit remaining risk; it is not this phase's stories
 
 **❗ Decisions:**
 
@@ -28,6 +28,7 @@
   - One Python web app, SQLite library file, Docker image, PWA cache on the device. Fly.io is the intended host until there is a domain or a machine at home
   - Newsletters: dedicated alias, forward into a separate mailbox used only for this app, IMAP on sync. Never personal-mailbox credentials. Live inbox is part of building Add a Source to a List
   - After Foundation, the first thing to build is adding a source to a list
+  - Keep the GitHub repo name and the Fly URL `reader-skeleton.fly.dev` through feature work. Before the first product is put on the phone as the lasting URL, rename the repo, stand up a new Fly app name (Fly cannot rename in place), and add a home-screen logo that shows when the site is installed
 - **Out**
   - Multi-user or shared accounts
   - YouTube local save and auto-transcription

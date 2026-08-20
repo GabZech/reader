@@ -63,3 +63,7 @@ Foundation accepted. Remaining risk carried forward: hosted Fly deploy not smoke
 ## Volunteered for Requirements (2026-08-20)
 
 **RSS/blog backfill when adding a source:** Before ingesting, fetch and show how many items the feed currently has. Then the reader chooses: all of them, the last 5, only the latest one, or an exact count. Ingest only after that choice. Not built in the skeleton. Reuse in Add a Source to a List. This is separate from the timed-list recency window (last day / last week) already locked for what News *shows*.
+
+## Hosted walking skeleton (2026-08-20)
+
+The walking skeleton is on Fly.io: app `reader-skeleton`, one always-on 256 MB machine in São Paulo (`gru`), 1 GB volume `reader_data` at `/data`. Live URL: [https://reader-skeleton.fly.dev/](https://reader-skeleton.fly.dev/). The image was built on Fly's remote builder. Region is São Paulo because that is where the reader uses the app. Online smoke: Home sync kept five demo RSS items; News listed them; an item page rendered. Phone walk: an already seen item still read with airplane mode on. The demo RSS ships a teaser for some items, not the full page; pulling the linked page on open still waits. Isolated mailbox still waits for Add a Source to a List. Keep this app name and the GitHub repo name until the first product is about to go on the phone as the lasting URL; then rename the repo, create a new Fly app (Fly cannot rename in place), and add a home-screen logo that shows when the site is installed. The skeleton favicon is a placeholder SVG, not that mark.
