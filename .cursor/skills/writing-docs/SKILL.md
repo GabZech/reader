@@ -14,7 +14,7 @@ Style for reports and living docs under `docs/` meant for humans. Purpose and co
 ## Scope
 
 - **Apply** to human-facing living docs under `docs/` (e.g. vision, architecture, development, operations, roadmap, conventions, ui-guidelines) and the product root `README.md`
-- **Skip** `docs/history/` and `docs/epics/` (engagement log and epic notes keep their own shape)
+- **Skip** `docs/history/` and `docs/epics/` (engagement log and epic notes keep their own shape; history stays frozen after the phase accepts)
 
 ## Voice
 
@@ -173,3 +173,4 @@ Do not restyle. Do not paste the dummy.
 - Suspense: do not hint at something and withhold it
 - Naming third-party consumer apps as inspiration, parity targets, or “apps like X” (legal risk if read as copying). Describe the status-quo tool generically (current reading app, existing vendor tool). Named products the client integrates with (e.g. Obsidian as an export target) are fine when factual
 - Saving client prompts or verbatim chat dumps into living docs or history
+- Rewriting `docs/history/` to match later code or living docs

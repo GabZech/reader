@@ -1,6 +1,8 @@
 # Docs
 
-This folder is the living record of the product and how we work on it. Read it to see what has been agreed, not to hunt for filenames. History under `docs/history/` and per-epic Build notes under `docs/epics/` keep their own shape. Everything else here follows the writing-docs skill.
+This folder is the living record of the product and how we work on it. Read it to see what has been agreed, not to hunt for filenames.
+
+**Where truth lives.** The running app and its tests are behaviour. The living files below are the current agreed picture. History under `docs/history/` is how we got here; do not update it to match later code. Per-epic `clarifying-answers.md` is session facts while that Build is open; Document freezes it and writes the close note. Everything else here follows the writing-docs skill.
 
 ## Vision
 
@@ -16,7 +18,7 @@ These files settle who the product is for and what it must do, before a stack is
 ## Engagement
 
 - **[Roadmap](roadmap.md).** Where the engagement stands now: current phase, milestone, locked decisions, and what this phase still has to resolve.
-- **Epic notes** (`epics/<slug>/`). Clarifying answers from Build and the close note from Document for that epic. The catalog of named capabilities stays in [epics.md](vision/epics.md).
+- **Epic notes** (`epics/<slug>/`). Session facts from Build (frozen at Document) and the close note for that epic. The catalog of named capabilities stays in [epics.md](vision/epics.md).
 
 ## System
 

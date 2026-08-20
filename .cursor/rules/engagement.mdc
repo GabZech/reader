@@ -33,6 +33,7 @@ Then:
 - Overview docs for a feature move only in **Document**
 - Whole-system stack and architecture belong in **Foundation** only; Build covers the current epic unless the client explicitly reopens Foundation
 - During discovery before Foundation: only constraint questions that feed Kickoff, Understand, or Foundation
+- **Where truth lives.** Code and tests are behaviour. Living docs under `docs/` (not `history/` or epic `clarifying-answers.md`) are the current agreed picture. `clarifying-answers.md` is session facts for the open phase; freeze it when that phase accepts (Document for an epic). `docs/history/` is how we got here: do not refresh it to match later code
 
 ## Orientation (when starting, resuming, or closing a phase)
 

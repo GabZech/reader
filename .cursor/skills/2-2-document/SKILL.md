@@ -30,7 +30,8 @@ Update as needed:
 ## Do
 
 - Align overview docs with the running software, not with a plan written before Build. Follow writing-docs.
-- Epic note: what the client can do now, leftover risk, how to try it (local, and the live URL if hosted).
+- Fold durable facts from this epic's clarifying-answers into living docs (and an ADR when the choice is hard to reverse). Then freeze that file: do not keep it as the current picture. Do not rewrite `docs/history/discovery/` to match this epic.
+- Epic note: what the client can do now, leftover risk, how to try it (local, and the live URL if hosted). Later work prefers the running app, tests, and living docs over frozen clarifying-answers.
 - If hosted: smoke per `docs/operations.md` on the live revision that contains this epic; record the result in the epic note. If Build already deployed the last increment, do not invent a second host path; confirm that revision and smoke it.
 - Overview docs ship on the same branch as the approved Build.
 

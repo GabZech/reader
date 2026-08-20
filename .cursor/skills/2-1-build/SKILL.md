@@ -21,7 +21,7 @@ Make the current epic usable in the real product, one tryable increment at a tim
 ## Artifacts
 
 - Working software on the product (same app as the walking skeleton)
-- `docs/epics/<epic-slug>/clarifying-answers.md` (session facts: never client prompts)
+- `docs/epics/<epic-slug>/clarifying-answers.md` (thin session facts for this open Build: in/out, increment map, leftover risk, current-slice gaps; never client prompts)
 
 ## Do
 
@@ -31,7 +31,7 @@ Make the current epic usable in the real product, one tryable increment at a tim
 - Which epic this loop covers, then that epic's in/out and increment map; each one confirm. Vertical slices the client can try, not layers.
 - For the current increment only: fill lived-fact gaps, then build. Run the usual local checks before showing. If the increment must be judged on a hosted or device surface, deploy per `docs/operations.md` and smoke; do not save all shipping for Document.
 - After each increment: how to try it; one ask (good, or something needed missing). Iterate until signed off. Do not start the next increment until then.
-- Record durable facts in clarifying-answers.
+- Record those session facts in clarifying-answers. Do not copy living docs, and do not grow a behaviour spec the running slice can show.
 
 Do not write requirements, design, or task files. Do not reopen Foundation unless the client asks. Do not pull in other epics. Do not restyle. Do not update overview docs or write decision records (Document owns those).
 
@@ -47,7 +47,7 @@ Goal: gather only what the next increment needs. Defer living-doc alignment to D
 2. **Epic by proposal.** Show the defined catalog and recommend which loop to start. Confirm; do not ask the client to invent the sequence.
 3. **Increment map by proposal.** Infer ordered tryable slices. Prefer high value and low complexity first unless a leftover joint blocks the rest. Confirm; do not ask the client to invent the backlog.
 4. **Clarify the current slice only.** Do not specify the whole epic before the first increment.
-5. **Try it, do not specify it.** Behaviour still open is cheaper to settle on a running slice than in a document.
+5. **Try it, do not specify it.** Behaviour still open is cheaper to settle on a running slice than in a document. Clarifying-answers hold that slice's gaps, not a spec of the epic.
 6. **Agent verifies, client judges.** Tests, lint, and build are the agent's loop. Whether the increment is good is the client's.
 7. **Stay in Build.** No overview docs, no SPEC trilogy, no next epic.
 

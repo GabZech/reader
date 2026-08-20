@@ -67,6 +67,7 @@ Summarize what was added or changed and which phase to run next (or resume). Do 
 | Scopes and stack | Discovery banks stay descriptive until Scope (mockup / MVP / later) or Foundation (stack) |
 | Increments | Not in discovery banks; Build owns tryable vertical slices, not story or AC files |
 | Client prompts | Never save verbatim chat into skills or `docs/` |
+| Clarifying-answers | Session facts for the open phase; never a second living doc; freeze on accept |
 
 ## Anti-patterns
 
