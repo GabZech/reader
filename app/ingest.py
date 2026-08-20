@@ -1,15 +1,24 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from html.parser import HTMLParser
 from typing import Any
+from urllib.parse import urljoin, urlparse
 
 import feedparser
 import httpx
 
-from app.db import SKELETON_SOURCE_ID, delete_items_except_guids, upsert_item
+from app.db import delete_items_except_guids, rss_sources, upsert_item
 
-SKELETON_FEED_LIMIT = 5
+COMMON_FEED_PATHS = (
+    "/feed",
+    "/rss",
+    "/feed.xml",
+    "/atom.xml",
+    "/index.xml",
+    "/rss.xml",
+)
 
 ALLOWED_TAGS = {
     "p",
@@ -100,7 +109,7 @@ def word_count(html: str) -> int:
     return len(words)
 
 
-def parse_feed(xml: str, source_id: str = SKELETON_SOURCE_ID) -> list[dict[str, Any]]:
+def parse_feed(xml: str, source_id: str) -> list[dict[str, Any]]:
     parsed = feedparser.parse(xml)
     feed_title = parsed.feed.get("title") or "RSS"
     entries = []
@@ -137,26 +146,32 @@ def _newest_first(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(entries, key=key, reverse=True)
 
 
-def fetch_feed_xml(url: str, timeout: float = 8.0) -> str:
+def fetch_url(url: str, timeout: float = 8.0) -> tuple[str, str]:
     response = httpx.get(
         url,
         timeout=timeout,
         follow_redirects=True,
-        headers={"User-Agent": "reader-skeleton/0.1"},
+        headers={"User-Agent": "reader/0.1"},
     )
     response.raise_for_status()
-    return response.text
+    return str(response.url), response.text
+
+
+def fetch_feed_xml(url: str, timeout: float = 8.0) -> str:
+    _final_url, text = fetch_url(url, timeout=timeout)
+    return text
 
 
 def ingest_xml(
     conn,
     xml: str,
-    source_id: str = SKELETON_SOURCE_ID,
-    limit: int = SKELETON_FEED_LIMIT,
+    source_id: str,
+    limit: int | None = None,
 ) -> dict:
     entries = parse_feed(xml, source_id)
     feed_total = len(entries)
-    kept = _newest_first(entries)[:limit]
+    ranked = _newest_first(entries)
+    kept = ranked if limit is None else ranked[:limit]
     created = 0
     if kept:
         feed_title = kept[0]["feed_title"]
@@ -179,9 +194,10 @@ def ingest_xml(
         )
         if is_new:
             created += 1
-    delete_items_except_guids(
-        conn, source_id, [entry["guid"] for entry in kept]
-    )
+    if limit is not None:
+        delete_items_except_guids(
+            conn, source_id, [entry["guid"] for entry in kept]
+        )
     return {
         "created": created,
         "kept": len(kept),
@@ -189,9 +205,107 @@ def ingest_xml(
     }
 
 
-def ingest_url(conn, url: str, source_id: str = SKELETON_SOURCE_ID) -> dict:
+def ingest_url(
+    conn, url: str, source_id: str, limit: int | None = None
+) -> dict:
     xml = fetch_feed_xml(url)
-    return ingest_xml(conn, xml, source_id)
+    return ingest_xml(conn, xml, source_id, limit=limit)
+
+
+def ingest_all_sources(conn) -> dict:
+    created = 0
+    kept = 0
+    sources = rss_sources(conn)
+    for source in sources:
+        result = ingest_url(
+            conn, source["feed_url"], source["id"], limit=source["backfill"]
+        )
+        created += result["created"]
+        kept += result["kept"]
+    return {"created": created, "kept": kept, "sources": len(sources)}
+
+
+@dataclass(frozen=True)
+class DiscoveredFeed:
+    feed_url: str
+    title: str
+    item_count: int
+
+
+def normalize_user_url(raw: str) -> str | None:
+    text = raw.strip()
+    if not text:
+        return None
+    if not re.match(r"^https?://", text, re.I):
+        text = "https://" + text
+    parsed = urlparse(text)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    return text
+
+
+def discover_feed(url: str) -> DiscoveredFeed | None:
+    tried: set[str] = set()
+    candidates = [url]
+    first = True
+    while candidates:
+        candidate = candidates.pop(0)
+        key = candidate.rstrip("/").lower()
+        if key in tried:
+            continue
+        tried.add(key)
+        try:
+            final_url, body = fetch_url(candidate)
+        except httpx.HTTPError:
+            continue
+        parsed = feedparser.parse(body)
+        if _looks_like_feed(parsed):
+            title = parsed.feed.get("title") or "RSS"
+            return DiscoveredFeed(
+                feed_url=final_url,
+                title=str(title),
+                item_count=len(parsed.entries),
+            )
+        if first:
+            first = False
+            for href in _feed_links(body, final_url):
+                candidates.append(href)
+            origin = f"{urlparse(final_url).scheme}://{urlparse(final_url).netloc}"
+            for path in COMMON_FEED_PATHS:
+                candidates.append(urljoin(origin, path))
+    return None
+
+
+def _looks_like_feed(parsed: Any) -> bool:
+    return bool(parsed.get("version"))
+
+
+class _FeedLinkParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.hrefs: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag != "link":
+            return
+        data = {key.lower(): (value or "") for key, value in attrs}
+        rel = data.get("rel", "").lower()
+        typ = data.get("type", "").lower()
+        href = data.get("href")
+        if not href or "alternate" not in rel:
+            return
+        if "rss" in typ or "atom" in typ or typ in {"application/xml", "text/xml"}:
+            self.hrefs.append(href)
+
+
+def _feed_links(html: str, base_url: str) -> list[str]:
+    parser = _FeedLinkParser()
+    try:
+        parser.feed(html)
+        parser.close()
+    except Exception:
+        return []
+    return [urljoin(base_url, href) for href in parser.hrefs]
 
 
 def _entry_published(entry: Any) -> str | None:

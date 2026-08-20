@@ -92,6 +92,32 @@ Refresh Summary, Decisions, and Open when a phase gate advances; keep Decisions 
 
 Under **Concluded**, one ✅ bullet per accepted phase: phase name, links to living-doc results, and the phase history folder when it exists.
 
+## Epics (`docs/vision/epics.md`)
+
+Named capabilities plus mockup / MVP / later. Write during Scope; refresh only if Scope is reopened. Not user stories, not increment maps, not a per-epic Definition of Done.
+
+### Shape
+
+Opening: capabilities named the way someone doing the job would name them. The mockup is a clickable dummy, not built software.
+
+List epics in narrative order: setup and prerequisites before the sessions they enable. Same labels every time:
+
+1. **Capability:** the full job around the object or outcome
+2. **Done when:** recognisable outcome; the person can finish that job. Not tests, not all slices closed
+3. **In / out:** lifecycle verbs and adjacent jobs that are this epic vs later vs another epic
+4. **Depends on:** named earlier capabilities, or an explicit seed / already-exists assumption
+5. **Journeys** / **Persona**
+6. **MVP or later**
+7. **Mockup:** yes / no / which part, and learning purpose where it applies
+
+Then catalog sections:
+
+- **Mockup:** learning purpose and which paths are clickable
+- **MVP:** whole enough to complete a recognisable outcome. Names the first piece to implement after Mockup; that piece honours **Depends on**
+- **Later:** deferred capabilities, not Kickoff non-goals
+
+Do not paste stories, estimates, or Build increment maps.
+
 ## Mockup (`docs/vision/mockup.md`)
 
 Thin pointer to the clickable dummy. Write during Mockup once the dummy is walkable; refresh on accept. The dummy itself is not this file (HTML lives under `docs/mockup/`; Penpot/Figma stay in that tool). Keep this file under vision until Foundation is accepted; Foundation then moves it to `docs/history/discovery/04-mockup/`.

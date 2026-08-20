@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ source.title }}{% endblock %}
+{% block body %}
+      <header class="top">
+        <a class="back" href="/sources">Sources</a>
+        <h1>{{ source.title }}</h1>
+      </header>
+      {% if already %}
+      <p class="lede">{{ source.title }} is already in Sources.</p>
+      {% endif %}
+      <p class="lede">{{ source.byline }}</p>
+      <section class="list">
+        <a class="item" href="/sources/{{ source.id }}/items">
+          <span class="title">See items of this source</span>
+        </a>
+        <form method="post" action="/sources/{{ source.id }}/delete">
+          <button class="item" type="submit">
+            <span class="title">Delete source</span>
+          </button>
+        </form>
+      </section>
+{% endblock %}

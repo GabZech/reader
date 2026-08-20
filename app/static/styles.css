@@ -60,6 +60,10 @@ body {
   overflow: hidden;
 }
 
+.list.is-apart {
+  margin-top: 1.5rem;
+}
+
 .list-head {
   display: flex;
   align-items: center;
@@ -366,6 +370,29 @@ body {
 .article-body img {
   max-width: 100%;
   height: auto;
+}
+
+.list > form {
+  display: contents;
+}
+
+button.item {
+  width: 100%;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+button.top-edit {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
 }
 
 @media (min-width: 40rem) {

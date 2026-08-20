@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}How many{% endblock %}
+{% block body %}
+      <header class="top">
+        <a class="back" href="/sources/add">Add source</a>
+        <h1>{{ title }}</h1>
+      </header>
+      <p class="lede">This feed currently has {{ item_count }} item{% if item_count != 1 %}s{% endif %}.</p>
+      <section class="list">
+        <form method="post" action="/sources/add/count">
+          <input type="hidden" name="feed_url" value="{{ feed_url }}">
+          <input type="hidden" name="title" value="{{ title }}">
+          <input type="hidden" name="item_count" value="{{ item_count }}">
+          <input type="hidden" name="backfill" value="all">
+          <button class="item" type="submit">
+            <span class="title">All of them</span>
+            <span class="sub"><span class="byline">{{ item_count }} item{% if item_count != 1 %}s{% endif %}</span></span>
+          </button>
+        </form>
+        <form method="post" action="/sources/add/count">
+          <input type="hidden" name="feed_url" value="{{ feed_url }}">
+          <input type="hidden" name="title" value="{{ title }}">
+          <input type="hidden" name="item_count" value="{{ item_count }}">
+          <input type="hidden" name="backfill" value="5">
+          <button class="item" type="submit">
+            <span class="title">The last 5</span>
+            <span class="sub"><span class="byline">Newest five items</span></span>
+          </button>
+        </form>
+        <form method="post" action="/sources/add/count">
+          <input type="hidden" name="feed_url" value="{{ feed_url }}">
+          <input type="hidden" name="title" value="{{ title }}">
+          <input type="hidden" name="item_count" value="{{ item_count }}">
+          <input type="hidden" name="backfill" value="1">
+          <button class="item" type="submit">
+            <span class="title">Only the latest one</span>
+            <span class="sub"><span class="byline">Newest item only</span></span>
+          </button>
+        </form>
+      </section>
+      <form method="post" action="/sources/add/count">
+        <input type="hidden" name="feed_url" value="{{ feed_url }}">
+        <input type="hidden" name="title" value="{{ title }}">
+        <input type="hidden" name="item_count" value="{{ item_count }}">
+        <input type="hidden" name="backfill" value="exact">
+        <input class="field" name="exact" type="number" min="1" {% if item_count %}max="{{ item_count }}"{% endif %} inputmode="numeric" placeholder="Exact count">
+        <section class="list">
+          <button class="item" type="submit">
+            <span class="title">Use this count</span>
+          </button>
+        </section>
+      </form>
+{% endblock %}
