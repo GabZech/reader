@@ -16,7 +16,7 @@ A **walking skeleton** is a tiny, permanent, tested end-to-end slice that links 
 | What must stay in your hands | Architecture, stack | Name which data and jobs cannot live only in a vendor |
 | How the outside world gets in | Architecture, operations | Name inbound paths the first product needs at “this must work,” not vendor choice |
 
-Setup, toolchain, skeleton joints, and tradeoffs are **not** clusters. After the rounds above, infer the system package and confirm (see below). Tests, config, and a smoke test on the intended run path are checks the agent runs after that confirm.
+Setup, toolchain, skeleton joints, and tradeoffs are **not** clusters. After the rounds above, infer the system package and confirm (see below). Tests, config, and a smoke test on the intended run path are checks the agent runs after that confirm. If the product must be hosted, that smoke is on the first live deploy, not only localhost.
 
 ### 1. Landscape
 

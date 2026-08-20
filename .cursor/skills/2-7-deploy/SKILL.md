@@ -27,7 +27,7 @@ Ship the finished slice to its live environment.
 - Run or draft the exact commands that apply
 - Write a dated note under `deploy/` (what shipped, where, result)
 
-**Human role:** Confirm production steps (host access, secrets, first-time host work). Treat Deploy as a real gate: merge/tag as ops describe, bring the live environment to the new revision, smoke whatever health or smoke checks ops define.
+**Human role:** Confirm production steps (host access, secrets, this revision). Treat Deploy as a real gate: merge/tag as ops describe, bring the live environment to the new revision, smoke whatever health or smoke checks ops define. First-time host standup (account, Docker, first live URL) is Foundation, not this step.
 
 ## Gate
 
