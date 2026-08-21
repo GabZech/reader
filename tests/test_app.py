@@ -386,7 +386,7 @@ def test_list_unlisted_source_from_its_screen(monkeypatch, tmp_path):
         assert "Read later" in chooser.text
         done = client.post(f"/sources/{source_id}/list", data={"list_slug": "later"})
         assert done.status_code == 200
-        assert "Saved." in done.text
+        assert "Saved" in done.text
         assert "Read later" in done.text
         sources = client.get("/sources")
         assert "Read later" in sources.text

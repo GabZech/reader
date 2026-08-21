@@ -611,7 +611,7 @@ async def source_rename(request: Request, source_id: str):
         conn.commit()
     finally:
         conn.close()
-    return RedirectResponse(f"/sources/{source_id}?flash=Saved.", status_code=303)
+    return RedirectResponse(f"/sources/{source_id}?flash=Saved", status_code=303)
 
 
 @app.post("/sources/{source_id}/delete")
@@ -715,7 +715,7 @@ def source_list_remove(source_id: str, list_slug: str):
         conn.commit()
     finally:
         conn.close()
-    return RedirectResponse(f"/sources/{source_id}?flash=Removed.", status_code=303)
+    return RedirectResponse(f"/sources/{source_id}?flash=Removed", status_code=303)
 
 
 @app.get("/sources/{source_id}/new-list")
@@ -803,7 +803,7 @@ async def source_window_submit(request: Request, source_id: str):
         conn.commit()
     finally:
         conn.close()
-    return RedirectResponse(f"/sources/{source_id}?flash=Saved.", status_code=303)
+    return RedirectResponse(f"/sources/{source_id}?flash=Saved", status_code=303)
 
 
 @app.get("/items/{item_id}")
@@ -958,7 +958,7 @@ def _apply_source_list(source_id: str, list_slug: str):
         conn.commit()
     finally:
         conn.close()
-    return RedirectResponse(f"/sources/{source_id}?flash=Saved.", status_code=303)
+    return RedirectResponse(f"/sources/{source_id}?flash=Saved", status_code=303)
 
 
 def _int_field(value, default: int) -> int:

@@ -48,6 +48,13 @@
 
   const toast = document.querySelector(".toast");
   if (toast) {
+    if (window.history && window.history.replaceState) {
+      const url = new URL(location.href);
+      if (url.searchParams.has("flash")) {
+        url.searchParams.delete("flash");
+        window.history.replaceState({}, "", url);
+      }
+    }
     setTimeout(() => toast.classList.add("is-hidden"), 5000);
   }
 
