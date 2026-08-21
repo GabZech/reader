@@ -148,6 +148,26 @@ Epics are listed in the order you need them: setup and lists before sources, sou
 
 **Mockup:** yes, in part. Favourite channels appears on the home page, and you can remove an item from it like any other list. Watching inside the app, the evening session, and filtering Shorts are not in the dummy.
 
+## Improve UI
+
+**Capability:** Bring the real UI's look and feel beyond the mockup-era guidelines: icons, colour, and richer visual language wherever they help, applied once the rest of the MVP is built and there is a full app to restyle.
+
+**Done when:** Every screen built across the other MVP epics matches a revised `docs/ui-guidelines.md`.
+
+**In / out:**
+- **In:** revising `docs/ui-guidelines.md` beyond the mockup's stone/ink/no-icon look; applying the revised look across every already-built screen
+- **Out:** any new reader-facing feature or interaction (that belongs to the epic that owns that job); the layout/density/chrome structure already proven by the walking skeleton, unless the revised look requires changing it
+
+**Depends on:** [Manage lists](#manage-lists), [Manage sources](#manage-sources), [Bring the Library Over](#bring-the-library-over), [Morning News Pass](#morning-news-pass), [Read-Later Pass](#read-later-pass), [Highlight and Land in Obsidian](#highlight-and-land-in-obsidian) (needs a full built app to restyle)
+
+**Journeys:** none. Cross-cutting quality pass, not a discrete reader journey.
+
+**Persona:** [The Solo Reader](personas.md#the-solo-reader)
+
+**MVP or later:** MVP (last)
+
+**Mockup:** no. This epic revises the accepted look directly rather than testing a new one through a clickable dummy; it supersedes the mockup-era guidelines for the MVP.
+
 ## Mockup
 
 The HTML dummy is there to find out two things: whether choosing a time window when adding a source to a timed list is obvious, and whether highlighting is obvious (select text to highlight; tap a highlight to add a section title or delete it).
@@ -162,9 +182,9 @@ The dummy cannot prove that morning newsletters are already in News once the sou
 
 The MVP has to be usable as a whole: you can manage lists besides the three that are already there, sources land on lists (including YouTube channels) and can be removed, the existing library can be brought over, any item can be removed from the list it is on, the morning newsletters can be read and sent to Read later, parked articles can be worked through, and passages land in the vault.
 
-That is **Manage lists**, **Manage sources**, **Bring the Library Over**, **Morning News Pass**, **Read-Later Pass**, and **Highlight and Land in Obsidian**, plus removing an item from any list. Leave one of those out and the MVP is not worth using. **Evening Video Triage** waits for watching inside the app, the evening session, and filtering Shorts.
+That is **Manage lists**, **Manage sources**, **Bring the Library Over**, **Morning News Pass**, **Read-Later Pass**, **Highlight and Land in Obsidian**, and **Improve UI**, plus removing an item from any list. Leave one of those out and the MVP is not worth using. **Evening Video Triage** waits for watching inside the app, the evening session, and filtering Shorts.
 
-The first thing to build is **Manage lists**, then **Manage sources**. The rest of the MVP does not work without those.
+The first thing to build is **Manage lists**, then **Manage sources**. The rest of the MVP does not work without those. **Improve UI** goes last: it needs a full built app to restyle.
 
 ## Later
 

@@ -2,15 +2,16 @@
 
 ## Where We Are
 
-**📍 Phase:** Plan for Add a Source to a List (not started)
+**📍 Phase:** Plan for Manage sources (in progress; full re-plan, epic renamed from "Add a Source to a List")
 
 **🏁 Milestone:** MVP
 
 **📄 Summary:**
 
 - Foundation accepted: architecture, development, operations, UI guidelines, and a walking skeleton that follows the accepted look, including a live Fly URL
-- Plan is next: map Add a Source to a List into increments and work out dependencies, failure modes, and test approach before building it
-- The live isolated mailbox remains explicit remaining risk; it is part of this epic, not a later one
+- The epic previously tracked as "Add a Source to a List" is renamed **Manage sources** to match `docs/vision/epics.md`; some increments (RSS/blog to News, list membership, existing-source notice/see items/delete) already run but are being re-planned as part of this epic's full increment map, not discarded
+- A new **Improve UI** epic was added to the MVP catalog, last in build order: it revisits `docs/ui-guidelines.md` beyond the mockup-era look once the rest of the MVP is built
+- The live isolated mailbox remains explicit remaining risk within Manage sources
 
 **❗ Decisions:**
 
@@ -24,7 +25,7 @@
   - List membership cannot stay as manual author-name or feed-ID query editing. The lists in the picture now are News, Read later, and Favourite channels. More lists may mix types later
   - In-app extraction of the sources actually read must be consistently readable; the browser is a rare escape, not the normal path
   - The MVP completes add-to-list, bringing the existing library over (subscriptions export, saved-item CSV, folder of files), morning news, Read later, and highlight-to-Obsidian. Any item can be removed from the list it is on, including YouTube items. Watching videos inside the app in the evening, and filtering Shorts, wait. Adding sources by hand does not wait.
-  - Overall look follows the accepted dummy: layout, density, chrome, and quiet type. No icons and no brand colour system
+  - Overall look follows the accepted dummy for now: layout, density, chrome, and quiet type. The no-icons / no-brand-colour rule is a mockup-era guideline, not an MVP lock: the new **Improve UI** epic (last in the MVP) revisits `docs/ui-guidelines.md` once the rest of the MVP is built, and may introduce icons and colour
   - One Python web app, SQLite library file, Docker image, PWA cache on the device. Fly.io is the intended host until there is a domain or a machine at home
   - Newsletters: dedicated alias, forward into a separate mailbox used only for this app, IMAP on sync. Never personal-mailbox credentials. Live inbox is part of building Add a Source to a List
   - After Foundation, the first thing to build is adding a source to a list
