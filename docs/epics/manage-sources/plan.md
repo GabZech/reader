@@ -83,13 +83,15 @@ Working plan for Build. Confirmed with the client in chat; not a client delivera
 
 ### 6. Add an existing source to a list from that source's screen
 
-**Job:** from a source's own screen, put it on a list using the same picker as increment 3 (existing lists, create-new, or leave unlisted). Choosing again on a source that already has a list just moves it; no duplicate.
+**Deviation logged 2026-08-21:** originally planned as single-list-per-source (choosing a list moves the source, no duplicates). While building, the client asked for a source to be able to belong to several lists at once. This changed the underlying data model (list membership moved from a column on `sources` to a many-to-many `source_lists` table) and the shape of this increment; confirmed conversationally before building, so treated as a scope update rather than a return to Plan.
+
+**Job:** from a source's own screen, add it to another list using the same picker as increment 3 (existing lists not already joined, or create-new). The screen lists every list the source currently belongs to, each with its own remove control; removing one membership leaves the others untouched. The Sources page shows the single list's name when a source is on exactly one, or a count ("On 2 lists") when on several.
 
 **Dependencies:** increments 3 and 4.
 
-**Failure modes:** re-picking a list on an already-listed source changes it in place rather than creating a second membership.
+**Failure modes:** the picker excludes lists the source is already on, so there's no path to a duplicate membership.
 
-**Test approach:** manual try — open an unlisted source and list it; open an already-listed source and change it.
+**Test approach:** manual try — add a source to a second list and confirm both memberships hold independently; remove one and confirm the other survives; confirm the Sources page byline switches from a list name to a count once a source is on more than one.
 
 **Reversibility:** not applicable, nothing hard to undo.
 
