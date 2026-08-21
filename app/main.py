@@ -31,6 +31,7 @@ from app.db import (
     items_for_source,
     lists_with_items,
     reading_length,
+    rename_source,
     source_byline,
     source_id_for,
 )
@@ -578,6 +579,23 @@ def source_items_page(request: Request, source_id: str):
     )
 
 
+@app.post("/sources/{source_id}/rename")
+async def source_rename(request: Request, source_id: str):
+    form = await request.form()
+    name = str(form.get("name") or "")
+    conn = connect()
+    try:
+        init_db(conn)
+        source = get_source(conn, source_id)
+        if source is None:
+            raise HTTPException(status_code=404)
+        rename_source(conn, source_id, name)
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(f"/sources/{source_id}?renamed=1", status_code=303)
+
+
 @app.post("/sources/{source_id}/delete")
 def source_delete(source_id: str):
     conn = connect()
@@ -594,7 +612,9 @@ def source_delete(source_id: str):
 
 
 @app.get("/sources/{source_id}")
-def source_page(request: Request, source_id: str, already: str = ""):
+def source_page(
+    request: Request, source_id: str, already: str = "", renamed: str = ""
+):
     conn = connect()
     try:
         init_db(conn)
@@ -610,6 +630,7 @@ def source_page(request: Request, source_id: str, already: str = ""):
             "nav": "sources",
             "source": {**dict(source), "byline": source_byline(source)},
             "already": already == "1",
+            "renamed": renamed == "1",
         },
     )
 
@@ -807,6 +828,7 @@ def _commit_source(
             list_slug=list_slug,
             window=window,
             backfill=backfill,
+            auto_title=title or "RSS",
         )
         ingest_url(conn, feed_url, source_id, limit=backfill)
         conn.commit()

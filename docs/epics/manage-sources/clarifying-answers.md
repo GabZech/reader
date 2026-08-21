@@ -64,6 +64,14 @@ Tried; not signed off. All lists appear on choose-list. Create new list sits wit
 
 I’ll do this later saves the source with no list. Create new list uses the same name screen; after Continue the source goes on that list (News still asks the window). Empty name stays put. A name already used is that existing list.
 
+## Build sign-off (2026-08-21)
+
+Increments 1 (RSS/blog to News), 3 (choose-list-later-or-create-new), and 4 (existing-source notice, see items, delete) signed off after a guided walkthrough on a local instance with real feeds (Hacker News, Lobsters, xkcd). All matched `plan.md`.
+
+Increment 5 (rename a source's display name) signed off. Editable field lives inline on the source screen, next to Save name; a "Saved." message shows underneath the button after a successful save (small UX addition, not in the original plan text). While building this, found and fixed two pre-existing bugs that would have silently undone any rename: `ingest_xml` was resetting `sources.title` back to the feed-provided title on every sync, and `parse_feed` was baking the source's title into `items.author` for entries with no author, freezing the old name on already-ingested items. Both fixed in `app/ingest.py`; the source's originally auto-derived name is now tracked separately in `sources.auto_title` so a rename can be told apart from the feed's own title and an empty-name save can fall back to it.
+
+Next: increment 6, add an existing source to a list from that source's screen.
+
 ## Increment — Existing source notice, see items, delete (2026-08-20)
 
 Current. A feed already in Sources still opens that source; the page says it is already there.

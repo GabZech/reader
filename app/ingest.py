@@ -121,7 +121,7 @@ def parse_feed(xml: str, source_id: str) -> list[dict[str, Any]]:
         body = sanitize_html(html)
         image = _entry_image(entry)
         published = _entry_published(entry)
-        author = entry.get("author") or feed_title
+        author = entry.get("author")
         entries.append(
             {
                 "source_id": source_id,
@@ -175,10 +175,15 @@ def ingest_xml(
     created = 0
     if kept:
         feed_title = kept[0]["feed_title"]
-        conn.execute(
-            "UPDATE sources SET title = ? WHERE id = ?",
-            (feed_title, source_id),
-        )
+        row = conn.execute(
+            "SELECT title, auto_title FROM sources WHERE id = ?", (source_id,)
+        ).fetchone()
+        if row is not None:
+            title = feed_title if row["title"] == row["auto_title"] else row["title"]
+            conn.execute(
+                "UPDATE sources SET title = ?, auto_title = ? WHERE id = ?",
+                (title, feed_title, source_id),
+            )
     for entry in kept:
         is_new = upsert_item(
             conn,

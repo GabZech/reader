@@ -85,6 +85,9 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE sources ADD COLUMN window TEXT")
     if "backfill" not in columns:
         conn.execute("ALTER TABLE sources ADD COLUMN backfill INTEGER")
+    if "auto_title" not in columns:
+        conn.execute("ALTER TABLE sources ADD COLUMN auto_title TEXT")
+        conn.execute("UPDATE sources SET auto_title = title WHERE auto_title IS NULL")
     conn.execute("DELETE FROM items WHERE source_id = ?", (SKELETON_SOURCE_ID,))
     conn.execute("DELETE FROM sources WHERE id = ?", (SKELETON_SOURCE_ID,))
 
@@ -309,13 +312,14 @@ def insert_source(
     list_slug: str | None,
     window: str | None,
     backfill: int | None,
+    auto_title: str | None = None,
 ) -> None:
     conn.execute(
         """
-        INSERT INTO sources (id, kind, title, feed_url, list_slug, window, backfill)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO sources (id, kind, title, feed_url, list_slug, window, backfill, auto_title)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (source_id, kind, title, feed_url, list_slug, window, backfill),
+        (source_id, kind, title, feed_url, list_slug, window, backfill, auto_title or title),
     )
 
 
@@ -335,6 +339,14 @@ def items_for_source(conn: sqlite3.Connection, source_id: str) -> list[sqlite3.R
 def delete_source(conn: sqlite3.Connection, source_id: str) -> None:
     conn.execute("DELETE FROM items WHERE source_id = ?", (source_id,))
     conn.execute("DELETE FROM sources WHERE id = ?", (source_id,))
+
+
+def rename_source(conn: sqlite3.Connection, source_id: str, name: str) -> None:
+    source = get_source(conn, source_id)
+    if source is None:
+        return
+    title = name.strip() or source["auto_title"] or source["title"]
+    conn.execute("UPDATE sources SET title = ? WHERE id = ?", (title, source_id))
 
 
 def source_byline(source: sqlite3.Row) -> str:

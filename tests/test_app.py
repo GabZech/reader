@@ -356,6 +356,43 @@ def test_see_items_of_source(monkeypatch, tmp_path):
         assert "from_source=" in items.text
 
 
+def test_rename_source_updates_name_everywhere(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        renamed = client.post(f"/sources/{source_id}/rename", data={"name": "My News"})
+        assert renamed.status_code == 200
+        assert "<h1>My News</h1>" in renamed.text
+        sources = client.get("/sources")
+        assert "My News" in sources.text
+        assert "Fixture news" not in sources.text
+        items = client.get(f"/sources/{source_id}/items")
+        assert "My News" in items.text
+        news = client.get("/lists/news")
+        assert "My News" in news.text
+
+
+def test_rename_survives_a_later_sync(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        client.post(f"/sources/{source_id}/rename", data={"name": "My News"})
+        synced = client.post("/sync")
+        assert synced.status_code == 200
+        opened = client.get(f"/sources/{source_id}")
+        assert "<h1>My News</h1>" in opened.text
+
+
+def test_empty_rename_resets_to_auto_title(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        client.post(f"/sources/{source_id}/rename", data={"name": "My News"})
+        reset = client.post(f"/sources/{source_id}/rename", data={"name": "   "})
+        assert reset.status_code == 200
+        assert "<h1>Fixture news</h1>" in reset.text
+
+
 def test_delete_source_removes_it_and_items(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
