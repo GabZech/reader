@@ -72,6 +72,12 @@ Increment 5 (rename a source's display name) signed off. Editable field lives in
 
 Next: increment 6, add an existing source to a list from that source's screen.
 
+Increment 6 signed off (2026-08-21), after a scope change built in during this increment: sources can now belong to several lists at once rather than just one (see the deviation note in `plan.md`). The source screen lists every membership with its own ✕ remove control, "Add to a list" is always available, and Sources shows a list's name when a source is on exactly one or a count ("On 2 lists") when on several. "See items" now shows the real item count.
+
+Also added along the way: a shared toast component (dark pill above the tab bar, auto-dismisses after 5s, no trailing punctuation) replacing the old inline "Saved." text, used for rename, list changes, and list removal. Fixed a real caching bug found while verifying this in a browser: the service worker's cache version never changed so its precache of the shell pages and static assets never refreshed, and `/static/*` had no `Cache-Control` header; both fixed. A separate toast bug (reappearing on refresh because the flash message lived only in the URL) was fixed by stripping the query param client-side once read; verified with an automated headless-browser run. One false alarm during testing: VS Code's embedded browser panel throttles JS timers and made the toast look stuck when it wasn't — confirmed fine in a real browser tab.
+
+Next: increment 7, YouTube channel onto Favourite channels.
+
 ## Increment — Existing source notice, see items, delete (2026-08-20)
 
 Current. A feed already in Sources still opens that source; the page says it is already there.
