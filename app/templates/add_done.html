@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{% if unlisted %}Added{% else %}Added to {{ list_name }}{% endif %}{% endblock %}
+{% block body %}
+      <header class="top">
+        <h1>Added</h1>
+      </header>
+      {% if unlisted %}
+      <p class="lede">{{ title }} is not on a list yet.</p>
+      {% elif timed %}
+      <p class="lede">{{ title }} is on {{ list_name }}. Only recent items from the window you chose will appear.</p>
+      {% else %}
+      <p class="lede">{{ title }} is on {{ list_name }}.</p>
+      {% endif %}
+      <section class="list">
+        <a class="item" href="/sources">
+          <span class="title">Back to Sources</span>
+        </a>
+      </section>
+{% endblock %}

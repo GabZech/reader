@@ -13,7 +13,7 @@ These files settle who the product is for and what it must do, before a stack is
 - **[Personas](vision/personas.md).** Who the product is for. Written in Understand.
 - **[Journeys](vision/journeys.md).** The overall use cases those people already have, and what should change on each path.
 - **[Constraints](vision/constraints.md).** Cross-cutting limits that steer every later choice (devices, ownership, cost, freshness).
-- **[Epics](vision/epics.md).** Named capabilities, which belong in the first product, and which wait. After Foundation, the first thing to build is Add a Source to a List.
+- **[Epics](vision/epics.md).** Named capabilities, which belong in the MVP, and which wait. First piece of the MVP is Manage lists, then Manage sources.
 
 ## Engagement
 

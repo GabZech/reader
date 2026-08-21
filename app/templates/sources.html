@@ -1,18 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Sources{% endblock %}
 {% block body %}
-      <header class="top">
+      <header class="top top-row">
         <h1>Sources</h1>
+        <a class="top-edit" href="/sources/add">Add source</a>
       </header>
 
+      {% if sources %}
       <section class="list">
         {% for source in sources %}
-        <div class="item">
+        <a class="item{% if source.unlisted %} is-unlisted{% endif %}" href="/sources/{{ source.id }}">
           <span class="title">{{ source.title }}</span>
           <span class="sub">
-            <span class="byline">{{ source.kind }}{% if source.list_name %} · {{ source.list_name }}{% endif %}</span>
+            <span class="byline">{{ source.byline }}</span>
           </span>
-        </div>
+        </a>
         {% endfor %}
       </section>
+      {% endif %}
 {% endblock %}

@@ -23,12 +23,12 @@
   - Operating cost about $5 USD/month preferred, $10 USD/month hard ceiling, including any store or developer fees
   - List membership cannot stay as manual author-name or feed-ID query editing. The lists in the picture now are News, Read later, and Favourite channels. More lists may mix types later
   - In-app extraction of the sources actually read must be consistently readable; the browser is a rare escape, not the normal path
-  - First product completes add-to-list, morning news, Read later, and highlight-to-Obsidian. Any item can be removed from the list it is on, including YouTube items. Watching videos inside the app in the evening, and filtering Shorts, wait
+  - The MVP completes add-to-list, bringing the existing library over (subscriptions export, saved-item CSV, folder of files), morning news, Read later, and highlight-to-Obsidian. Any item can be removed from the list it is on, including YouTube items. Watching videos inside the app in the evening, and filtering Shorts, wait. Adding sources by hand does not wait.
   - Overall look follows the accepted dummy: layout, density, chrome, and quiet type. No icons and no brand colour system
   - One Python web app, SQLite library file, Docker image, PWA cache on the device. Fly.io is the intended host until there is a domain or a machine at home
   - Newsletters: dedicated alias, forward into a separate mailbox used only for this app, IMAP on sync. Never personal-mailbox credentials. Live inbox is part of building Add a Source to a List
   - After Foundation, the first thing to build is adding a source to a list
-  - Keep the GitHub repo name and the Fly URL `reader-skeleton.fly.dev` through feature work. Before the first product is put on the phone as the lasting URL, rename the repo, stand up a new Fly app name (Fly cannot rename in place), and add a home-screen logo that shows when the site is installed
+  - Keep the GitHub repo name and the Fly URL `reader-skeleton.fly.dev` through feature work. Before the MVP is put on the phone as the lasting URL, rename the repo, stand up a new Fly app name (Fly cannot rename in place), and add a home-screen logo that shows when the site is installed
 - **Out**
   - Multi-user or shared accounts
   - YouTube local save and auto-transcription

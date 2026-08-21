@@ -30,7 +30,7 @@ Propose, in conversation:
 - Artifact list and level of detail (e.g. journeys = overall use cases; stories later)
 - Question clusters → which artifact each feeds → “ask until you can…” exits
 - Boundaries with the previous and next phase
-- What to propose-for-confirm vs ask open (mirror Kickoff non-goals / Understand constraints)
+- What to propose-for-confirm vs ask open (mirror Kickoff non-goals / Understand constraints). Propose-for-confirm packages include an expert critique against that phase’s checklist; fold recommended changes in before the ask
 
 Keep the proposal **idea-agnostic**: any product, not the current client’s domain. Wait for alignment or edits before step 2.
 
@@ -68,6 +68,7 @@ Summarize what was added or changed and which phase to run next (or resume). Do 
 | Increments | Not in discovery banks; Plan owns tryable vertical slices and their dependencies/failure modes, Build implements them, not story or AC files |
 | Client prompts | Never save verbatim chat into skills or `docs/` |
 | Clarifying-answers | Session facts for the open phase; never a second living doc; freeze on accept (Deploy: freeze only when the epic closes, not on a mid-epic ship) |
+| Review | After inferring a package, critique it against the phase checklist and fold recommendations in before confirm. Gap check: recommend remaining thin spots; one confirm (add, skip, or something else). Not an open “anything to add?” |
 
 ## Anti-patterns
 
@@ -75,4 +76,5 @@ Summarize what was added or changed and which phase to run next (or resume). Do 
 - Encoding the current product’s personas, journeys, or stack into the phase skill
 - Turning the bank into a rigid script instead of a pick-and-adapt menu
 - Soliciting open “what should we leave out?” lists when the phase should propose non-goals, constraints, or scopes for confirm/edit
+- Treating the gap check as an open completeness ask
 - Writing bank items as open specialist quizzes (operations, vendors, stack) with no ordinary-language frame and no recommendation; questioning owns how, banks must mark those clusters as propose-and-confirm

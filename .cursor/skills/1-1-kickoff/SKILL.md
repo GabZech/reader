@@ -62,7 +62,7 @@ Goal: gather only what `proposition.md` and `metrics.md` need. Defer deep user/j
 3. If answers are vague, ask for one concrete example next.
 4. Propose inferred non-goals; one confirmation ask (accept, edit, or reject items).
 5. Draft proposition + metrics when the checklist below is met; present the summary.
-6. **Gap check (before accept):** From this conversation, name one or two topic categories the client might still want in Kickoff (gaps or thin spots that still belong in proposition/metrics — not Understand/Foundation work). One ask: anything to add in those areas (or elsewhere in Kickoff)? Incorporate answers, then continue.
+6. **Gap check (before accept):** Recommend one or two remaining thin spots that still belong in Kickoff (proposition/metrics, not Understand/Foundation). One confirm (add, skip, or something else). Incorporate, then continue.
 7. One accept ask for Kickoff.
 
 ### Ready to draft artifacts when

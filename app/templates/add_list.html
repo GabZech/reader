@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Add list{% endblock %}
+{% block body %}
+      <header class="top">
+        <a class="back" href="{{ back_href }}">{{ "List" if hidden else "Lists" }}</a>
+        <h1>Add list</h1>
+      </header>
+      {% if error %}
+      <p class="lede">{{ error }}</p>
+      {% else %}
+      <p class="lede">Name this list.</p>
+      {% endif %}
+      <form method="post" action="{{ form_action }}">
+        {% for key, value in hidden.items() %}
+        <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endfor %}
+        <input class="field" name="name" type="text" autocomplete="off" value="{{ name }}" required>
+        <section class="list">
+          <button class="item" type="submit">
+            <span class="title">Continue</span>
+          </button>
+        </section>
+      </form>
+{% endblock %}

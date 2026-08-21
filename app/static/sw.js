@@ -1,4 +1,4 @@
-const CACHE = "reader-shell-v1";
+const CACHE = "reader-shell-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -27,8 +27,10 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE).then((cache) => cache.put(request, copy));
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, copy));
+        }
         return response;
       })
       .catch(() => caches.match(request))

@@ -59,7 +59,7 @@ Goal: gather only what architecture, stack, operations, UI guidelines, and the s
 4. Write the four docs; extract look into UI guidelines. Fold confirmed tradeoffs into `architecture.md`.
 5. Set up the toolchain; build the skeleton; local tests. If hosted: first deploy and smoke (client opens the live URL on a target device).
 6. Self-review the running UI against the guidelines; share; one ask: does the look match, and is this the right place to hang the first feature. Iterate until good.
-7. Gap check; accept.
+7. **Gap check:** recommend one or two remaining thin spots that still belong in Foundation; one confirm (add, skip, or something else). Then accept.
 
 ### Ready to scaffold when
 

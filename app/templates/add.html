@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Add source{% endblock %}
+{% block body %}
+      <header class="top">
+        <a class="back" href="/sources">Sources</a>
+        <h1>Add source</h1>
+      </header>
+      {% if error %}
+      <p class="lede">{{ error }}</p>
+      {% else %}
+      <p class="lede">Paste a feed or a blog page.</p>
+      {% endif %}
+      <form method="post" action="/sources/add">
+        <input class="field" name="url" type="text" inputmode="url" autocomplete="off" value="{{ url }}" required>
+        <section class="list">
+          <button class="item" type="submit">
+            <span class="title">Continue</span>
+          </button>
+        </section>
+      </form>
+{% endblock %}

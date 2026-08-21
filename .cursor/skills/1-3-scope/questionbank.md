@@ -14,7 +14,7 @@ The **mockup** is a clickable dummy of the solution, not built software. Which t
 | --- | --- | --- |
 | What the MVP must achieve | MVP scope | Name which journey outcomes must work or the first product is not worth using |
 | What the clickable mockup is for | Mockup scope | Name what the clickable walkthrough must let us learn, and which paths must be walkable for that |
-| What cannot stand alone | Epic packaging and both scopes | Name what cannot ship or be walked through alone, and which journeys are one job vs two |
+| What cannot stand alone | Epic packaging and both scopes | Name what cannot ship or be walked through alone, which journeys are one job vs two, and which durable objects later sessions assume |
 | What we are still unsure about | Mockup scope; history | Name the riskiest remaining assumptions, and what the clickable mockup should settle vs what we will carry |
 
 Epics and the three scopes are **not** a question cluster. After the rounds above, infer them and confirm (see below).
@@ -42,6 +42,8 @@ How people doing the job see it, not technical layers.
 - Where would it feel broken if one capability shipped without another?
 - Do any journeys share a capability so they should be one epic?
 - Do any look separate but people treat them as one job?
+- Which durable objects do later sessions assume already exist?
+- If someone starts this object, what else must they be able to do with it for the job to feel complete?
 
 ### 4. What we are still unsure about
 
@@ -54,24 +56,37 @@ Park screen design and deep research design; capture the unknown so Mockup or la
 
 ### Epics and scopes (propose, then confirm)
 
-Do not ask the client to invent the epic list or “what to leave out of the MVP.” Near the end, from journeys, constraints, and the rounds above, draft:
+Do not ask the client to invent the epic list or “what to leave out of the MVP.” Near the end, from journeys, constraints, and the rounds above, draft the catalog using the writing-docs **Epics** fields.
 
-- Named epics (recognisable capabilities, each linked to at least one journey)
+**Catalog critique (mandatory before the confirm ask).** Walk the draft and fold recommended expansions, splits, and reordering into the package:
+
+1. **Lifecycle.** If a journey only starts an object, the epic covers change and stop unless In/out parks them as later or another epic. Do not leave add-only implied.
+2. **Container before contents.** Membership of an object Depends on a setup epic, or that object is named as seeded / already exists.
+3. **Backbone order.** List epics setup → fill → use. The first MVP piece to implement honours Depends on; do not start with membership of an object that has no create path unless Depends on says seeded.
+4. **Done when.** Every epic has a recognisable finish line (the person can finish the job). Not tests, not “all slices closed,” not a product-wide Definition of Done.
+5. **In / out explicit.** Lifecycle verbs and adjacent jobs are named as this epic, later, or another epic.
+
+Then present:
+
+- Named epics (those fields, each linked to at least one journey)
 - Mockup scope (paths plus learning purpose)
 - MVP scope vs later
 - The first piece of the MVP to implement after Mockup
 
-Present that package and ask once whether to confirm or adjust. Fold the confirmed list into `epics.md`.
+Ask once whether to confirm or adjust. Fold the confirmed list into `epics.md`.
 
 ## Question direction
 
 - Prefer outcomes the first product cannot do without, what cannot stand alone, and uncertainty over feature wish-lists, scoring, or stack.
 - Prefer a first product that still reaches a recognisable result over disconnected pieces.
 - Never solicit MVP exclusions or epic lists with open questions; propose them for confirmation instead.
+- Never copy a journey verb as the epic name without lifecycle, Depends on, and Done when; propose those fields.
+- Prefer backbone order over the order journeys were listed.
 
 ## Boundaries
 
 - No user stories, acceptance criteria, or story maps in this phase.
+- No per-epic Definition of Done; Done when is the capability outcome.
 - No dummy screens or as-should walkthroughs (Mockup).
 - No stack or architecture (Foundation).
 - Do not invent primary journeys; if a path is missing, reopen Understand.

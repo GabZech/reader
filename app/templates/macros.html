@@ -1,5 +1,5 @@
-{% macro item_row(item, extra=false) %}
-        <a class="item{% if item.image_url %} has-thumb{% endif %}{% if extra %} is-more{% endif %}"{% if extra %} hidden{% endif %} href="/items/{{ item.id }}">
+{% macro item_row(item, extra=false, source_id=none) %}
+        <a class="item{% if item.image_url %} has-thumb{% endif %}{% if extra %} is-more{% endif %}"{% if extra %} hidden{% endif %} href="/items/{{ item.id }}{% if source_id %}?from_source={{ source_id }}{% endif %}">
           {% if item.image_url %}
           <span class="thumb" aria-hidden="true" style="background-image:url('{{ item.image_url }}')"></span>
           {% endif %}
