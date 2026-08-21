@@ -29,15 +29,15 @@ Then:
 
 - **Questioning skill.** How you speak to the client follows `.cursor/skills/questioning/SKILL.md` (style only). What you ask comes from the current phase skill.
 - No application code or stack scaffold until Foundation’s system package and tradeoffs are confirmed
-- No epic **Build** until **Foundation** is accepted
+- No epic **Plan** until **Foundation** is accepted; no **Build** until that epic’s **Plan** is accepted
 - Overview docs for a feature move only in **Deploy**
 - Production release after Foundation’s first standup happens only in **Deploy**. An explicit request to ship during Build enters Deploy with signed-off work only
-- Whole-system stack and architecture belong in **Foundation** only; Build covers the current epic unless the client explicitly reopens Foundation
+- Whole-system stack and architecture belong in **Foundation** only; Plan and Build cover the current epic unless the client explicitly reopens Foundation
 - During discovery before Foundation: only constraint questions that feed Kickoff, Understand, or Foundation
-- **Where truth lives.** Code and tests are behaviour. Living docs under `docs/` (not `history/` or epic `clarifying-answers.md`) are the current agreed picture. `clarifying-answers.md` is session facts while that Build is open; freeze it when that epic’s complete Deploy accepts. A mid-epic Deploy leaves it open. `docs/history/` is how we got here: do not refresh it to match later code
+- **Where truth lives.** Code and tests are behaviour. Living docs under `docs/` (not `history/` or an epic's `plan.md` / `clarifying-answers.md`) are the current agreed picture. `plan.md` and `clarifying-answers.md` are the agent’s working record while that epic is open; freeze both when that epic’s complete Deploy accepts. A mid-epic Deploy leaves them open. `docs/history/` is how we got here: do not refresh it to match later code
 
 ## Orientation (when starting, resuming, or closing a phase)
 
 Voice follows the questioning skill. Cover what is useful among: current phase, what this phase is for, decisions or open questions that matter now, and the immediate next step. Mention Mockup or MVP milestone only when one is actually set; omit it otherwise. Do not use label stacks (`Status:`, `Milestone:`, `Next:`).
 
-On close, after the on-accept file updates: recommend ending this chat and starting a new one after each discovery phase, and after an epic-complete Deploy. Living docs and the roadmap are the handoff. Do not start that next discovery phase or epic here unless they ask to continue. Stay in this chat through the current phase, including every Build increment of one epic, mid-epic Deploys, and that epic’s complete Deploy. Do not recommend a new chat after a clarifying answer, a signed-off increment, or a mid-epic Deploy that returns to Build.
+On close, after the on-accept file updates: recommend ending this chat and starting a new one after each discovery phase, and after an epic-complete Deploy. Living docs and the roadmap are the handoff. Do not start that next discovery phase or epic here unless they ask to continue. Stay in this chat through the current phase, including that epic’s Plan, every Build increment, mid-epic Deploys, and that epic’s complete Deploy. Do not recommend a new chat after a clarifying answer, a signed-off increment, a Plan accept, or a mid-epic Deploy that returns to Build.

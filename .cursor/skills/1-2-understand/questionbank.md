@@ -4,7 +4,7 @@ Clarifying **content** for Understand. Deliver each ask with the questioning ski
 
 Pick and adapt; do not read as a script. Reuse Kickoff answers; deepen, do not restart.
 
-Journeys here are **overall use cases** at discovery level of detail: named end-to-end scenarios with actor, goal, trigger, steps today, outcome, costly edges, and **Wanted**. Tryable increments wait for Build.
+Journeys here are **overall use cases** at discovery level of detail: named end-to-end scenarios with actor, goal, trigger, steps today, outcome, costly edges, and **Wanted**. Tryable increments wait for Plan.
 
 ## Question clusters → artifacts
 

@@ -37,14 +37,14 @@ Do not write epics. Do not assign mockup / MVP / later. Do not invent stack or a
 
 ## Clarifying questions
 
-Goal: gather only what personas, journeys, and constraints need. Defer epics and mockup / MVP / later scope to Scope; defer increment behaviour to Build; defer stack to Foundation.
+Goal: gather only what personas, journeys, and constraints need. Defer epics and mockup / MVP / later scope to Scope; defer increment behaviour to Plan; defer stack to Foundation.
 
 ### Principles
 
 1. **Reuse Kickoff.** Deepen who, outcomes, and assumptions; do not re-litigate vision or metrics unless contradicted.
 2. **Past and present over hypotheticals.** Critical incidents and concrete situations over “would you use…” or feature opinions.
 3. **Current-state journeys.** Map how goals are achieved today. Put path-specific desired changes as **Wanted** on that journey. Put cross-cutting limits in constraints. Do not rewrite journeys as the new app. As-should paths wait for Mockup.
-4. **Use-case level of detail, not increments.** Name end-to-end scenarios; stop before splitting into tryable Build slices.
+4. **Use-case level of detail, not increments.** Name end-to-end scenarios; stop before splitting into tryable increments (Plan's job).
 5. **Constraints by proposal.** Infer hard vs soft limits from answers and Kickoff; confirm or edit — do not open with a laundry-list ask.
 6. **Stay in Understand scope.** No epics, mockup / MVP / later, or architecture.
 

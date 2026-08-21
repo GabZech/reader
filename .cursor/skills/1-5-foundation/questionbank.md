@@ -60,7 +60,7 @@ Infer inbound paths from journeys and the first epic. Recommend which must alrea
 - What inbound paths the first product needs (mail, feeds, files, APIs, webhooks)
 - Which of those the skeleton must already prove
 
-Park first-epic behaviour; capture the unknown so Build can use it.
+Park first-epic behaviour; capture the unknown so Plan can use it.
 
 ### System package and tradeoffs (propose, then confirm)
 
@@ -95,7 +95,7 @@ When inferring tradeoffs, consider these tensions only if they apply (do not dum
 
 ## Boundaries
 
-- No first-epic behaviour (Build).
+- No first-epic behaviour (Plan and Build).
 - Do not restyle or invent a design system (look is copied from Mockup into UI guidelines).
 - Do not expand MVP scope or reopen epic packaging unless the system cannot honour Scope.
 - Do not write decision records under `docs/history/decisions/` (Deploy owns those).
@@ -104,4 +104,4 @@ When inferring tradeoffs, consider these tensions only if they apply (do not dum
 
 ## Boundary with the next phase
 
-After Foundation accept, Build makes the first MVP epic named in Scope usable in increments. Do not start that epic here. If the client volunteers increment-level detail early, note it under history and reuse in Build.
+After Foundation accept, Plan maps the first MVP epic named in Scope into increments, then Build makes it usable. Do not start that epic here. If the client volunteers increment-level detail early, note it under history and reuse in Plan.

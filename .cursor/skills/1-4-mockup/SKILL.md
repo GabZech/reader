@@ -38,7 +38,7 @@ Do not write the product application or choose the product stack. An HTML dummy 
 
 ## Clarifying questions
 
-Goal: gather only what the dummy needs. Defer increment behaviour to Build; defer stack to Foundation.
+Goal: gather only what the dummy needs. Defer increment behaviour to Plan; defer stack to Foundation.
 
 ### Principles
 

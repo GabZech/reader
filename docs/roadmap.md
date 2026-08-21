@@ -2,14 +2,14 @@
 
 ## Where We Are
 
-**📍 Phase:** Build for Add a Source to a List (not started)
+**📍 Phase:** Plan for Add a Source to a List (not started)
 
 **🏁 Milestone:** MVP
 
 **📄 Summary:**
 
 - Foundation accepted: architecture, development, operations, UI guidelines, and a walking skeleton that follows the accepted look, including a live Fly URL
-- Build is next: add a source to a list in tryable increments on the real app
+- Plan is next: map Add a Source to a List into increments and work out dependencies, failure modes, and test approach before building it
 - The live isolated mailbox remains explicit remaining risk; it is part of this epic, not a later one
 
 **❗ Decisions:**
