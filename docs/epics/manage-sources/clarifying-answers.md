@@ -78,6 +78,8 @@ Also added along the way: a shared toast component (dark pill above the tab bar,
 
 Next: increment 7, YouTube channel onto Favourite channels.
 
+Increment 7 built and tested (38/38 automated tests pass), verified locally against a real public channel. YouTube channel URLs are detected via `source_kind_for`; feed discovery sends a `SOCS=CAI` cookie to skip Google's EU consent-redirect page, which otherwise hides the real page (and its feed link) from a non-consenting HTTP client. Not yet walked through with the client or signed off — pick up with the guided walkthrough next session.
+
 ## Increment — Existing source notice, see items, delete (2026-08-20)
 
 Current. A feed already in Sources still opens that source; the page says it is already there.

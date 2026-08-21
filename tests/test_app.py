@@ -15,6 +15,13 @@ BLOG_HTML = """<!doctype html>
 </head><body>blog</body></html>
 """
 NOT_FEED_HTML = "<html><body>no feed here</body></html>"
+YOUTUBE_CHANNEL_URL = "https://www.youtube.com/@testchannel"
+YOUTUBE_FEED_URL = "https://www.youtube.com/feeds/videos.xml?channel_id=UCtest123"
+YOUTUBE_CHANNEL_HTML = f"""<!doctype html>
+<html><head>
+<link rel="alternate" type="application/rss+xml" href="{YOUTUBE_FEED_URL}">
+</head><body>channel</body></html>
+"""
 
 
 def _fetch(url: str, timeout: float = 8.0) -> tuple[str, str]:
@@ -22,6 +29,10 @@ def _fetch(url: str, timeout: float = 8.0) -> tuple[str, str]:
         return url, FIXTURE.read_text(encoding="utf-8")
     if url.rstrip("/").endswith("/blog"):
         return url, BLOG_HTML
+    if url == YOUTUBE_CHANNEL_URL:
+        return url, YOUTUBE_CHANNEL_HTML
+    if url == YOUTUBE_FEED_URL:
+        return url, FIXTURE.read_text(encoding="utf-8")
     return url, NOT_FEED_HTML
 
 
@@ -128,6 +139,73 @@ def test_add_rss_to_news_from_blog_page(monkeypatch, tmp_path):
         news = client.get("/lists/news")
         assert "First fixture item" in news.text
         assert "Second fixture item" in news.text
+
+
+def test_youtube_channel_url_lands_on_favourite_channels(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        added = client.post("/sources/add", data={"url": YOUTUBE_CHANNEL_URL})
+        assert added.status_code == 200
+        assert "This feed currently has" in added.text
+        listed = client.post(
+            "/sources/add/count",
+            data={
+                "feed_url": YOUTUBE_FEED_URL,
+                "title": "Test Channel",
+                "item_count": "2",
+                "backfill": "all",
+            },
+        )
+        done = client.post(
+            "/sources/add/list",
+            data={
+                "feed_url": YOUTUBE_FEED_URL,
+                "title": "Test Channel",
+                "item_count": "2",
+                "backfill": "",
+                "list_slug": "fav",
+            },
+        )
+        assert done.status_code == 200
+        assert "is on Favourite channels" in done.text
+        sources = client.get("/sources")
+        assert "YouTube · Favourite channels" in sources.text
+
+
+def test_youtube_source_is_included_in_sync(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        client.post("/sources/add", data={"url": YOUTUBE_CHANNEL_URL})
+        client.post(
+            "/sources/add/count",
+            data={
+                "feed_url": YOUTUBE_FEED_URL,
+                "title": "Test Channel",
+                "item_count": "2",
+                "backfill": "all",
+            },
+        )
+        client.post(
+            "/sources/add/list",
+            data={
+                "feed_url": YOUTUBE_FEED_URL,
+                "title": "Test Channel",
+                "item_count": "2",
+                "backfill": "",
+                "list_slug": "fav",
+            },
+        )
+        synced = client.post("/sync")
+        assert synced.status_code == 200
+        assert synced.json()["sources"] == 1
+
+
+def test_video_url_finds_no_feed(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.post(
+            "/sources/add",
+            data={"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+        )
+    assert response.status_code == 200
+    assert "We could not find a feed." in response.text
 
 
 def test_duplicate_feed_goes_to_existing_source(monkeypatch, tmp_path):

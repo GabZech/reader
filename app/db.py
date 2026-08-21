@@ -312,7 +312,7 @@ def rss_sources(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute(
         """
         SELECT * FROM sources
-        WHERE kind = 'rss' AND feed_url IS NOT NULL AND feed_url != ''
+        WHERE kind IN ('rss', 'youtube') AND feed_url IS NOT NULL AND feed_url != ''
         ORDER BY title
         """
     ).fetchall()
@@ -402,8 +402,11 @@ def membership_label(membership: sqlite3.Row) -> str:
     return membership["list_name"] or membership["list_slug"]
 
 
+KIND_LABELS = {"rss": "RSS", "youtube": "YouTube"}
+
+
 def source_byline(kind: str, memberships: list[sqlite3.Row]) -> str:
-    kind = "RSS" if kind == "rss" else kind
+    kind = KIND_LABELS.get(kind, kind)
     if not memberships:
         return f"{kind} · Not on a list"
     if len(memberships) == 1:

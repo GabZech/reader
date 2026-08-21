@@ -45,6 +45,7 @@ from app.ingest import (
     ingest_all_sources,
     ingest_url,
     normalize_user_url,
+    source_kind_for,
 )
 
 APP_DIR = Path(__file__).resolve().parent
@@ -1013,7 +1014,7 @@ def _commit_source(
         insert_source(
             conn,
             source_id=source_id,
-            kind="rss",
+            kind=source_kind_for(feed_url),
             title=title or "RSS",
             feed_url=feed_url,
             backfill=backfill,
