@@ -12,9 +12,11 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import database_path
 from app.db import (
+    add_source_to_list,
     all_lists,
     all_sources,
     connect,
+    count_items_for_source,
     find_list_by_name,
     find_source_by_feed_url,
     format_when,
@@ -30,10 +32,13 @@ from app.db import (
     items_for_list,
     items_for_source,
     lists_with_items,
+    membership_label,
     reading_length,
+    remove_source_from_list,
     rename_source,
     source_byline,
     source_id_for,
+    source_memberships,
 )
 from app.ingest import (
     discover_feed,
@@ -67,15 +72,26 @@ app = FastAPI(title="Reader", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
 
 
-def _sources_view(rows) -> list[dict]:
-    return [
-        {
-            **dict(row),
-            "byline": source_byline(row),
-            "unlisted": not row["list_slug"],
-        }
-        for row in rows
-    ]
+@app.middleware("http")
+async def no_cache_static(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
+def _sources_view(conn, rows) -> list[dict]:
+    result = []
+    for row in rows:
+        memberships = source_memberships(conn, row["id"])
+        result.append(
+            {
+                **dict(row),
+                "byline": source_byline(row["kind"], memberships),
+                "unlisted": not memberships,
+            }
+        )
+    return result
 
 
 @app.get("/")
@@ -250,7 +266,7 @@ def sources_page(request: Request):
     conn = connect()
     try:
         init_db(conn)
-        sources = _sources_view(all_sources(conn))
+        sources = _sources_view(conn, all_sources(conn))
     finally:
         conn.close()
     return templates.TemplateResponse(
@@ -540,19 +556,21 @@ def source_added(request: Request, source_id: str):
     try:
         init_db(conn)
         source = get_source(conn, source_id)
+        if source is None:
+            raise HTTPException(status_code=404)
+        memberships = source_memberships(conn, source_id)
     finally:
         conn.close()
-    if source is None:
-        raise HTTPException(status_code=404)
+    membership = memberships[0] if memberships else None
     return templates.TemplateResponse(
         request,
         "add_done.html",
         {
             "nav": "sources",
             "title": source["title"],
-            "list_name": source["list_name"] or "",
-            "timed": source["list_slug"] == "news",
-            "unlisted": not source["list_slug"],
+            "list_name": membership["list_name"] if membership else "",
+            "timed": bool(membership) and membership["list_slug"] == "news",
+            "unlisted": membership is None,
         },
     )
 
@@ -593,7 +611,7 @@ async def source_rename(request: Request, source_id: str):
         conn.commit()
     finally:
         conn.close()
-    return RedirectResponse(f"/sources/{source_id}?renamed=1", status_code=303)
+    return RedirectResponse(f"/sources/{source_id}?flash=Saved.", status_code=303)
 
 
 @app.post("/sources/{source_id}/delete")
@@ -613,7 +631,96 @@ def source_delete(source_id: str):
 
 @app.get("/sources/{source_id}")
 def source_page(
-    request: Request, source_id: str, already: str = "", renamed: str = ""
+    request: Request,
+    source_id: str,
+    already: str = "",
+    flash: str = "",
+):
+    conn = connect()
+    try:
+        init_db(conn)
+        source = get_source(conn, source_id)
+        if source is None:
+            raise HTTPException(status_code=404)
+        memberships = source_memberships(conn, source_id)
+        item_count = count_items_for_source(conn, source_id)
+    finally:
+        conn.close()
+    membership_views = [
+        {"list_slug": m["list_slug"], "label": membership_label(m)}
+        for m in memberships
+    ]
+    return templates.TemplateResponse(
+        request,
+        "source.html",
+        {
+            "nav": "sources",
+            "source": {
+                **dict(source),
+                "byline": source_byline(source["kind"], memberships),
+            },
+            "memberships": membership_views,
+            "item_count": item_count,
+            "already": already == "1",
+            "flash": flash,
+        },
+    )
+
+
+@app.get("/sources/{source_id}/list")
+def source_list_page(request: Request, source_id: str):
+    conn = connect()
+    try:
+        init_db(conn)
+        source = get_source(conn, source_id)
+        if source is None:
+            raise HTTPException(status_code=404)
+        joined = {m["list_slug"] for m in source_memberships(conn, source_id)}
+        lists = [entry for entry in _chooser_lists(conn) if entry[0] not in joined]
+    finally:
+        conn.close()
+    return templates.TemplateResponse(
+        request,
+        "source_list.html",
+        {"nav": "sources", "source": source, "lists": lists},
+    )
+
+
+@app.post("/sources/{source_id}/list")
+async def source_list_submit(request: Request, source_id: str):
+    form = await request.form()
+    list_slug = str(form.get("list_slug") or "").strip()
+    conn = connect()
+    try:
+        init_db(conn)
+        source = get_source(conn, source_id)
+        if source is None:
+            raise HTTPException(status_code=404)
+    finally:
+        conn.close()
+    if not list_slug:
+        return RedirectResponse(f"/sources/{source_id}/list", status_code=303)
+    return _apply_source_list(source_id, list_slug)
+
+
+@app.post("/sources/{source_id}/lists/{list_slug}/remove")
+def source_list_remove(source_id: str, list_slug: str):
+    conn = connect()
+    try:
+        init_db(conn)
+        source = get_source(conn, source_id)
+        if source is None:
+            raise HTTPException(status_code=404)
+        remove_source_from_list(conn, source_id, list_slug)
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(f"/sources/{source_id}?flash=Removed.", status_code=303)
+
+
+@app.get("/sources/{source_id}/new-list")
+def source_new_list_page(
+    request: Request, source_id: str, error: str | None = None, name: str = ""
 ):
     conn = connect()
     try:
@@ -625,18 +732,87 @@ def source_page(
         raise HTTPException(status_code=404)
     return templates.TemplateResponse(
         request,
-        "source.html",
+        "add_list.html",
         {
             "nav": "sources",
-            "source": {**dict(source), "byline": source_byline(source)},
-            "already": already == "1",
-            "renamed": renamed == "1",
+            "error": error,
+            "name": name,
+            "back_href": f"/sources/{source_id}/list",
+            "form_action": f"/sources/{source_id}/new-list",
+            "hidden": {"source_id": source_id},
         },
     )
 
 
+@app.post("/sources/{source_id}/new-list")
+async def source_new_list_submit(request: Request, source_id: str):
+    form = await request.form()
+    name = str(form.get("name") or "").strip()
+    conn = connect()
+    try:
+        init_db(conn)
+        source = get_source(conn, source_id)
+        if source is None:
+            raise HTTPException(status_code=404)
+    finally:
+        conn.close()
+    if not name:
+        return source_new_list_page(request, source_id, name="")
+    conn = connect()
+    try:
+        init_db(conn)
+        existing = find_list_by_name(conn, name)
+        if existing is not None:
+            slug = existing["slug"]
+        else:
+            slug = insert_list(conn, name)
+            conn.commit()
+    finally:
+        conn.close()
+    return _apply_source_list(source_id, slug)
+
+
+@app.get("/sources/{source_id}/window")
+def source_window_page(request: Request, source_id: str):
+    conn = connect()
+    try:
+        init_db(conn)
+        source = get_source(conn, source_id)
+    finally:
+        conn.close()
+    if source is None:
+        raise HTTPException(status_code=404)
+    return templates.TemplateResponse(
+        request, "source_window.html", {"nav": "sources", "source": source}
+    )
+
+
+@app.post("/sources/{source_id}/window")
+async def source_window_submit(request: Request, source_id: str):
+    form = await request.form()
+    window = str(form.get("window") or "")
+    if window not in {"day", "week"}:
+        return RedirectResponse(f"/sources/{source_id}/window", status_code=303)
+    conn = connect()
+    try:
+        init_db(conn)
+        source = get_source(conn, source_id)
+        if source is None:
+            raise HTTPException(status_code=404)
+        add_source_to_list(conn, source_id, "news", window)
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(f"/sources/{source_id}?flash=Saved.", status_code=303)
+
+
 @app.get("/items/{item_id}")
-def item_page(request: Request, item_id: int, from_source: str | None = None):
+def item_page(
+    request: Request,
+    item_id: int,
+    from_source: str | None = None,
+    from_list: str | None = None,
+):
     conn = connect()
     try:
         init_db(conn)
@@ -647,8 +823,10 @@ def item_page(request: Request, item_id: int, from_source: str | None = None):
         raise HTTPException(status_code=404)
     if from_source and item["source_id"] == from_source:
         back = f"/sources/{from_source}/items"
+    elif from_list:
+        back = f"/lists/{from_list}"
     else:
-        back = f"/lists/{item['list_slug']}" if item["list_slug"] else "/"
+        back = "/"
     return templates.TemplateResponse(
         request,
         "item.html",
@@ -770,6 +948,19 @@ def _continue_after_list(
     )
 
 
+def _apply_source_list(source_id: str, list_slug: str):
+    if list_slug == "news":
+        return RedirectResponse(f"/sources/{source_id}/window", status_code=303)
+    conn = connect()
+    try:
+        init_db(conn)
+        add_source_to_list(conn, source_id, list_slug, None)
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(f"/sources/{source_id}?flash=Saved.", status_code=303)
+
+
 def _int_field(value, default: int) -> int:
     try:
         return int(str(value))
@@ -825,11 +1016,11 @@ def _commit_source(
             kind="rss",
             title=title or "RSS",
             feed_url=feed_url,
-            list_slug=list_slug,
-            window=window,
             backfill=backfill,
             auto_title=title or "RSS",
         )
+        if list_slug:
+            add_source_to_list(conn, source_id, list_slug, window)
         ingest_url(conn, feed_url, source_id, limit=backfill)
         conn.commit()
     except Exception:

@@ -13,6 +13,9 @@
     <div class="page">
       {% block body %}{% endblock %}
     </div>
+    {% if flash %}
+    <div class="toast" role="status">{{ flash }}</div>
+    {% endif %}
     <nav class="tabbar" aria-label="Main">
       <a class="tab{% if nav == 'home' %} is-active{% endif %}" href="/">Home</a>
       <a class="tab{% if nav == 'lists' %} is-active{% endif %}" href="/lists">Lists</a>

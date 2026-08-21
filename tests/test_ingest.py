@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.db import (
+    add_source_to_list,
     connect,
     format_when,
     init_db,
@@ -24,10 +25,9 @@ def _source(conn, window: str | None = "week") -> None:
         kind="rss",
         title="RSS",
         feed_url="https://example.test/feed.xml",
-        list_slug="news",
-        window=window,
         backfill=None,
     )
+    add_source_to_list(conn, SOURCE_ID, "news", window)
 
 
 def test_parse_feed_reads_items():

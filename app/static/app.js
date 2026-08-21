@@ -46,6 +46,11 @@
     });
   });
 
+  const toast = document.querySelector(".toast");
+  if (toast) {
+    setTimeout(() => toast.classList.add("is-hidden"), 5000);
+  }
+
   registerWorker();
   syncHome();
 })();

@@ -1,4 +1,4 @@
-const CACHE = "reader-shell-v2";
+const CACHE = "reader-shell-v3";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

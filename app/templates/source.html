@@ -14,13 +14,23 @@
         <button class="item" type="submit">
           <span class="title">Save name</span>
         </button>
-        {% if renamed %}
-        <p class="lede">Saved.</p>
-        {% endif %}
       </form>
       <section class="list">
+        {% for membership in memberships %}
+        <div class="item item-row">
+          <span class="title">{{ membership.label }}</span>
+          <form method="post" action="/sources/{{ source.id }}/lists/{{ membership.list_slug }}/remove">
+            <button class="remove" type="submit" aria-label="Remove from {{ membership.label }}">✕</button>
+          </form>
+        </div>
+        {% endfor %}
+        <a class="item" href="/sources/{{ source.id }}/list">
+          <span class="title">Add to a list</span>
+        </a>
+      </section>
+      <section class="list">
         <a class="item" href="/sources/{{ source.id }}/items">
-          <span class="title">See items of this source</span>
+          <span class="title">See all {{ item_count }} items of this source</span>
         </a>
         <form method="post" action="/sources/{{ source.id }}/delete">
           <button class="item" type="submit">

@@ -52,8 +52,14 @@ def init_db(conn: sqlite3.Connection) -> None:
             id TEXT PRIMARY KEY,
             kind TEXT NOT NULL,
             title TEXT NOT NULL,
-            feed_url TEXT,
-            list_slug TEXT REFERENCES lists(slug)
+            feed_url TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS source_lists (
+            source_id TEXT NOT NULL REFERENCES sources(id),
+            list_slug TEXT NOT NULL REFERENCES lists(slug),
+            window TEXT,
+            PRIMARY KEY (source_id, list_slug)
         );
 
         CREATE TABLE IF NOT EXISTS items (
@@ -81,13 +87,21 @@ def init_db(conn: sqlite3.Connection) -> None:
             (slug, name, position),
         )
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(sources)")}
-    if "window" not in columns:
-        conn.execute("ALTER TABLE sources ADD COLUMN window TEXT")
     if "backfill" not in columns:
         conn.execute("ALTER TABLE sources ADD COLUMN backfill INTEGER")
     if "auto_title" not in columns:
         conn.execute("ALTER TABLE sources ADD COLUMN auto_title TEXT")
         conn.execute("UPDATE sources SET auto_title = title WHERE auto_title IS NULL")
+    if "list_slug" in columns:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO source_lists (source_id, list_slug, window)
+            SELECT id, list_slug, window FROM sources WHERE list_slug IS NOT NULL
+            """
+        )
+        conn.execute("ALTER TABLE sources DROP COLUMN list_slug")
+    if "window" in columns:
+        conn.execute("ALTER TABLE sources DROP COLUMN window")
     conn.execute("DELETE FROM items WHERE source_id = ?", (SKELETON_SOURCE_ID,))
     conn.execute("DELETE FROM sources WHERE id = ?", (SKELETON_SOURCE_ID,))
 
@@ -148,10 +162,11 @@ def _visible_items(
     now = now or datetime.now(timezone.utc)
     rows = conn.execute(
         """
-        SELECT items.*, sources.title AS source_title, sources.window AS window
+        SELECT items.*, sources.title AS source_title, source_lists.window AS window
         FROM items
         JOIN sources ON sources.id = items.source_id
-        WHERE sources.list_slug = ?
+        JOIN source_lists ON source_lists.source_id = items.source_id
+        WHERE source_lists.list_slug = ?
         ORDER BY datetime(items.published_at) DESC, items.id DESC
         """,
         (slug,),
@@ -228,17 +243,14 @@ def rename_list(conn: sqlite3.Connection, slug: str, name: str) -> None:
 
 
 def delete_list(conn: sqlite3.Connection, slug: str) -> None:
-    conn.execute(
-        "UPDATE sources SET list_slug = NULL WHERE list_slug = ?",
-        (slug,),
-    )
+    conn.execute("DELETE FROM source_lists WHERE list_slug = ?", (slug,))
     conn.execute("DELETE FROM lists WHERE slug = ?", (slug,))
 
 
 def get_item(conn: sqlite3.Connection, item_id: int) -> sqlite3.Row | None:
     return conn.execute(
         """
-        SELECT items.*, sources.title AS source_title, sources.list_slug
+        SELECT items.*, sources.title AS source_title
         FROM items
         JOIN sources ON sources.id = items.source_id
         WHERE items.id = ?
@@ -248,14 +260,52 @@ def get_item(conn: sqlite3.Connection, item_id: int) -> sqlite3.Row | None:
 
 
 def all_sources(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute("SELECT * FROM sources ORDER BY title").fetchall()
+
+
+def source_memberships(conn: sqlite3.Connection, source_id: str) -> list[sqlite3.Row]:
     return conn.execute(
         """
-        SELECT sources.*, lists.name AS list_name
-        FROM sources
-        LEFT JOIN lists ON lists.slug = sources.list_slug
-        ORDER BY sources.title
-        """
+        SELECT source_lists.list_slug, source_lists.window, lists.name AS list_name
+        FROM source_lists
+        JOIN lists ON lists.slug = source_lists.list_slug
+        WHERE source_lists.source_id = ?
+        ORDER BY lists.position
+        """,
+        (source_id,),
     ).fetchall()
+
+
+def add_source_to_list(
+    conn: sqlite3.Connection,
+    source_id: str,
+    list_slug: str,
+    window: str | None = None,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO source_lists (source_id, list_slug, window)
+        VALUES (?, ?, ?)
+        ON CONFLICT(source_id, list_slug) DO UPDATE SET window = excluded.window
+        """,
+        (source_id, list_slug, window),
+    )
+
+
+def remove_source_from_list(
+    conn: sqlite3.Connection, source_id: str, list_slug: str
+) -> None:
+    conn.execute(
+        "DELETE FROM source_lists WHERE source_id = ? AND list_slug = ?",
+        (source_id, list_slug),
+    )
+
+
+def count_items_for_source(conn: sqlite3.Connection, source_id: str) -> int:
+    row = conn.execute(
+        "SELECT COUNT(*) AS n FROM items WHERE source_id = ?", (source_id,)
+    ).fetchone()
+    return row["n"]
 
 
 def rss_sources(conn: sqlite3.Connection) -> list[sqlite3.Row]:
@@ -270,13 +320,7 @@ def rss_sources(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 
 def get_source(conn: sqlite3.Connection, source_id: str) -> sqlite3.Row | None:
     return conn.execute(
-        """
-        SELECT sources.*, lists.name AS list_name
-        FROM sources
-        LEFT JOIN lists ON lists.slug = sources.list_slug
-        WHERE sources.id = ?
-        """,
-        (source_id,),
+        "SELECT * FROM sources WHERE id = ?", (source_id,)
     ).fetchone()
 
 
@@ -309,17 +353,15 @@ def insert_source(
     kind: str,
     title: str,
     feed_url: str | None,
-    list_slug: str | None,
-    window: str | None,
     backfill: int | None,
     auto_title: str | None = None,
 ) -> None:
     conn.execute(
         """
-        INSERT INTO sources (id, kind, title, feed_url, list_slug, window, backfill, auto_title)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO sources (id, kind, title, feed_url, backfill, auto_title)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (source_id, kind, title, feed_url, list_slug, window, backfill, auto_title or title),
+        (source_id, kind, title, feed_url, backfill, auto_title or title),
     )
 
 
@@ -337,6 +379,7 @@ def items_for_source(conn: sqlite3.Connection, source_id: str) -> list[sqlite3.R
 
 
 def delete_source(conn: sqlite3.Connection, source_id: str) -> None:
+    conn.execute("DELETE FROM source_lists WHERE source_id = ?", (source_id,))
     conn.execute("DELETE FROM items WHERE source_id = ?", (source_id,))
     conn.execute("DELETE FROM sources WHERE id = ?", (source_id,))
 
@@ -349,18 +392,23 @@ def rename_source(conn: sqlite3.Connection, source_id: str, name: str) -> None:
     conn.execute("UPDATE sources SET title = ? WHERE id = ?", (title, source_id))
 
 
-def source_byline(source: sqlite3.Row) -> str:
-    kind = "RSS" if source["kind"] == "rss" else source["kind"]
-    if not source["list_slug"]:
+def membership_label(membership: sqlite3.Row) -> str:
+    if membership["list_slug"] == "news":
+        if membership["window"] == "day":
+            return "News (<24h)"
+        if membership["window"] == "week":
+            return "News (<7days)"
+        return "News"
+    return membership["list_name"] or membership["list_slug"]
+
+
+def source_byline(kind: str, memberships: list[sqlite3.Row]) -> str:
+    kind = "RSS" if kind == "rss" else kind
+    if not memberships:
         return f"{kind} · Not on a list"
-    if source["list_slug"] == "news":
-        if source["window"] == "day":
-            return f"{kind} · News (<24h)"
-        if source["window"] == "week":
-            return f"{kind} · News (<7days)"
-        return f"{kind} · News"
-    name = source["list_name"] or source["list_slug"]
-    return f"{kind} · {name}"
+    if len(memberships) == 1:
+        return f"{kind} · {membership_label(memberships[0])}"
+    return f"{kind} · On {len(memberships)} lists"
 
 
 def upsert_item(
