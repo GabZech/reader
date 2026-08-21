@@ -1,0 +1,11 @@
+---
+description: Chat formatting when presenting a set of items (increments, options, choices) to the user
+alwaysApply: true
+---
+
+# Presenting a set
+
+When a chat message presents a set of items — increments, options, choices, anything the reader must weigh as a group — structure it so the set reads clearly and stays visually distinct from surrounding prose.
+
+- One list item per entry: an emoji and bold label on its own line, a blank line, then one or two sentences or sublist items as the body.
+- The blank line before the body, and the list markup itself, are what keep the set visually separate from any prose that follows it. Never let a closing paragraph run on directly after the last item with no break.
