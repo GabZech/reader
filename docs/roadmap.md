@@ -43,6 +43,7 @@
 **⚠️ Open:**
 
 - How Add a Source to a List is split into tryable increments, including how a new source enters and the isolated mailbox
+- Once the MVP is up, set up regular (e.g. weekly) backups of the Fly SQLite data volume
 
 ## Concluded
 
