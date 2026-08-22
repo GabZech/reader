@@ -22,6 +22,7 @@
 
 - Keep the GitHub repo name and the Fly URL `reader-skeleton.fly.dev` through feature work. Before the MVP is put on the phone as the lasting URL, rename the repo, stand up a new Fly app name (Fly cannot rename in place), and add a home-screen logo that shows when the site is installed
 - Review the deploy-per-increment cadence adopted so Build's try-and-sign-off loop could run against the live Fly URL while working phone-only. Revisit whether to keep it once local testing is viable again, possibly splitting into separate dev/prod Fly apps
+- Once the MVP is up, back up the Fly volume's SQLite library regularly (roughly weekly); sources and articles live only on Fly and are never committed to the repo
 
 ## Concluded
 
