@@ -110,6 +110,15 @@ def home(request: Request):
     )
 
 
+@app.get("/settings")
+def settings_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "settings.html",
+        {"nav": "home"},
+    )
+
+
 @app.get("/lists")
 def lists_page(request: Request):
     conn = connect()

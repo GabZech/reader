@@ -103,6 +103,23 @@ def test_home_shell(monkeypatch, tmp_path):
     assert "Sources" in response.text
 
 
+def test_home_has_settings_link(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "reader.db"))
+    with TestClient(app) as client:
+        response = client.get("/")
+    assert response.status_code == 200
+    assert 'href="/settings"' in response.text
+
+
+def test_settings_page_has_theme_toggle(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "reader.db"))
+    with TestClient(app) as client:
+        response = client.get("/settings")
+    assert response.status_code == 200
+    assert "Appearance" in response.text
+    assert "theme-toggle" in response.text
+
+
 def test_sources_has_add_source(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         sources = client.get("/sources")

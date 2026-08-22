@@ -1,4 +1,27 @@
 (() => {
+  const THEME_COLOR = { light: "#fafaf9", dark: "#1c1917" };
+
+  const initThemeToggle = () => {
+    const button = document.querySelector(".theme-toggle");
+    const meta = document.querySelector('meta[name="theme-color"]');
+
+    const apply = (theme) => {
+      document.documentElement.dataset.theme = theme;
+      if (button) button.textContent = theme === "dark" ? "Light" : "Dark";
+      if (meta) meta.setAttribute("content", THEME_COLOR[theme]);
+    };
+
+    apply(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
+
+    if (button) {
+      button.addEventListener("click", () => {
+        const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        localStorage.setItem("reader-theme", next);
+        apply(next);
+      });
+    }
+  };
+
   const registerWorker = async () => {
     if (!("serviceWorker" in navigator)) return;
     try {
@@ -58,6 +81,7 @@
     setTimeout(() => toast.classList.add("is-hidden"), 5000);
   }
 
+  initThemeToggle();
   registerWorker();
   syncHome();
 })();
