@@ -78,7 +78,11 @@ Also added along the way: a shared toast component (dark pill above the tab bar,
 
 Next: increment 7, YouTube channel onto Favourite channels.
 
-Increment 7 built and tested (38/38 automated tests pass), verified locally against a real public channel. YouTube channel URLs are detected via `source_kind_for`; feed discovery sends a `SOCS=CAI` cookie to skip Google's EU consent-redirect page, which otherwise hides the real page (and its feed link) from a non-consenting HTTP client. Not yet walked through with the client or signed off — pick up with the guided walkthrough next session.
+Increment 7 built and tested (38/38 automated tests pass), verified locally against a real public channel. YouTube channel URLs are detected via `source_kind_for`; feed discovery sends a `SOCS=CAI` cookie to skip Google's EU consent-redirect page, which otherwise hides the real page (and its feed link) from a non-consenting HTTP client.
+
+Increment 7 signed off (2026-08-22), tried via a trial push to the live Fly host (phone-only walkthrough): adding a real public channel lands on Favourite channels, sources shows it as `YouTube · Favourite channels`, and the existing-source and no-feed-found paths (increment 4, increment 1) cover the duplicate-channel and video-URL failure modes with no YouTube-specific code needed.
+
+Next: increment 8, newsletter auto-detected via the isolated mailbox — carries the epic's named open risk (standing up the live mailbox and IMAP sync).
 
 ## Increment — Existing source notice, see items, delete (2026-08-20)
 

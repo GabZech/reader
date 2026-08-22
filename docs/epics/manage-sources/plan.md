@@ -10,14 +10,14 @@ Working plan for Build. Confirmed with the client in chat; not a client delivera
 
 ## Increment map
 
-1. RSS or blog feed onto News — tried, not signed off
+1. RSS or blog feed onto News — signed off
 2. Create a new list — signed off, already built (Manage lists dependency)
-3. Choose-list-later-or-create-new on add — tried, not signed off
-4. Existing-source notice, see items, delete — current, tried
-5. Rename a source's display name — not started
-6. Add an existing source to a list from that source's screen — not started
-7. YouTube channel onto Favourite channels — not started
-8. Newsletter auto-detected via the isolated mailbox — not started, carries the epic's named open risk
+3. Choose-list-later-or-create-new on add — signed off
+4. Existing-source notice, see items, delete — signed off
+5. Rename a source's display name — signed off
+6. Add an existing source to a list from that source's screen — signed off
+7. YouTube channel onto Favourite channels — signed off (2026-08-22)
+8. Newsletter auto-detected via the isolated mailbox — current, not started, carries the epic's named open risk
 
 ## Per increment
 
@@ -29,7 +29,7 @@ Working plan for Build. Confirmed with the client in chat; not a client delivera
 
 **Failure modes:** empty paste stays put; a link with no discoverable feed says so and stays put so another link can be tried; a feed already in Sources does not create a second copy, goes to the existing source instead.
 
-**Test approach:** manual try on the live app (already tried; sign-off pending).
+**Test approach:** manual try on the live app (signed off).
 
 **Reversibility:** not applicable, nothing hard to undo.
 
@@ -53,7 +53,7 @@ Working plan for Build. Confirmed with the client in chat; not a client delivera
 
 **Failure modes:** empty name stays put; a name already used resolves to the existing list.
 
-**Test approach:** manual try on the live app (tried; sign-off pending).
+**Test approach:** manual try on the live app (signed off).
 
 **Reversibility:** not applicable, nothing hard to undo.
 
@@ -65,7 +65,7 @@ Working plan for Build. Confirmed with the client in chat; not a client delivera
 
 **Failure modes:** none beyond what increment 1 already covers on entry.
 
-**Test approach:** manual try on the live app (tried).
+**Test approach:** manual try on the live app (signed off).
 
 **Reversibility:** not applicable, nothing hard to undo.
 
@@ -103,7 +103,7 @@ Working plan for Build. Confirmed with the client in chat; not a client delivera
 
 **Failure modes:** a URL that isn't a channel (single video, playlist) says so and stays put; a private or unavailable channel says so; a channel already added hits the increment 4 notice, not a duplicate.
 
-**Test approach:** manual try with a real public YouTube channel.
+**Test approach:** manual try with a real public YouTube channel (signed off 2026-08-22, tried on the live app via trial push).
 
 **Reversibility:** not applicable, nothing hard to undo.
 
