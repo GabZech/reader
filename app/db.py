@@ -235,6 +235,38 @@ def insert_list(conn: sqlite3.Connection, name: str) -> str:
     return slug
 
 
+def lists_for_home_edit(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT slug, name, position, on_home FROM lists ORDER BY position"
+    ).fetchall()
+
+
+def set_list_on_home(conn: sqlite3.Connection, slug: str, on_home: bool) -> None:
+    conn.execute(
+        "UPDATE lists SET on_home = ? WHERE slug = ?",
+        (1 if on_home else 0, slug),
+    )
+
+
+def move_list(conn: sqlite3.Connection, slug: str, direction: str) -> None:
+    rows = conn.execute("SELECT slug, position FROM lists ORDER BY position").fetchall()
+    slugs = [row["slug"] for row in rows]
+    if slug not in slugs:
+        return
+    index = slugs.index(slug)
+    target = index - 1 if direction == "up" else index + 1
+    if target < 0 or target >= len(slugs):
+        return
+    conn.execute(
+        "UPDATE lists SET position = ? WHERE slug = ?",
+        (rows[target]["position"], rows[index]["slug"]),
+    )
+    conn.execute(
+        "UPDATE lists SET position = ? WHERE slug = ?",
+        (rows[index]["position"], rows[target]["slug"]),
+    )
+
+
 def rename_list(conn: sqlite3.Connection, slug: str, name: str) -> None:
     conn.execute(
         "UPDATE lists SET name = ? WHERE slug = ?",

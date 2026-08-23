@@ -26,7 +26,10 @@ from app.db import (
     init_db,
     insert_list,
     insert_source,
+    lists_for_home_edit,
+    move_list,
     rename_list,
+    set_list_on_home,
     delete_list,
     delete_source,
     items_for_list,
@@ -117,6 +120,53 @@ def settings_page(request: Request):
         "settings.html",
         {"nav": "home"},
     )
+
+
+@app.get("/home/edit")
+def home_edit_page(request: Request):
+    conn = connect()
+    try:
+        init_db(conn)
+        lists = lists_for_home_edit(conn)
+    finally:
+        conn.close()
+    return templates.TemplateResponse(
+        request,
+        "home_edit.html",
+        {"nav": "home", "lists": lists},
+    )
+
+
+@app.post("/home/edit/{slug}/toggle")
+def home_edit_toggle(slug: str):
+    conn = connect()
+    try:
+        init_db(conn)
+        row = get_list(conn, slug)
+        if row is None:
+            raise HTTPException(status_code=404)
+        set_list_on_home(conn, slug, not row["on_home"])
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse("/home/edit", status_code=303)
+
+
+@app.post("/home/edit/{slug}/move")
+async def home_edit_move(request: Request, slug: str):
+    form = await request.form()
+    direction = str(form.get("direction") or "")
+    conn = connect()
+    try:
+        init_db(conn)
+        if get_list(conn, slug) is None:
+            raise HTTPException(status_code=404)
+        if direction in {"up", "down"}:
+            move_list(conn, slug, direction)
+            conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse("/home/edit", status_code=303)
 
 
 @app.get("/lists")

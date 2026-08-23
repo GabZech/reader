@@ -120,6 +120,43 @@ def test_settings_page_has_theme_toggle(monkeypatch, tmp_path):
     assert "theme-toggle" in response.text
 
 
+def test_home_edit_shows_lists_with_move_boundaries(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.get("/home/edit")
+    assert response.status_code == 200
+    assert "Home lists" in response.text
+    assert response.text.index("News") < response.text.index("Read later")
+    assert response.text.index("Read later") < response.text.index("Favourite channels")
+    first_moves = response.text.split('action="/home/edit/news/move"')[1]
+    assert "disabled" in first_moves.split("</form>")[0]
+    last_moves = response.text.split('action="/home/edit/fav/move"')[2]
+    assert "disabled" in last_moves.split("</form>")[0]
+
+
+def test_home_edit_toggle_hides_list_from_home(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        toggled = client.post("/home/edit/news/toggle", follow_redirects=False)
+        assert toggled.status_code == 303
+        edit_page = client.get("/home/edit")
+        assert "Hidden" in edit_page.text
+        home = client.get("/")
+        assert 'href="/lists/news"' not in home.text
+        client.post("/home/edit/news/toggle")
+        home_again = client.get("/")
+        assert 'href="/lists/news"' in home_again.text
+
+
+def test_home_edit_move_reorders_lists(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        client.post(
+            "/home/edit/news/move", data={"direction": "down"}, follow_redirects=False
+        )
+        edit_page = client.get("/home/edit")
+        assert edit_page.text.index("Read later") < edit_page.text.index("News")
+        home = client.get("/")
+        assert home.text.index("Read later") < home.text.index(">News<")
+
+
 def test_sources_has_add_source(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         sources = client.get("/sources")
