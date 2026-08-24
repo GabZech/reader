@@ -11,6 +11,7 @@
 - Foundation accepted: architecture, development, operations, UI guidelines, and a walking skeleton that follows the accepted look, including a live Fly URL
 - Manage sources: increments 1-7 signed off (feed-to-News, list creation, choose-list, existing-source screen, rename, add-to-list from a source's screen, and YouTube channels onto Favourite channels). Sources can belong to several lists at once, a scope change made mid-build; see the deviation note on increment 6 in [plan.md](epics/manage-sources/plan.md). Remaining: increment 8 (newsletters)
 - Newsletters are auto-detected, not manually added: mail from a never-seen sender at the isolated mailbox creates its source on its own, unlisted, with a red-dot notice on the Sources button until opened
+- PR #14 merged `build/manage-sources` into `main` (2026-08-24), through increment 7 plus two small out-of-epic fixes (dark mode with a Settings screen; Home Edit). Mid-epic merge, not this epic's Deploy — increment 8 is still open and this epic's `plan.md`/`clarifying-answers.md` stay open
 - A new **Improve UI** epic was added to the MVP catalog, last in build order: it revisits `docs/ui-guidelines.md` beyond the mockup-era look once the rest of the MVP is built
 - The live isolated mailbox remains explicit remaining risk within Manage sources
 

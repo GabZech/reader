@@ -84,6 +84,8 @@ Increment 7 signed off (2026-08-22), tried via a trial push to the live Fly host
 
 Next: increment 8, newsletter auto-detected via the isolated mailbox — carries the epic's named open risk (standing up the live mailbox and IMAP sync).
 
+PR #14 (`build/manage-sources` → `main`) merged 2026-08-24. This carries everything through increment 7 plus two small out-of-epic fixes done along the way (dark mode with a Settings screen; wiring up Home's dead Edit button into the Home Edit screen from the mockup) into `main`. This is a mid-epic merge to `main`, not this epic's Deploy: Manage sources is not complete, increment 8 is still open, and `plan.md`/this file stay open per `docs/README.md`. Continuing Build should branch again from `main` (or reuse `build/manage-sources`, which is even with `main` as of this merge).
+
 ## Increment — Existing source notice, see items, delete (2026-08-20)
 
 Current. A feed already in Sources still opens that source; the page says it is already there.
