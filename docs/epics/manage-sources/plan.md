@@ -109,7 +109,9 @@ Working plan for Build. Confirmed with the client in chat; not a client delivera
 
 ### 8. Newsletter auto-detected via the isolated mailbox
 
-**Job:** no manual add step. When mail arrives at the dedicated app-only mailbox from a sender never seen before, the app creates that source on its own, unlisted. The Sources button in the bottom menu shows a red dot whenever at least one such new, not-yet-listed source is waiting; the dot clears when Sources is opened. From there the reader lists it using increment 6's picker, same as any unlisted source. Mail from a sender already known just adds items to the existing source, no new dot.
+**Job:** no manual add step. When mail arrives at the dedicated app-only mailbox from a sender never seen before, the app creates that source on its own, unlisted. The Sources button in the bottom menu shows a red dot whenever at least one such new, not-yet-listed source is waiting. From there the reader lists it using increment 6's picker, same as any unlisted source. Mail from a sender already known just adds items to the existing source, no new dot.
+
+**Deviation logged 2026-08-24 (client request, refining the Sources page after trying increment 8 live):** the dot, and each new source's highlighted background, now clear when that individual source is opened, not when Sources as a whole is opened — otherwise glancing at the list would silently clear every new source at once. The Sources page also now groups sources by kind (Newsletter, RSS, YouTube, in that order, only kinds actually present), newest-first within each group via insertion order; a newly-arrived source's box keeps a distinct tint (`.is-new`, separate from the existing `.is-unlisted` grey) until opened. This only changes the Sources page and this increment's notice mechanics — the epic boundary, other increments, and the isolated-mailbox risk are unaffected, so no return to Plan.
 
 **Dependencies:** the live isolated mailbox being stood up (Foundation leftover, already the epic's named open risk); increment 6 for listing the new source once it appears; increment 1's list/window choice for News.
 

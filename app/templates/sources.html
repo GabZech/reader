@@ -6,10 +6,13 @@
         <a class="top-edit" href="/sources/add">Add source</a>
       </header>
 
-      {% if sources %}
-      <section class="list">
-        {% for source in sources %}
-        <a class="item{% if source.unlisted %} is-unlisted{% endif %}" href="/sources/{{ source.id }}">
+      {% for group in groups %}
+      <section class="list{% if not loop.first %} is-apart{% endif %}">
+        <div class="list-head">
+          <h2>{{ group.label }}</h2>
+        </div>
+        {% for source in group.sources %}
+        <a class="item{% if source.unlisted %} is-unlisted{% endif %}{% if source.pending_notice %} is-new{% endif %}" href="/sources/{{ source.id }}">
           <span class="title">{{ source.title }}</span>
           <span class="sub">
             <span class="byline">{{ source.byline }}</span>
@@ -17,5 +20,5 @@
         </a>
         {% endfor %}
       </section>
-      {% endif %}
+      {% endfor %}
 {% endblock %}

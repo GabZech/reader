@@ -18,6 +18,7 @@ from app.db import (
     connect,
     count_items_for_source,
     find_list_by_name,
+    clear_source_notice,
     find_source_by_feed_url,
     format_when,
     get_item,
@@ -28,7 +29,6 @@ from app.db import (
     insert_list,
     insert_source,
     lists_for_home_edit,
-    mark_sources_seen,
     move_list,
     rename_list,
     set_list_on_home,
@@ -111,6 +111,18 @@ def _sources_view(conn, rows) -> list[dict]:
             }
         )
     return result
+
+
+SOURCE_GROUP_ORDER = (("mail", "Newsletter"), ("rss", "RSS"), ("youtube", "YouTube"))
+
+
+def _grouped_sources(sources: list[dict]) -> list[dict]:
+    groups = []
+    for kind, label in SOURCE_GROUP_ORDER:
+        matching = [source for source in sources if source["kind"] == kind]
+        if matching:
+            groups.append({"label": label, "sources": matching})
+    return groups
 
 
 @app.get("/")
@@ -342,14 +354,12 @@ def sources_page(request: Request):
     try:
         init_db(conn)
         sources = _sources_view(conn, all_sources(conn))
-        mark_sources_seen(conn)
-        conn.commit()
     finally:
         conn.close()
     return templates.TemplateResponse(
         request,
         "sources.html",
-        {"nav": "sources", "sources": sources},
+        {"nav": "sources", "groups": _grouped_sources(sources)},
     )
 
 
@@ -721,6 +731,8 @@ def source_page(
             raise HTTPException(status_code=404)
         memberships = source_memberships(conn, source_id)
         item_count = count_items_for_source(conn, source_id)
+        clear_source_notice(conn, source_id)
+        conn.commit()
     finally:
         conn.close()
     membership_views = [

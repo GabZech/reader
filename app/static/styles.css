@@ -16,6 +16,7 @@
   --toast-text: #fafaf9;
   --toast-shadow: rgba(28, 25, 23, 0.25);
   --notice: #dc2626;
+  --new-bg: #eff6ff;
 }
 
 :root[data-theme="dark"] {
@@ -36,6 +37,7 @@
   --toast-text: #1c1917;
   --toast-shadow: rgba(0, 0, 0, 0.4);
   --notice: #f87171;
+  --new-bg: #1e3a5f;
 }
 
 *,
@@ -241,6 +243,10 @@ body {
 
 .item.is-unlisted {
   background: var(--bg-subtle);
+}
+
+.item.is-new {
+  background: var(--new-bg);
 }
 
 .show-more {

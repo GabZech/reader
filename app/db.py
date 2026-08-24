@@ -298,7 +298,7 @@ def get_item(conn: sqlite3.Connection, item_id: int) -> sqlite3.Row | None:
 
 
 def all_sources(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute("SELECT * FROM sources ORDER BY title").fetchall()
+    return conn.execute("SELECT * FROM sources ORDER BY rowid DESC").fetchall()
 
 
 def source_memberships(conn: sqlite3.Connection, source_id: str) -> list[sqlite3.Row]:
@@ -406,6 +406,12 @@ def has_pending_source_notice(conn: sqlite3.Connection) -> bool:
 
 def mark_sources_seen(conn: sqlite3.Connection) -> None:
     conn.execute("UPDATE sources SET pending_notice = 0 WHERE pending_notice = 1")
+
+
+def clear_source_notice(conn: sqlite3.Connection, source_id: str) -> None:
+    conn.execute(
+        "UPDATE sources SET pending_notice = 0 WHERE id = ?", (source_id,)
+    )
 
 
 def insert_source(
