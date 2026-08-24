@@ -88,6 +88,8 @@ PR #14 (`build/manage-sources` → `main`) merged 2026-08-24. This carries every
 
 The isolated newsletter mailbox (increment 8's named dependency) is now live: a dedicated Gmail account, 2-Step Verification and IMAP enabled, an app password generated. `MAIL_IMAP_HOST`, `MAIL_IMAP_USER`, `MAIL_IMAP_PASSWORD` set as Fly secrets 2026-08-24 (see `docs/operations.md`); the address itself is not recorded here since this repo is public. This does not itself close the epic's open risk — that's proving IMAP sync against a real newsletter and hitting the morning-sync timing target, which needs increment 8 built first — but the external setup that was blocking it is done.
 
+Increment 8 built and tested (50/50 automated tests pass, via a fake IMAP client — real IMAP is a raw TCP connection on port 993, which this build sandbox's network policy can't reach; only Fly can). On sync, unseen mail is matched to a source by the sender's address (a new sender auto-creates an unlisted `kind='mail'` source and sets `pending_notice`, which shows a red dot on the Sources tab until Sources is opened); each message's `Message-ID` is the dedup key, independent of Gmail's own read state, so a failed or skipped mark-as-read can't cause a duplicate or a missed item. By the client's request, ingested mail is marked `\Seen` after processing but not archived. Not yet walked through with the client or signed off — needs a real newsletter sent to the live mailbox and a trial push, since this sandbox cannot reach IMAP directly.
+
 ## Increment — Existing source notice, see items, delete (2026-08-20)
 
 Current. A feed already in Sources still opens that source; the page says it is already there.

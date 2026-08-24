@@ -23,10 +23,12 @@ from app.db import (
     get_item,
     get_list,
     get_source,
+    has_pending_source_notice,
     init_db,
     insert_list,
     insert_source,
     lists_for_home_edit,
+    mark_sources_seen,
     move_list,
     rename_list,
     set_list_on_home,
@@ -50,11 +52,24 @@ from app.ingest import (
     normalize_user_url,
     source_kind_for,
 )
+from app.mail import ingest_mail
 
 APP_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 templates.env.globals["format_when"] = format_when
 templates.env.globals["reading_length"] = reading_length
+
+
+def _sources_notice_pending() -> bool:
+    conn = connect()
+    try:
+        init_db(conn)
+        return has_pending_source_notice(conn)
+    finally:
+        conn.close()
+
+
+templates.env.globals["sources_notice_pending"] = _sources_notice_pending
 
 NO_FEED = "We could not find a feed."
 TIMED_NOTE = "Timed list · only recent items"
@@ -327,6 +342,8 @@ def sources_page(request: Request):
     try:
         init_db(conn)
         sources = _sources_view(conn, all_sources(conn))
+        mark_sources_seen(conn)
+        conn.commit()
     finally:
         conn.close()
     return templates.TemplateResponse(
@@ -900,6 +917,7 @@ def sync():
     try:
         init_db(conn)
         result = ingest_all_sources(conn)
+        result["mail"] = ingest_mail(conn)
         conn.commit()
     finally:
         conn.close()

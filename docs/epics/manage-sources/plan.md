@@ -115,7 +115,9 @@ Working plan for Build. Confirmed with the client in chat; not a client delivera
 
 **Failure modes:** an unwanted sender auto-creates a source the reader doesn't want, handled the same as any unwanted source: delete it (increment 4). "Forward never set up" and "set up but nothing sent yet" are indistinguishable to the app; both simply show nothing has arrived, no special detection.
 
-**Test approach:** real end-to-end try against the live mailbox: set up the forward, send a real newsletter, sync, confirm timing against the morning-sync target (under 5s typical, 10s ceiling).
+**Test approach:** real end-to-end try against the live mailbox: set up the forward, send a real newsletter, sync, confirm timing against the morning-sync target (under 5s typical, 10s ceiling). Built and covered by automated tests against a fake IMAP client (see `app/mail.py`, `tests/test_mail.py`); the live IMAP try still needs a trial push, since this build sandbox cannot reach raw IMAP directly.
+
+By client request, ingested mail is marked `\Seen` on the live mailbox after processing but not archived (no move out of Inbox). Dedup is by each message's `Message-ID`, independent of Gmail's read/archived state, so this is cosmetic tidiness only, not the app's source of truth for what's already ingested.
 
 **Reversibility:** standing up the live mailbox/alias is externally fiddly to unwind once wired up. Fallback: keep the current reading app's newsletter handling running until this increment is verified live end to end; do not cut over before that.
 

@@ -262,6 +262,38 @@ def test_video_url_finds_no_feed(monkeypatch, tmp_path):
     assert "We could not find a feed." in response.text
 
 
+def test_sync_includes_unconfigured_mail_result(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.post("/sync")
+    assert response.status_code == 200
+    assert response.json()["mail"] == {"configured": False, "created": 0, "sources": 0}
+
+
+def test_sources_notice_dot_shows_and_clears(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        conn = dbmod.connect(Path(tmp_path) / "reader.db")
+        dbmod.init_db(conn)
+        dbmod.insert_source(
+            conn,
+            source_id="mail-1",
+            kind="mail",
+            title="A Newsletter",
+            feed_url=None,
+            backfill=None,
+            mail_address="a@newsletter.test",
+            pending_notice=True,
+        )
+        conn.commit()
+        conn.close()
+
+        home = client.get("/")
+        assert '<span class="dot" aria-hidden="true"></span>' in home.text
+
+        client.get("/sources")
+        home_after = client.get("/")
+        assert '<span class="dot" aria-hidden="true"></span>' not in home_after.text
+
+
 def test_duplicate_feed_goes_to_existing_source(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
