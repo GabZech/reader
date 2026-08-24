@@ -48,7 +48,7 @@ When the doc’s job is technical accuracy (user journeys, architecture, constra
 - Prefer journeys and clear structure when explaining systems
 - Use a small fixed emoji vocabulary as field or section labels only; same meaning → same icon every time
 - When emoji mark consecutive headings or sibling sections, give each a distinct icon from the vocabulary so adjacent labels do not look identical
-- Default vocabulary when it fits: 🎯 Goal, ⚡ Problem, 🔭 Vision, 📍 Phase, 📄 Summary / Artifacts, 🏁 Milestone, ❗ Decisions, ⚠️ Open / Caution / Assumptions; ✅/❌ for progress and non-goals under a clear header
+- Default vocabulary when it fits: 🎯 Goal, ⚡ Problem, 🔭 Vision, 📍 Phase, 📄 Summary / Artifacts, 🏁 Milestone, ❗ Decisions, ⚠️ Open / Caution / Assumptions, 📌 Post-MVP Notes; ✅/❌ for progress and non-goals under a clear header
 - Prefer emoji on subheadings (`##` / `###`), not the document `#` title
 - Do not invent a new emoji per bullet, per sentence, or for emphasis
 - Narrative framing stays emoji-free unless a milestone or caution needs a signal
@@ -84,9 +84,13 @@ Fixed field order and icons:
 2. **🏁 Milestone** — Mockup / MVP / none set
 3. **📄 Summary** — where development stands now and what the next phase is (what is accepted, what this phase is doing, what comes after it). Not the product pitch, not constraints or feature lists. Prefer 1–3 prosaic bullets
 4. **❗ Decisions** — durable locks that steer later work, as prosaic bullets (not telegraphic labels). Nest **In** and **Out** sublists when both apply. Pull Out from confirmed non-goals; keep In to who, ownership, cost, must-haves, and hard reliability bets
-5. **⚠️ Open** — only what the current phase must still resolve. Do not add a separate Next line
+5. **⚠️ Open** — only what the current phase must still resolve. Do not add a separate Next line. A provisional choice tied to the MVP boundary (revisit only after MVP ships) goes in Post-MVP Notes instead, not here
 
 Refresh Summary, Decisions, and Open when a phase gate advances; keep Decisions aligned with accepted proposition and non-goals (and later constraints) without pasting those docs.
+
+### Post-MVP Notes
+
+Bullets for choices explicitly deferred to after the MVP milestone: something adopted now on a provisional basis (a cadence, a hosting shortcut, a naming placeholder) that should be reconsidered once the MVP ships. Not a general parking lot or backlog; only items with a real MVP-boundary trigger. One prosaic bullet per note, naming what to revisit and why. Remove a bullet once it is acted on or folded elsewhere (Decisions, Open, architecture).
 
 ### Concluded
 

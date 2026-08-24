@@ -15,6 +15,13 @@ BLOG_HTML = """<!doctype html>
 </head><body>blog</body></html>
 """
 NOT_FEED_HTML = "<html><body>no feed here</body></html>"
+YOUTUBE_CHANNEL_URL = "https://www.youtube.com/@testchannel"
+YOUTUBE_FEED_URL = "https://www.youtube.com/feeds/videos.xml?channel_id=UCtest123"
+YOUTUBE_CHANNEL_HTML = f"""<!doctype html>
+<html><head>
+<link rel="alternate" type="application/rss+xml" href="{YOUTUBE_FEED_URL}">
+</head><body>channel</body></html>
+"""
 
 
 def _fetch(url: str, timeout: float = 8.0) -> tuple[str, str]:
@@ -22,6 +29,10 @@ def _fetch(url: str, timeout: float = 8.0) -> tuple[str, str]:
         return url, FIXTURE.read_text(encoding="utf-8")
     if url.rstrip("/").endswith("/blog"):
         return url, BLOG_HTML
+    if url == YOUTUBE_CHANNEL_URL:
+        return url, YOUTUBE_CHANNEL_HTML
+    if url == YOUTUBE_FEED_URL:
+        return url, FIXTURE.read_text(encoding="utf-8")
     return url, NOT_FEED_HTML
 
 
@@ -92,6 +103,60 @@ def test_home_shell(monkeypatch, tmp_path):
     assert "Sources" in response.text
 
 
+def test_home_has_settings_link(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "reader.db"))
+    with TestClient(app) as client:
+        response = client.get("/")
+    assert response.status_code == 200
+    assert 'href="/settings"' in response.text
+
+
+def test_settings_page_has_theme_toggle(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "reader.db"))
+    with TestClient(app) as client:
+        response = client.get("/settings")
+    assert response.status_code == 200
+    assert "Appearance" in response.text
+    assert "theme-toggle" in response.text
+
+
+def test_home_edit_shows_lists_with_move_boundaries(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.get("/home/edit")
+    assert response.status_code == 200
+    assert "Home lists" in response.text
+    assert response.text.index("News") < response.text.index("Read later")
+    assert response.text.index("Read later") < response.text.index("Favourite channels")
+    first_moves = response.text.split('action="/home/edit/news/move"')[1]
+    assert "disabled" in first_moves.split("</form>")[0]
+    last_moves = response.text.split('action="/home/edit/fav/move"')[2]
+    assert "disabled" in last_moves.split("</form>")[0]
+
+
+def test_home_edit_toggle_hides_list_from_home(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        toggled = client.post("/home/edit/news/toggle", follow_redirects=False)
+        assert toggled.status_code == 303
+        edit_page = client.get("/home/edit")
+        assert "Hidden" in edit_page.text
+        home = client.get("/")
+        assert 'href="/lists/news"' not in home.text
+        client.post("/home/edit/news/toggle")
+        home_again = client.get("/")
+        assert 'href="/lists/news"' in home_again.text
+
+
+def test_home_edit_move_reorders_lists(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        client.post(
+            "/home/edit/news/move", data={"direction": "down"}, follow_redirects=False
+        )
+        edit_page = client.get("/home/edit")
+        assert edit_page.text.index("Read later") < edit_page.text.index("News")
+        home = client.get("/")
+        assert home.text.index("Read later") < home.text.index(">News<")
+
+
 def test_sources_has_add_source(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         sources = client.get("/sources")
@@ -130,6 +195,73 @@ def test_add_rss_to_news_from_blog_page(monkeypatch, tmp_path):
         assert "Second fixture item" in news.text
 
 
+def test_youtube_channel_url_lands_on_favourite_channels(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        added = client.post("/sources/add", data={"url": YOUTUBE_CHANNEL_URL})
+        assert added.status_code == 200
+        assert "This feed currently has" in added.text
+        listed = client.post(
+            "/sources/add/count",
+            data={
+                "feed_url": YOUTUBE_FEED_URL,
+                "title": "Test Channel",
+                "item_count": "2",
+                "backfill": "all",
+            },
+        )
+        done = client.post(
+            "/sources/add/list",
+            data={
+                "feed_url": YOUTUBE_FEED_URL,
+                "title": "Test Channel",
+                "item_count": "2",
+                "backfill": "",
+                "list_slug": "fav",
+            },
+        )
+        assert done.status_code == 200
+        assert "is on Favourite channels" in done.text
+        sources = client.get("/sources")
+        assert "YouTube · Favourite channels" in sources.text
+
+
+def test_youtube_source_is_included_in_sync(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        client.post("/sources/add", data={"url": YOUTUBE_CHANNEL_URL})
+        client.post(
+            "/sources/add/count",
+            data={
+                "feed_url": YOUTUBE_FEED_URL,
+                "title": "Test Channel",
+                "item_count": "2",
+                "backfill": "all",
+            },
+        )
+        client.post(
+            "/sources/add/list",
+            data={
+                "feed_url": YOUTUBE_FEED_URL,
+                "title": "Test Channel",
+                "item_count": "2",
+                "backfill": "",
+                "list_slug": "fav",
+            },
+        )
+        synced = client.post("/sync")
+        assert synced.status_code == 200
+        assert synced.json()["sources"] == 1
+
+
+def test_video_url_finds_no_feed(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.post(
+            "/sources/add",
+            data={"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+        )
+    assert response.status_code == 200
+    assert "We could not find a feed." in response.text
+
+
 def test_duplicate_feed_goes_to_existing_source(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
@@ -144,7 +276,7 @@ def test_duplicate_feed_goes_to_existing_source(monkeypatch, tmp_path):
         page = client.get(again.headers["location"])
         assert page.status_code == 200
         assert "Fixture news is already in Sources." in page.text
-        assert "See items of this source" in page.text
+        assert "See all 2 items of this source" in page.text
         assert "Delete source" in page.text
         assert "News (&lt;7days)" in page.text
         sources = client.get("/sources")
@@ -256,10 +388,9 @@ def test_delete_list_removes_it_and_unlists_sources(monkeypatch, tmp_path):
                 kind="rss",
                 title="Weekend feed",
                 feed_url="https://example.test/weekend.xml",
-                list_slug="weekend",
-                window=None,
                 backfill=None,
             )
+            dbmod.add_source_to_list(conn, "weekend-feed", "weekend")
             conn.commit()
         finally:
             conn.close()
@@ -348,12 +479,149 @@ def test_see_items_of_source(monkeypatch, tmp_path):
         _add_to_news(client, "https://example.test/feed.xml")
         source_id = dbmod.source_id_for("https://example.test/feed.xml")
         page = client.get(f"/sources/{source_id}")
-        assert "See items of this source" in page.text
+        assert "See all 2 items of this source" in page.text
         items = client.get(f"/sources/{source_id}/items")
         assert items.status_code == 200
         assert "First fixture item" in items.text
         assert "Second fixture item" in items.text
         assert "from_source=" in items.text
+
+
+def _add_unlisted(client: TestClient, url: str = "https://example.test/feed.xml"):
+    _to_choose_list(client, url)
+    return client.post(
+        "/sources/add/list",
+        data={
+            "feed_url": "https://example.test/feed.xml",
+            "title": "Fixture news",
+            "item_count": "2",
+            "backfill": "",
+            "list_slug": "",
+        },
+    )
+
+
+def test_source_screen_offers_add_to_list_when_unlisted(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_unlisted(client)
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        page = client.get(f"/sources/{source_id}")
+        assert "Add to a list" in page.text
+        assert f'href="/sources/{source_id}/list"' in page.text
+
+
+def test_list_unlisted_source_from_its_screen(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_unlisted(client)
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        chooser = client.get(f"/sources/{source_id}/list")
+        assert "Read later" in chooser.text
+        done = client.post(f"/sources/{source_id}/list", data={"list_slug": "later"})
+        assert done.status_code == 200
+        assert "Saved" in done.text
+        assert "Read later" in done.text
+        sources = client.get("/sources")
+        assert "Read later" in sources.text
+
+
+def test_list_source_to_news_asks_window(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_unlisted(client)
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        window_page = client.post(
+            f"/sources/{source_id}/list", data={"list_slug": "news"}
+        )
+        assert window_page.status_code == 200
+        assert "How far back" in window_page.text
+        done = client.post(f"/sources/{source_id}/window", data={"window": "day"})
+        assert done.status_code == 200
+        assert "News (&lt;24h)" in done.text or "News (<24h)" in done.text
+
+
+def test_create_new_list_from_source_screen(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_unlisted(client)
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        created = client.post(
+            f"/sources/{source_id}/new-list", data={"name": "Weekend"}
+        )
+        assert created.status_code == 200
+        assert "Weekend" in created.text
+        lists = client.get("/lists")
+        assert "Weekend" in lists.text
+
+
+def test_remove_source_from_a_list(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        page = client.get(f"/sources/{source_id}")
+        assert f'action="/sources/{source_id}/lists/news/remove"' in page.text
+        done = client.post(f"/sources/{source_id}/lists/news/remove")
+        assert done.status_code == 200
+        assert "Not on a list" in done.text
+        news = client.get("/lists/news")
+        assert "First fixture item" not in news.text
+
+
+def test_source_can_be_on_more_than_one_list(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        client.post(f"/sources/{source_id}/list", data={"list_slug": "later"})
+        page = client.get(f"/sources/{source_id}")
+        assert "News" in page.text
+        assert "Read later" in page.text
+        assert f'action="/sources/{source_id}/lists/news/remove"' in page.text
+        assert f'action="/sources/{source_id}/lists/later/remove"' in page.text
+        news = client.get("/lists/news")
+        assert "First fixture item" in news.text
+        later = client.get("/lists/later")
+        assert "First fixture item" in later.text
+        sources = client.get("/sources")
+        assert "On 2 lists" in sources.text
+        client.post(f"/sources/{source_id}/lists/later/remove")
+        after = client.get(f"/sources/{source_id}")
+        assert "Read later" not in after.text
+        news_after = client.get("/lists/news")
+        assert "First fixture item" in news_after.text
+
+
+def test_rename_source_updates_name_everywhere(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        renamed = client.post(f"/sources/{source_id}/rename", data={"name": "My News"})
+        assert renamed.status_code == 200
+        assert "<h1>My News</h1>" in renamed.text
+        sources = client.get("/sources")
+        assert "My News" in sources.text
+        assert "Fixture news" not in sources.text
+        items = client.get(f"/sources/{source_id}/items")
+        assert "My News" in items.text
+        news = client.get("/lists/news")
+        assert "My News" in news.text
+
+
+def test_rename_survives_a_later_sync(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        client.post(f"/sources/{source_id}/rename", data={"name": "My News"})
+        synced = client.post("/sync")
+        assert synced.status_code == 200
+        opened = client.get(f"/sources/{source_id}")
+        assert "<h1>My News</h1>" in opened.text
+
+
+def test_empty_rename_resets_to_auto_title(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        client.post(f"/sources/{source_id}/rename", data={"name": "My News"})
+        reset = client.post(f"/sources/{source_id}/rename", data={"name": "   "})
+        assert reset.status_code == 200
+        assert "<h1>Fixture news</h1>" in reset.text
 
 
 def test_delete_source_removes_it_and_items(monkeypatch, tmp_path):

@@ -30,6 +30,8 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Home syncs a public RSS fee
 
 Before trying a Python change, restart on 8000 so the running app is this revision. If 8000 is already taken, stop that process and start again. Do not switch ports.
 
+`--reload` has proven unreliable on Windows in this repo: `WatchFiles` sometimes misses edits to `app/main.py`, `app/ingest.py`, or templates after the first reload, and a killed reloader can leave an orphaned child still bound to the port, so a later start looks successful while requests keep hitting stale code. Prefer running without `--reload` (drop that flag and `--reload-dir`) and restarting by hand after each code change; confirm the restart actually took by re-testing the specific route you changed, not just `/health`. Before restarting, always confirm nothing is still listening on 8000 (see the stop command above) rather than trusting that the previous stop succeeded.
+
 Windows, stop whatever is on 8000:
 
 ```text

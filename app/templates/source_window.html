@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}How far back{% endblock %}
+{% block body %}
+      <header class="top">
+        <a class="back" href="/sources/{{ source.id }}/list">List</a>
+        <h1>News</h1>
+      </header>
+      <p class="lede">How far back should {{ source.title }} go on this list?</p>
+      <section class="list">
+        <form method="post" action="/sources/{{ source.id }}/window">
+          <input type="hidden" name="window" value="day">
+          <button class="item" type="submit">
+            <span class="title">Last day</span>
+            <span class="sub"><span class="byline">Only items from the last 24 hours</span></span>
+          </button>
+        </form>
+        <form method="post" action="/sources/{{ source.id }}/window">
+          <input type="hidden" name="window" value="week">
+          <button class="item" type="submit">
+            <span class="title">Last week</span>
+            <span class="sub"><span class="byline">Items from the last 7 days</span></span>
+          </button>
+        </form>
+      </section>
+{% endblock %}

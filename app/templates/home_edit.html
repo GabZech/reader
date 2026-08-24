@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Home lists{% endblock %}
+{% block body %}
+      <header class="top top-row">
+        <h1>Home lists</h1>
+        <a class="top-edit" href="/">Done</a>
+      </header>
+
+      <section class="list">
+        {% for list in lists %}
+        <div class="item{% if not list.on_home %} is-unlisted{% endif %}">
+          <span class="title">{{ list.name }}</span>
+          <span class="sub">
+            <span class="edit-moves">
+              <form method="post" action="/home/edit/{{ list.slug }}/move">
+                <input type="hidden" name="direction" value="up">
+                <button class="edit-btn" type="submit"{% if loop.first %} disabled{% endif %}>Move up</button>
+              </form>
+              <form method="post" action="/home/edit/{{ list.slug }}/move">
+                <input type="hidden" name="direction" value="down">
+                <button class="edit-btn" type="submit"{% if loop.last %} disabled{% endif %}>Move down</button>
+              </form>
+            </span>
+            <form method="post" action="/home/edit/{{ list.slug }}/toggle">
+              <button class="edit-btn edit-toggle" type="submit">{{ "On Home" if list.on_home else "Hidden" }}</button>
+            </form>
+          </span>
+        </div>
+        {% endfor %}
+      </section>
+{% endblock %}
