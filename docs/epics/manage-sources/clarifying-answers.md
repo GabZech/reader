@@ -86,6 +86,8 @@ Next: increment 8, newsletter auto-detected via the isolated mailbox — carries
 
 PR #14 (`build/manage-sources` → `main`) merged 2026-08-24. This carries everything through increment 7 plus two small out-of-epic fixes done along the way (dark mode with a Settings screen; wiring up Home's dead Edit button into the Home Edit screen from the mockup) into `main`. This is a mid-epic merge to `main`, not this epic's Deploy: Manage sources is not complete, increment 8 is still open, and `plan.md`/this file stay open per `docs/README.md`. Continuing Build should branch again from `main` (or reuse `build/manage-sources`, which is even with `main` as of this merge).
 
+The isolated newsletter mailbox (increment 8's named dependency) is now live: a dedicated Gmail account, 2-Step Verification and IMAP enabled, an app password generated. `MAIL_IMAP_HOST`, `MAIL_IMAP_USER`, `MAIL_IMAP_PASSWORD` set as Fly secrets 2026-08-24 (see `docs/operations.md`); the address itself is not recorded here since this repo is public. This does not itself close the epic's open risk — that's proving IMAP sync against a real newsletter and hitting the morning-sync timing target, which needs increment 8 built first — but the external setup that was blocking it is done.
+
 ## Increment — Existing source notice, see items, delete (2026-08-20)
 
 Current. A feed already in Sources still opens that source; the page says it is already there.
