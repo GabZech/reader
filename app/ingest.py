@@ -39,14 +39,25 @@ ALLOWED_TAGS = {
     "figcaption",
 }
 
+# Tags whose entire contents are non-visible markup (CSS/JS/metadata) rather
+# than article text. HTMLParser still delivers their inner text via
+# handle_data even though the tags themselves are dropped, so without this
+# the raw CSS/JS text (e.g. a `:root { ... }` reset block) leaks into the
+# rendered article body as literal text.
+SKIPPED_CONTENT_TAGS = {"style", "script", "head", "title"}
+
 
 class _Sanitizer(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self._out: list[str] = []
+        self._skip_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag not in ALLOWED_TAGS:
+        if tag in SKIPPED_CONTENT_TAGS:
+            self._skip_depth += 1
+            return
+        if self._skip_depth or tag not in ALLOWED_TAGS:
             return
         if tag == "br":
             self._out.append("<br>")
@@ -67,11 +78,16 @@ class _Sanitizer(HTMLParser):
         self._out.append(f"<{tag}>")
 
     def handle_endtag(self, tag: str) -> None:
-        if tag not in ALLOWED_TAGS or tag in {"br", "img"}:
+        if tag in SKIPPED_CONTENT_TAGS:
+            self._skip_depth = max(0, self._skip_depth - 1)
+            return
+        if self._skip_depth or tag not in ALLOWED_TAGS or tag in {"br", "img"}:
             return
         self._out.append(f"</{tag}>")
 
     def handle_data(self, data: str) -> None:
+        if self._skip_depth:
+            return
         self._out.append(_esc(data))
 
     def result(self) -> str:
