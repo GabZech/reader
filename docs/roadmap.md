@@ -2,22 +2,21 @@
 
 ## Where We Are
 
-**📍 Phase:** Build for Manage sources (in progress)
+**📍 Phase:** Build for Manage sources (increment map complete; not yet asked to Deploy)
 
 **🏁 Next Milestone:** MVP
 
 **📄 Summary:**
 
 - Foundation accepted: architecture, development, operations, UI guidelines, and a walking skeleton that follows the accepted look, including a live Fly URL
-- Manage sources: increments 1-7 signed off (feed-to-News, list creation, choose-list, existing-source screen, rename, add-to-list from a source's screen, and YouTube channels onto Favourite channels). Sources can belong to several lists at once, a scope change made mid-build; see the deviation note on increment 6 in [plan.md](epics/manage-sources/plan.md). Remaining: increment 8 (newsletters)
-- Newsletters are auto-detected, not manually added: mail from a never-seen sender at the isolated mailbox creates its source on its own, unlisted, with a red-dot notice on the Sources button until opened
-- PR #14 merged `build/manage-sources` into `main` (2026-08-24), through increment 7 plus two small out-of-epic fixes (dark mode with a Settings screen; Home Edit). Mid-epic merge, not this epic's Deploy — increment 8 is still open and this epic's `plan.md`/`clarifying-answers.md` stay open
+- Manage sources: all 8 increments signed off (feed-to-News, list creation, choose-list, existing-source screen, rename, add-to-list from a source's screen, YouTube channels onto Favourite channels, and newsletters auto-detected via the isolated mailbox). Sources can belong to several lists at once, a scope change made mid-build; see the deviation note on increment 6 in [plan.md](epics/manage-sources/plan.md)
+- Newsletters are auto-detected, not manually added: mail from a never-seen sender at the isolated mailbox creates its source on its own, unlisted. Sources groups by kind (Newsletter, RSS, YouTube), newest first per group; a newly-arrived source keeps a highlight and a red dot on the Sources tab until that specific source is opened (refined mid-increment by client request; see the deviation note on increment 8 in plan.md)
+- PR #14 merged `build/manage-sources` into `main` (2026-08-24), through increment 7 plus two small out-of-epic fixes (dark mode with a Settings screen; Home Edit). Mid-epic merge, not this epic's Deploy — `plan.md`/`clarifying-answers.md` stay open until Deploy
 - A new **Improve UI** epic was added to the MVP catalog, last in build order: it revisits `docs/ui-guidelines.md` beyond the mockup-era look once the rest of the MVP is built
-- The live isolated mailbox remains explicit remaining risk within Manage sources
 
 **⚠️ Open:**
 
-- Standing up the live isolated mailbox and proving IMAP sync hits the morning-sync timing target
+- The isolated mailbox's IMAP sync has been proven live end to end (Google's own account-setup mail), but not yet against an actual subscribed newsletter under the morning-sync timing target (under 5s typical, 10s ceiling) — this is the epic's carried risk into Deploy
 
 ## 📌 Post-MVP Notes
 
