@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Add to a list{% endblock %}
+{% block body %}
+      <header class="top">
+        <a class="back" href="/sources/{{ source.id }}">{{ source.title }}</a>
+        <h1>{{ source.title }}</h1>
+      </header>
+      <p class="lede">Choose a list for this source.</p>
+      <section class="list">
+        {% for slug, name, note in lists %}
+        <form method="post" action="/sources/{{ source.id }}/list">
+          <input type="hidden" name="list_slug" value="{{ slug }}">
+          <button class="item" type="submit">
+            <span class="title">{{ name }}</span>
+            <span class="sub"><span class="byline">{{ note }}</span></span>
+          </button>
+        </form>
+        {% endfor %}
+        <a class="item" href="/sources/{{ source.id }}/new-list">
+          <span class="title">Create new list</span>
+        </a>
+      </section>
+{% endblock %}

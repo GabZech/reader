@@ -64,6 +64,26 @@ Tried; not signed off. All lists appear on choose-list. Create new list sits wit
 
 I’ll do this later saves the source with no list. Create new list uses the same name screen; after Continue the source goes on that list (News still asks the window). Empty name stays put. A name already used is that existing list.
 
+## Build sign-off (2026-08-21)
+
+Increments 1 (RSS/blog to News), 3 (choose-list-later-or-create-new), and 4 (existing-source notice, see items, delete) signed off after a guided walkthrough on a local instance with real feeds (Hacker News, Lobsters, xkcd). All matched `plan.md`.
+
+Increment 5 (rename a source's display name) signed off. Editable field lives inline on the source screen, next to Save name; a "Saved." message shows underneath the button after a successful save (small UX addition, not in the original plan text). While building this, found and fixed two pre-existing bugs that would have silently undone any rename: `ingest_xml` was resetting `sources.title` back to the feed-provided title on every sync, and `parse_feed` was baking the source's title into `items.author` for entries with no author, freezing the old name on already-ingested items. Both fixed in `app/ingest.py`; the source's originally auto-derived name is now tracked separately in `sources.auto_title` so a rename can be told apart from the feed's own title and an empty-name save can fall back to it.
+
+Next: increment 6, add an existing source to a list from that source's screen.
+
+Increment 6 signed off (2026-08-21), after a scope change built in during this increment: sources can now belong to several lists at once rather than just one (see the deviation note in `plan.md`). The source screen lists every membership with its own ✕ remove control, "Add to a list" is always available, and Sources shows a list's name when a source is on exactly one or a count ("On 2 lists") when on several. "See items" now shows the real item count.
+
+Also added along the way: a shared toast component (dark pill above the tab bar, auto-dismisses after 5s, no trailing punctuation) replacing the old inline "Saved." text, used for rename, list changes, and list removal. Fixed a real caching bug found while verifying this in a browser: the service worker's cache version never changed so its precache of the shell pages and static assets never refreshed, and `/static/*` had no `Cache-Control` header; both fixed. A separate toast bug (reappearing on refresh because the flash message lived only in the URL) was fixed by stripping the query param client-side once read; verified with an automated headless-browser run. One false alarm during testing: VS Code's embedded browser panel throttles JS timers and made the toast look stuck when it wasn't — confirmed fine in a real browser tab.
+
+Next: increment 7, YouTube channel onto Favourite channels.
+
+Increment 7 built and tested (38/38 automated tests pass), verified locally against a real public channel. YouTube channel URLs are detected via `source_kind_for`; feed discovery sends a `SOCS=CAI` cookie to skip Google's EU consent-redirect page, which otherwise hides the real page (and its feed link) from a non-consenting HTTP client.
+
+Increment 7 signed off (2026-08-22), tried via a trial push to the live Fly host (phone-only walkthrough): adding a real public channel lands on Favourite channels, sources shows it as `YouTube · Favourite channels`, and the existing-source and no-feed-found paths (increment 4, increment 1) cover the duplicate-channel and video-URL failure modes with no YouTube-specific code needed.
+
+Next: increment 8, newsletter auto-detected via the isolated mailbox — carries the epic's named open risk (standing up the live mailbox and IMAP sync).
+
 ## Increment — Existing source notice, see items, delete (2026-08-20)
 
 Current. A feed already in Sources still opens that source; the page says it is already there.

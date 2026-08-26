@@ -35,7 +35,7 @@ Epics are listed in the order you need them: setup and lists before sources, sou
 **Done when:** A source is on the intended list with the right window, you can see its items, and you can take the source out.
 
 **In / out:**
-- **In:** add a newsletter, feed, or YouTube channel; choose a list; set a recency window when the list is timed; notice when a source is already there; see items of this source; delete the source; add an existing source to a list from that source’s screen. Creating a list during add uses **Manage lists**. Isolated mailbox for newsletters.
+- **In:** add a newsletter, feed, or YouTube channel; choose a list; set a recency window when the list is timed; notice when a source is already there; see items of this source; delete the source; add an existing source to a list from that source’s screen; rename a source’s display name. Creating a list during add uses **Manage lists**. Isolated mailbox for newsletters.
 - **Out:** morning reading, Read later, highlighting, watching videos inside the app, removing a single item from a list, Home Edit, creating or renaming or deleting lists as their own job
 
 **Depends on:** [Manage lists](#manage-lists)

@@ -12,6 +12,8 @@ description: >-
 
 Stop building. Confirm there is a way back, release the last signed-off local state to the production host, smoke that it works, and make the living docs match what is actually live. This is the continuous-delivery release: software stayed releasable in Build; going live is an explicit go, not continuous deployment of every change. This is the only time overview docs move for a feature, and the only time later revisions reach production after Foundation's first standup.
 
+Build may push increments straight to the live host for trial (see Build's Do section). Those trial pushes are not this phase: they carry pre-signoff, possibly unfinished work, have no rollback check or smoke test behind them, and do not touch living docs. Do not treat a trial push as satisfying any Deploy requirement below.
+
 ## Entry
 
 - Same branch as the open Build
