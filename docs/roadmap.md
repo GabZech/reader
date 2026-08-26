@@ -14,10 +14,10 @@
 - PR #14 merged `build/manage-sources` into `main` (2026-08-24), through increment 7 plus two small out-of-epic fixes (dark mode with a Settings screen; Home Edit). Mid-epic merge, not this epic's Deploy — `plan.md`/`clarifying-answers.md` stay open until Deploy
 - A new **Improve UI** epic was added to the MVP catalog, last in build order: it revisits `docs/ui-guidelines.md` beyond the mockup-era look once the rest of the MVP is built
 - Client subscribed to a real newsletter through the isolated mailbox (2026-08-24) and confirmed it works, clearing increment 8's carried test-approach risk (the timing target itself is still unmeasured, not yet flagged as a problem)
+- Newsletter text formatting fixed (2026-08-26): a leaked `<style>`-block CSS text bug and general `.article-body` typography (links, headings, lists, blockquotes). Landed on `main` directly in a separate context after the client cleared this session, then reconciled back onto `build/manage-sources` with no meaningful conflicts
 
 **⚠️ Open:**
 
-- Next up: the ingested newsletter text's formatting is not great and needs improving — not yet planned as part of any named increment
 - Not asked to Deploy the Manage sources epic yet
 
 ## 📌 Post-MVP Notes
