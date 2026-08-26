@@ -13,10 +13,12 @@
 - Newsletters are auto-detected, not manually added: mail from a never-seen sender at the isolated mailbox creates its source on its own, unlisted. Sources groups by kind (Newsletter, RSS, YouTube), newest first per group; a newly-arrived source keeps a highlight and a red dot on the Sources tab until that specific source is opened (refined mid-increment by client request; see the deviation note on increment 8 in plan.md)
 - PR #14 merged `build/manage-sources` into `main` (2026-08-24), through increment 7 plus two small out-of-epic fixes (dark mode with a Settings screen; Home Edit). Mid-epic merge, not this epic's Deploy — `plan.md`/`clarifying-answers.md` stay open until Deploy
 - A new **Improve UI** epic was added to the MVP catalog, last in build order: it revisits `docs/ui-guidelines.md` beyond the mockup-era look once the rest of the MVP is built
+- Client subscribed to a real newsletter through the isolated mailbox (2026-08-24) and confirmed it works, clearing increment 8's carried test-approach risk (the timing target itself is still unmeasured, not yet flagged as a problem)
 
 **⚠️ Open:**
 
-- The isolated mailbox's IMAP sync has been proven live end to end (Google's own account-setup mail), but not yet against an actual subscribed newsletter under the morning-sync timing target (under 5s typical, 10s ceiling) — this is the epic's carried risk into Deploy
+- Next up: the ingested newsletter text's formatting is not great and needs improving — not yet planned as part of any named increment
+- Not asked to Deploy the Manage sources epic yet
 
 ## 📌 Post-MVP Notes
 
