@@ -3,7 +3,7 @@ description: Chat formatting when presenting a set of items (increments, options
 alwaysApply: true
 ---
 
-# Presenting a set
+## Presenting a set
 
 When a chat message presents a set of items — increments, options, choices, anything the reader must weigh as a group — structure it so the set reads clearly and stays visually distinct from surrounding prose.
 
