@@ -22,7 +22,7 @@ Build the current epic's planned increments, one tryable slice at a time, agains
 - Working software, tried locally or via a trial push to the live host (see Do)
 - `docs/epics/<epic-slug>/clarifying-answers.md`: lived facts this increment needed that the plan could not settle upfront, and which increments are signed off
 - Deviations from `plan.md` discovered while building, logged in that file
-- UI-visible increments: a signed-off preview capture under `docs/epics/<epic-slug>/previews/` (see Do), kept only until the increment itself is signed off
+- UI-visible increments: a signed-off preview of the look (see Do), kept only until the increment itself is signed off
 
 ## Do
 
@@ -30,7 +30,7 @@ Build the current epic's planned increments, one tryable slice at a time, agains
 - Work on a branch for this epic. Follow `docs/development.md` when present.
 - Take the next increment from `plan.md`'s map. Re-read its job, dependencies, failure modes, and test approach before coding it.
 - Clarifying questions via the **questioning** skill, only for lived facts the plan left open. **What to ask:** [questionbank.md](questionbank.md).
-- **If the increment changes what the UI looks like** (a new screen, a changed layout, new or moved visual elements, restyling): before writing any product code for that visual change, produce a preview and get it signed off first. Build a quick static mock of the new look (reuse or extend an HTML mock under a scratch location, not the product source) or, if the change is small and lands on an existing screen, describe and sketch it precisely enough to mock. Capture it with a screenshot per Mockup's self-review technique ([1-4-mockup/setup.md](../1-4-mockup/setup.md)'s "Capture (agent)" section) and read the image before sharing. Share the preview and ask one thing: does this look right, or does something need to change, before it's built for real. Iterate the preview, not product code, until signed off. Only then implement the change in the actual app. Skip this step for changes with no visible UI effect (backend, data, non-visual logic, copy-only fixes to existing text).
+- **If the increment changes what the UI looks like** (a new screen, a changed layout, new or moved visual elements, restyling): before writing any product code for that visual change, show a preview of how it will look and get it signed off first. Iterate the preview, not product code, until signed off, then implement the change in the actual app. Skip this step for changes with no visible UI effect (backend, data, non-visual logic, copy-only fixes to existing text).
 - Build the increment; write automated tests for the failure modes and edge cases the plan named for it, plus whatever the plan said would prove it done; run the usual local checks.
 - Before showing the increment, check the diff against the plan: does it do the named job, honour the named dependencies, handle the named failure modes. Fix gaps found this way before the client sees them.
 - Once local checks pass, push the increment to the live host as a **trial push** (`flyctl deploy --remote-only --ha=false` per `docs/operations.md`) so it can be tried there. A trial push is not a release: no rollback check, no smoke ceremony, no living-doc update, no `docs/roadmap.md` phase change. It carries pre-signoff, possibly unfinished work and is expected to be overwritten by the next increment's trial push.
