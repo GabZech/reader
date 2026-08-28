@@ -8,15 +8,17 @@ The product is built for a solo reader who wants full ownership of their corpus,
 
 ## How we work
 
-Left alone, an agent will start coding before either side understands the product. Discovery and foundation run once: agree what matters, design the system, and hang a walking skeleton. After that, each epic runs Plan, then Build, then Deploy. Plan works out the increment map, dependencies, and failure modes for the epic and gets your go-ahead, in conversation, before any code exists. Build is a short try-and-sign-off loop like Mockup, on a local instance of the real software, verified against that plan, with the usual checks (continuous integration) before each slice is shown. Deploy is the continuous-delivery release: confirm the way back, put signed-off work on the production host when the epic is done or when you ask to ship, smoke the live path, and let living docs catch up. That is not continuous deployment of every local change. Every phase ends with an explicit accept before the next begins.
+Left alone, an agent will start coding before either side understands the product. Discovery and foundation run once: agree what matters, design the system, and hang a walking skeleton. After that, feature work is a loop, one change at a time, driven from chat.
 
-For discovery and foundation, see the [template workflow overview](https://github.com/GabZech/template-spec-workflow#workflow-overview). Feature work in this repo is Plan, Build, then Deploy, not that template’s SPEC stairs.
+Each change goes through the same six steps. Frame names what the change is and what kind it is, because the kind decides what has to happen before code: a change to what you see needs a mockup, a bug needs a test that reproduces it, a change to the library needs a backup. Shape states what will change and how it will be verified, briefly for something small and with a proper plan for something that is not. Preview settles the look on a screenshot before product code exists. Build writes the failing test first and then the code. Try puts the change on the live app so you judge it running, not on a report. Ship merges it, puts the live app back on the main branch, and brings the living docs and roadmap up to date. A change can come from any part of the product: the roadmap groups work by epic, but nothing has to wait for an epic to finish.
+
+For discovery and foundation, see the [template workflow overview](https://github.com/GabZech/template-spec-workflow#workflow-overview). Feature work in this repo is that change loop, not that template’s SPEC stairs.
 
 ## Docs
 
 The `Docs/` folder is split by the kind of question you are asking. The list below is the front door; the [index](docs/README.md) has the rest.
 
-- **[Roadmap](docs/roadmap.md):** Start here to see the current phase, what is already locked, and what this phase still has to settle.
+- **[Roadmap](docs/roadmap.md):** Start here to see what is built, what is next grouped by epic, and what is still open.
 - **[Architecture](docs/architecture.md):** The shape of the running system, covering what we build, what we rent, how mail and feeds get in, and which tradeoffs we accepted so later work does not reopen the whole stack.
 - **[Development](docs/development.md):** How to run the app on this machine, including toolchain, start command, tests, and local config names.
 - **[Operations](docs/operations.md):** How that same app is meant to stay on a host, including backup of the library file and the monthly cost ceiling.

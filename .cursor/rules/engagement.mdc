@@ -1,11 +1,11 @@
 ---
-description: Product engagement guardrails and routing; skip for repo/template maintenance
+description: Product engagement guardrails and the change loop; skip for repo/template maintenance
 alwaysApply: true
 ---
 
 # Engagement
 
-Not every chat is product work. Apply the sections below only when the user is building or advancing the product. Otherwise treat the request as normal repo work (skills, README, rules, CI, etc.) — no roadmap, gates, or phase orientation unless the task itself needs those files.
+Not every chat is product work. Apply the sections below only when the user is building or advancing the product. Otherwise treat the request as normal repo work (skills, README, rules, CI, etc.): no roadmap, gates, or loop unless the task itself needs those files.
 
 ## Roles (product work)
 
@@ -15,29 +15,41 @@ Not every chat is product work. Apply the sections below only when the user is b
 
 ## When product engagement applies
 
-Triggered when the user asks to build or ship product functionality, references a phase, epic, or roadmap, resumes discovery or feature work, or starts greenfield.
+Triggered when the user asks to build or change product functionality, references the roadmap, resumes feature work, or starts greenfield.
 
 Then:
 
-1. Read `docs/roadmap.md` "Where we are" and follow the matching skill under `.cursor/skills/`
-2. Greenfield or empty roadmap → **Kickoff** skill
-3. On starting or resuming a phase, orient once using the **questioning** skill (voice): name the phase, what you will cover next, and how it fits the engagement, then the first question, with any locked material that question depends on shown in the message
-4. Whenever you need clarifying answers, decisions, or gate acceptance from the client → read and follow the **questioning** skill (`.cursor/skills/questioning/SKILL.md`)
-5. End every phase with explicit review-and-accept before advancing (phase skills own roadmap updates and when to touch root `README.md`; writing-docs owns README shape). After accept, close per Orientation.
+1. Greenfield or empty roadmap: read `docs/roadmap.md` "Where we are" and follow the matching discovery skill under `.cursor/skills/` (Kickoff for greenfield)
+2. Foundation accepted, which is where this product is: every change runs the loop below. Full detail, including the per-kind procedures, lives in `.cursor/skills/2-develop/SKILL.md`. Read it when a change needs more than the gates restated here
+3. Whenever you need clarifying answers, decisions, or sign-off from the client, read and follow the **questioning** skill (`.cursor/skills/questioning/SKILL.md`)
+
+The skill files under `.cursor/skills/` are written for a tool that auto-triggers them. This rule is what carries the loop into tools that do not, so the gates below stand on their own.
+
+## The change loop (product work)
+
+One change at a time, from chat direction to live and merged. A change belongs to whatever part of the product the client names: epics group work in the roadmap, they do not gate it. Never hold a change because it belongs to a different epic than the last one.
+
+1. **Frame.** Restate the change; name its kinds (visual, behaviour, bug, data, external, chore), and every kind it carries applies. Size it: not small if it touches more than a couple of files, adds a route, changes the schema or a dependency, or is a data or external change
+2. **Shape.** Before any code, say what will change, what could break, and how it will be verified. Small: say it and keep going. Not small: one confirm, after a deep plan
+3. **Preview.** A change to what the client sees needs a signed-off screenshot of the intended look before product code exists
+4. **Build.** Branch per change. Behaviour: failing test first. Then code, then the checks in `docs/development.md`
+5. **Try.** Deploy the branch to the live host, walk the client through what to try in prose, and ask once: good, or what is missing
+6. **Ship.** Merge to main, redeploy from main, update living docs the change made wrong, tick the roadmap line
 
 ## Non-negotiables (product work only)
 
-- **Questioning skill.** How you speak to the client follows `.cursor/skills/questioning/SKILL.md` (style only). What you ask comes from the current phase skill.
-- No application code or stack scaffold until Foundation’s system package and tradeoffs are confirmed
-- No epic **Plan** until **Foundation** is accepted; no **Build** until that epic’s **Plan** is accepted
-- Overview docs for a feature move only in **Deploy**
-- Production release after Foundation’s first standup happens only in **Deploy**. An explicit request to ship during Build enters Deploy with signed-off work only
-- Whole-system stack and architecture belong in **Foundation** only; Plan and Build cover the current epic unless the client explicitly reopens Foundation
-- During discovery before Foundation: only constraint questions that feed Kickoff, Understand, or Foundation
-- **Where truth lives.** Code and tests are behaviour. Living docs under `docs/` (not `history/` or an epic's `plan.md` / `clarifying-answers.md`) are the current agreed picture. `plan.md` and `clarifying-answers.md` are the agent’s working record while that epic is open; freeze both when that epic’s complete Deploy accepts. A mid-epic Deploy leaves them open. `docs/history/` is how we got here: do not refresh it to match later code
+- No code before the Shape message; no product code for a visual change before its mockup is signed off
+- No merge before the client has signed off on the live app
+- The live host does not stay on a branch: shipping or abandoning a change ends with main redeployed
+- Behaviour and bug changes get a failing test first. Never skip, disable, or weaken a test to get green
+- No data or schema change without a named fallback and the library copied off the volume first
+- No outside system wired in before a probe has proved the real connection and payload
+- Two rounds of fixes that do not land mean the approach is wrong: back to Shape
+- Deep planning (`.cursor/skills/2-develop/deep-plan.md`) is required for a not-small change, and on any ask to plan it properly, plan it well, think it through first, or deep plan it
+- Whole-system stack and architecture belong to Foundation. A change reopens it only when it cannot honour it
+- **Where truth lives.** Code and tests are behaviour. Living docs under `docs/` (not `history/`) are the current agreed picture. `docs/history/` is how we got here: do not refresh it to match later code
+- No per-epic `plan.md` or `clarifying-answers.md`. The conversation is the plan; the roadmap, living docs, and git history are the record
 
-## Orientation (when starting, resuming, or closing a phase)
+## Closing a change
 
-Voice follows the questioning skill. Cover what is useful among: current phase, what this phase is for, decisions or open questions that matter now, and the immediate next step. Mention Mockup or MVP milestone only when one is actually set; omit it otherwise. Do not use label stacks (`Status:`, `Milestone:`, `Next:`).
-
-On close, after the on-accept file updates: recommend ending this chat and starting a new one after each discovery phase, and after an epic-complete Deploy. Living docs and the roadmap are the handoff. Do not start that next discovery phase or epic here unless they ask to continue. Stay in this chat through the current phase, including that epic’s Plan, every Build increment, mid-epic Deploys, and that epic’s complete Deploy. Do not recommend a new chat after a clarifying answer, a signed-off increment, a Plan accept, or a mid-epic Deploy that returns to Build.
+After Ship: recommend ending the chat and starting a new one, and a `/compact` if context has grown. The roadmap and living docs are the handoff, so nothing is lost. It is a recommendation, not a gate: stay in this chat if the client keeps going.

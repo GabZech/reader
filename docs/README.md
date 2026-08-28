@@ -2,7 +2,7 @@
 
 This folder is the living record of the product and how we work on it. Read it to see what has been agreed, not to hunt for filenames.
 
-**Where truth lives.** The running app and its tests are behaviour. The living files below are the current agreed picture. History under `docs/history/` is how we got here; do not update it to match later code. Per-epic `plan.md` and `clarifying-answers.md` are the agent's working record while that epic is open; a complete Deploy freezes both and writes the close note. A mid-epic Deploy leaves them open. Everything else here follows the writing-docs skill.
+**Where truth lives.** The running app and its tests are behaviour. The living files below are the current agreed picture. History under `docs/history/` is how we got here; do not update it to match later code. Feature work keeps no separate working record: the conversation is the plan, and these files plus git history are what survives it. Everything here follows the writing-docs skill.
 
 ## Vision
 
@@ -17,15 +17,14 @@ These files settle who the product is for and what it must do, before a stack is
 
 ## Engagement
 
-- **[Roadmap](roadmap.md).** Where the engagement stands now: current phase, milestone, locked decisions, and what this phase still has to resolve.
-- **Epic notes** (`epics/<slug>/`). The plan from Plan and session facts from Build (both frozen when that epic’s Deploy completes) and the close note for that epic. The catalog of named capabilities stays in [epics.md](vision/epics.md).
+- **[Roadmap](roadmap.md).** Where the product stands now: what is built, what is next grouped by epic, and what is still open.
+- **[Conventions](conventions.md).** Repo writing conventions, and the standing preferences about how changes get made.
 
 ## System
 
-Written in Foundation after the system package was confirmed. Refresh later when Deploy aligns them with a shipped increment.
+Written in Foundation after the system package was confirmed. Refreshed as part of any change that makes one of them wrong.
 
 - **[Architecture](architecture.md).** How the running system is put together: parts, data flow, stack, inbound mail and feeds, and the tradeoffs we accepted. The skeleton section says what this slice proved and what the first feature still has to stand up.
 - **[Development](development.md).** How to run and test the app on a local machine. Commands in that file have been run.
 - **[Operations](operations.md).** Where the app is meant to run in production, how a new version gets there, how the library file is backed up, and what keeping it on should cost.
 - **[UI Guidelines](ui-guidelines.md).** The overall look copied from the accepted dummy. Not a design system. Later screens follow this instead of restyling.
-- **[Conventions](conventions.md).** Repo writing conventions that are not product behaviour.

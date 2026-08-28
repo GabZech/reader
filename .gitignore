@@ -44,3 +44,6 @@ data/*.db-*
 tmp/
 temp/
 .cache/
+
+# Throwaway UI previews
+preview/
