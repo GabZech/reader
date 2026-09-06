@@ -5,7 +5,7 @@ description: >-
   its question bank: brainstorm with the client first, research and review,
   then write files. Use when authoring a phase skill, adding questionbank.md,
   or repeating the Kickoff/Understand skill-creation workflow for Scope,
-  Mockup, Foundation, Plan, Build, Deploy, or later phases.
+  Mockup, Foundation, or another discovery phase.
 ---
 
 # Create phase skill
@@ -14,11 +14,13 @@ Build or upgrade a **project-agnostic** phase skill (and optional question bank)
 
 Authoring craft (succinct copy, split style vs content, SKILL.md shape) lives in the **write-skills** skill (`.cursor/skills/write-skills/SKILL.md`). This skill owns the **engagement sequence** only.
 
+Discovery phases only. Feature work runs the change loop (`.cursor/skills/2-develop/`), which has no phases and no question bank: do not build one for it.
+
 ## When
 
 - Client asks to create or improve a phase skill / question bank
 - A phase skill lacks clarifying guidance that Kickoff or Understand already have
-- Preparing Scope, Mockup, Foundation, Plan, Build, Deploy, or a later phase the same way
+- Preparing Scope, Mockup, Foundation, or another discovery phase the same way
 
 ## Sequence (mandatory order)
 
@@ -65,9 +67,9 @@ Summarize what was added or changed and which phase to run next (or resume). Do 
 | Question banks | Progressive disclosure: long menus in `questionbank.md`, not in `SKILL.md` |
 | Delivery style | Never duplicate questioning skill rules inside the bank |
 | Scopes and stack | Discovery banks stay descriptive until Scope (mockup / MVP / later) or Foundation (stack) |
-| Increments | Not in discovery banks; Plan owns tryable vertical slices and their dependencies/failure modes, Build implements them, not story or AC files |
+| Increments | Not in discovery banks; the change loop owns slicing, and slices are tryable end to end, not story or AC files |
 | Client prompts | Never save verbatim chat into skills or `docs/` |
-| Clarifying-answers | Session facts for the open phase; never a second living doc; freeze on accept (Deploy: freeze only when the epic closes, not on a mid-epic ship) |
+| Clarifying-answers | Session facts for the open discovery phase; never a second living doc; freeze on accept. Feature work keeps no such file |
 | Review | After inferring a package, critique it against the phase checklist and fold recommendations in before confirm. Gap check: recommend remaining thin spots; one confirm (add, skip, or something else). Not an open “anything to add?” |
 
 ## Anti-patterns

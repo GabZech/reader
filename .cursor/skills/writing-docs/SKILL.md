@@ -4,7 +4,7 @@ description: >-
   Voice and structure for human-facing living docs under docs/ (vision, metrics,
   personas, journeys, constraints, epics, mockup, architecture, development,
   operations, roadmap, and similar) and the product root README. Use when
-  writing or editing those files. Do not use for docs/history/ or docs/epics/.
+  writing or editing those files. Do not use for docs/history/.
 ---
 
 # Writing docs
@@ -14,7 +14,7 @@ Style for reports and living docs under `docs/` meant for humans. Purpose and co
 ## Scope
 
 - **Apply** to human-facing living docs under `docs/` (e.g. vision, architecture, development, operations, roadmap, conventions, ui-guidelines) and the product root `README.md`
-- **Skip** `docs/history/` and `docs/epics/` (engagement log and epic notes keep their own shape; history stays frozen after the phase accepts)
+- **Skip** `docs/history/` (frozen engagement log; it keeps the shape it had when it was written)
 
 ## Voice
 
@@ -62,7 +62,7 @@ Product front door after Kickoff; not a second copy of the proposition or the fu
 
 1. **Title** — product or working name
 2. **Overview** — short prosaic pitch: problem and consequence first, then direction. Write in sentences, not a capability or feature inventory. Refresh when discovery locks change what a newcomer should know. Do not paste the full proposition, personas, or epic lists
-3. **How we work** — why before how: open with why structure beats jumping to code, then the two stages in short prose (discovery and foundation once; feature development repeats as Build then Deploy per epic). Name discovery phases in running sentences with their goals; do not use telegraphic bullet or arrow lists. No artifact inventories. Point to the template for discovery and foundation detail: [GabZech/template-spec-workflow](https://github.com/GabZech/template-spec-workflow). This repo’s feature loop is Build then Deploy, not that template’s SPEC stairs. Build is local try-and-sign-off with continuous integration before each slice is shown. Deploy is the continuous-delivery release: production host, smoke, living docs; not continuous deployment of every change.
+3. **How we work** — why before how: open with why structure beats jumping to code, then the two stages in short prose (discovery and foundation once; feature work repeats as the change loop, one change at a time). Name the loop's steps in running sentences with what each is for; do not use telegraphic bullet or arrow lists. No artifact inventories. Point to the template for discovery and foundation detail: [GabZech/template-spec-workflow](https://github.com/GabZech/template-spec-workflow). This repo’s feature work is that change loop, not that template’s SPEC stairs.
 4. Optional short pointers into `docs/` when useful; omit template “How to Start” once the product is underway
 
 ### When
@@ -70,7 +70,7 @@ Product front door after Kickoff; not a second copy of the proposition or the fu
 - **Kickoff (required):** on accept, replace the template README with this shape
 - **Understand (optional):** after phase accept, one questioning-skill ask whether to refresh Overview (and only then edit). Keep How we work stable unless the engagement model itself changes
 - **Scope, Mockup, and Foundation:** do not offer this ask
-- **Feature development:** do not offer this ask; Deploy owns living-doc alignment for features
+- **Feature work:** do not offer this ask; the change loop's Ship step owns living-doc alignment
 
 ## Roadmap (`docs/roadmap.md`)
 
@@ -80,17 +80,21 @@ Orient the engagement; do not duplicate vision, metrics, or feature inventory.
 
 Fixed field order and icons:
 
-1. **📍 Phase** — current phase name and status (e.g. in progress). Do not use 🎯 for phase; 🎯 stays Goal elsewhere
-2. **🏁 Milestone** — Mockup / MVP / none set
-3. **📄 Summary** — where development stands now and what the next phase is (what is accepted, what this phase is doing, what comes after it). Not the product pitch, not constraints or feature lists. Prefer 1–3 prosaic bullets
-4. **❗ Decisions** — durable locks that steer later work, as prosaic bullets (not telegraphic labels). Nest **In** and **Out** sublists when both apply. Pull Out from confirmed non-goals; keep In to who, ownership, cost, must-haves, and hard reliability bets
-5. **⚠️ Open** — only what the current phase must still resolve. Do not add a separate Next line. A provisional choice tied to the MVP boundary (revisit only after MVP ships) goes in Post-MVP Notes instead, not here
+1. **🏁 Milestone** — Mockup / MVP / none set
+2. **📄 Summary** — where the product stands now: what is accepted, what is built, and how feature work runs. Not the product pitch, not constraints or a feature inventory. Prefer 2–4 prosaic bullets
+3. **⚠️ Open** — only what is genuinely unresolved and carries risk right now. A provisional choice tied to the MVP boundary goes in Post-MVP Notes instead
 
-Refresh Summary, Decisions, and Open when a phase gate advances; keep Decisions aligned with accepted proposition and non-goals (and later constraints) without pasting those docs.
+Carry the 📍 Phase field only while discovery is still running. Once feature work has started it goes: the change loop has no phases.
+
+### What's Next
+
+Remaining work, grouped under its epic from `vision/epics.md`, in the order the epics need each other. Each group is a `###` heading with an optional status after the name, then checkbox lines: `[x]` for what is built, `[ ]` for what is not. One line per thing that could be one turn of the change loop, named the way the reader would name it, not as an implementation task.
+
+Tick a line as part of shipping the change that earned it. Do not restate an epic's in/out or mockup notes here: link to `vision/epics.md` once at the top. Close with a **Later** group for deferred capabilities when there are any.
 
 ### Post-MVP Notes
 
-Bullets for choices explicitly deferred to after the MVP milestone: something adopted now on a provisional basis (a cadence, a hosting shortcut, a naming placeholder) that should be reconsidered once the MVP ships. Not a general parking lot or backlog; only items with a real MVP-boundary trigger. One prosaic bullet per note, naming what to revisit and why. Remove a bullet once it is acted on or folded elsewhere (Decisions, Open, architecture).
+Bullets for choices explicitly deferred to after the MVP milestone: something adopted now on a provisional basis (a cadence, a hosting shortcut, a naming placeholder) that should be reconsidered once the MVP ships. Not a general parking lot or backlog; only items with a real MVP-boundary trigger. One prosaic bullet per note, naming what to revisit and why. Remove a bullet once it is acted on or folded elsewhere (Open, architecture).
 
 ### Concluded
 
@@ -98,7 +102,7 @@ Under **Concluded**, one ✅ bullet per accepted phase: phase name, links to liv
 
 ## Epics (`docs/vision/epics.md`)
 
-Named capabilities plus mockup / MVP / later. Write during Scope; refresh only if Scope is reopened. Not user stories, not increment maps, not a per-epic Definition of Done.
+Named capabilities plus mockup / MVP / later. Write during Scope; refresh only if Scope is reopened. Not user stories, not increment maps, not a per-epic Definition of Done. Progress against these lives in the roadmap's What's Next, never here.
 
 ### Shape
 
@@ -120,7 +124,7 @@ Then catalog sections:
 - **MVP:** whole enough to complete a recognisable outcome. Names the first piece to implement after Mockup; that piece honours **Depends on**
 - **Later:** deferred capabilities, not Kickoff non-goals
 
-Do not paste stories, estimates, or Build increment maps.
+Do not paste stories, estimates, or increment maps.
 
 ## Mockup (`docs/vision/mockup.md`)
 
@@ -139,7 +143,7 @@ Do not paste screens, rewrite journeys, or treat the dummy as the product.
 
 ## Architecture (`docs/architecture.md`)
 
-Whole-system shape. Write during Foundation after the system package is confirmed; refresh when Deploy aligns it with a later ship. Do not put an epic’s increment design here.
+Whole-system shape. Write during Foundation after the system package is confirmed; refresh as part of any change that makes it wrong. Do not put a single change’s design here.
 
 ### Shape
 
@@ -150,7 +154,7 @@ Whole-system shape. Write during Foundation after the system package is confirme
 5. **Outside connections:** inbound and outbound paths at mechanism level (not live credentials)
 6. **⚠️ Skeleton:** what the walking skeleton proved vs what the first feature still has to stand up
 
-Do not paste epic notes, vendor tutorials, or a second decision log. Hard-to-reverse choices that arise later go under `docs/history/decisions/` in Deploy.
+Do not paste vendor tutorials or a second decision log. Hard-to-reverse choices that arise later go under `docs/history/decisions/`.
 
 ## Development (`docs/development.md`)
 
@@ -188,7 +192,7 @@ Durable look copied from the accepted dummy. Foundation must write this before m
 2. **Layout, density, chrome:** structure of screens and scaffolding
 3. **Type:** and colour only if the accepted look uses it
 4. **Surfaces:** devices or widths the shell must honour
-5. **Out of scope:** feature interactions and later-scope screens wait for that epic’s Build
+5. **Out of scope:** feature interactions and later-scope screens wait for the change that builds them
 
 Do not restyle. Do not paste the dummy.
 

@@ -2,26 +2,71 @@
 
 ## Where We Are
 
-**📍 Phase:** Build for Manage sources (in progress)
-
 **🏁 Next Milestone:** MVP
 
 **📄 Summary:**
 
-- Foundation accepted: architecture, development, operations, UI guidelines, and a walking skeleton that follows the accepted look, including a live Fly URL
-- Manage sources: increments 1-7 signed off (feed-to-News, list creation, choose-list, existing-source screen, rename, add-to-list from a source's screen, and YouTube channels onto Favourite channels). Sources can belong to several lists at once, a scope change made mid-build; see the deviation note on increment 6 in [plan.md](epics/manage-sources/plan.md). Remaining: increment 8 (newsletters)
+- Discovery and Foundation are accepted: architecture, development, operations, and UI guidelines are in place, and a walking skeleton runs on a live Fly URL
+- Feature work now runs the change loop (`.cursor/skills/2-develop/`): one change at a time, previewed when it is visual, tried on the live app, then merged and shipped. Changes can come from any epic in any order; the epics below group the work, they do not gate it
+- Manage lists is built. Manage sources is built except for newsletters: sources can be added as feeds or YouTube channels, renamed, seen, deleted, and can belong to several lists at once through a `source_lists` membership table
 - Newsletters are auto-detected, not manually added: mail from a never-seen sender at the isolated mailbox creates its source on its own, unlisted, with a red-dot notice on the Sources button until opened
-- A new **Improve UI** epic was added to the MVP catalog, last in build order: it revisits `docs/ui-guidelines.md` beyond the mockup-era look once the rest of the MVP is built
-- The live isolated mailbox remains explicit remaining risk within Manage sources
 
 **⚠️ Open:**
 
-- Standing up the live isolated mailbox and proving IMAP sync hits the morning-sync timing target
+- Standing up the live isolated mailbox and proving IMAP sync hits the morning-sync timing target. This is the one piece of remaining MVP work with real external risk
+
+## What's Next
+
+Grouped by [epic](vision/epics.md). An epic names a capability, not a work order: pick from any group, in any order. Each unticked line is one turn of the change loop.
+
+### Manage Lists
+
+- [x] Create, rename, and delete a list beyond the three that ship
+
+### Manage Sources
+
+- [x] Feed or blog URL onto News, with a recency window
+- [x] Choose a list on add, create one during add, or leave the source unlisted
+- [x] Existing-source notice, see a source's items, delete a source
+- [x] Rename a source's display name
+- [x] Add a source to further lists from its own screen; a source can be on several
+- [x] YouTube channel onto Favourite channels
+- [ ] Newsletters land from the isolated mailbox, unlisted, with a red-dot notice
+
+### Bring the Library Over
+
+- [ ] Import sources from the subscriptions export (OPML)
+- [ ] Import saved items from the CSV
+- [ ] Import saved items from the folder of files
+
+### Read Later
+
+- [ ] Send a link to Read later while browsing
+- [ ] Library and archive, with started and unstarted apart
+- [ ] Resume an article where it was left
+- [ ] Archive a finished article, and remove an item from Read later
+
+### Highlight and Land in Obsidian
+
+- [ ] Highlight passages on first open
+- [ ] Section titles that stick to the highlights below them, and deleting a highlight
+- [ ] The note arriving in the vault in the agreed format
+
+### Improve UI
+
+Last in the MVP: it needs a full built app to restyle.
+
+- [ ] Revise `ui-guidelines.md` beyond the mockup-era stone and ink look
+- [ ] Apply the revised look across every screen already built
+
+### Later
+
+- Evening Video Triage: watching inside the app, the evening session, and filtering Shorts wait. Removing a video from Favourite channels does not wait; it works like removing any other list item
 
 ## 📌 Post-MVP Notes
 
 - Keep the GitHub repo name and the Fly URL `reader-skeleton.fly.dev` through feature work. Before the MVP is put on the phone as the lasting URL, rename the repo, stand up a new Fly app name (Fly cannot rename in place), and add a home-screen logo that shows when the site is installed
-- Review the deploy-per-increment cadence adopted so Build's try-and-sign-off loop could run against the live Fly URL while working phone-only. Revisit whether to keep it once local testing is viable again, possibly splitting into separate dev/prod Fly apps
+- One Fly app serves both trying and living. During a change, the live app briefly runs an unmerged branch against the real library. Splitting into separate dev and prod Fly apps is the real fix; revisit once local testing is viable again
 - Once the MVP is up, back up the Fly volume's SQLite library regularly (roughly weekly); sources and articles live only on Fly and are never committed to the repo
 
 ## Concluded
@@ -31,3 +76,4 @@
 - ✅ **Scope:** [epics](vision/epics.md); session log under [history/discovery/03-scope](history/discovery/03-scope/)
 - ✅ **Mockup:** [mockup](history/discovery/04-mockup/mockup.md); session log under [history/discovery/04-mockup](history/discovery/04-mockup/)
 - ✅ **Foundation:** [architecture](architecture.md), [development](development.md), [operations](operations.md), [UI guidelines](ui-guidelines.md); session log under [history/discovery/05-foundation](history/discovery/05-foundation/)
+- ✅ **Epic workflow:** replaced by the change loop; working files frozen under [history/epics](history/epics/)
