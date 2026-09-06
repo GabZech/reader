@@ -28,3 +28,12 @@ def database_path() -> Path:
         path = ROOT / path
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def mail_imap_config() -> tuple[str, str, str] | None:
+    host = os.environ.get("MAIL_IMAP_HOST")
+    user = os.environ.get("MAIL_IMAP_USER")
+    password = os.environ.get("MAIL_IMAP_PASSWORD")
+    if not host or not user or not password:
+        return None
+    return host, user, password

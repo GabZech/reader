@@ -92,6 +92,12 @@ def init_db(conn: sqlite3.Connection) -> None:
     if "auto_title" not in columns:
         conn.execute("ALTER TABLE sources ADD COLUMN auto_title TEXT")
         conn.execute("UPDATE sources SET auto_title = title WHERE auto_title IS NULL")
+    if "mail_address" not in columns:
+        conn.execute("ALTER TABLE sources ADD COLUMN mail_address TEXT")
+    if "pending_notice" not in columns:
+        conn.execute(
+            "ALTER TABLE sources ADD COLUMN pending_notice INTEGER NOT NULL DEFAULT 0"
+        )
     if "list_slug" in columns:
         conn.execute(
             """
@@ -292,7 +298,7 @@ def get_item(conn: sqlite3.Connection, item_id: int) -> sqlite3.Row | None:
 
 
 def all_sources(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute("SELECT * FROM sources ORDER BY title").fetchall()
+    return conn.execute("SELECT * FROM sources ORDER BY rowid DESC").fetchall()
 
 
 def source_memberships(conn: sqlite3.Connection, source_id: str) -> list[sqlite3.Row]:
@@ -378,6 +384,36 @@ def find_source_by_feed_url(
     return None
 
 
+def source_id_for_mail(address: str) -> str:
+    return hashlib.sha256(f"mail:{address.strip().lower()}".encode()).hexdigest()[:16]
+
+
+def find_source_by_mail_address(
+    conn: sqlite3.Connection, address: str
+) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT * FROM sources WHERE kind = 'mail' AND mail_address = ?",
+        (address.strip().lower(),),
+    ).fetchone()
+
+
+def has_pending_source_notice(conn: sqlite3.Connection) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sources WHERE pending_notice = 1 LIMIT 1"
+    ).fetchone()
+    return row is not None
+
+
+def mark_sources_seen(conn: sqlite3.Connection) -> None:
+    conn.execute("UPDATE sources SET pending_notice = 0 WHERE pending_notice = 1")
+
+
+def clear_source_notice(conn: sqlite3.Connection, source_id: str) -> None:
+    conn.execute(
+        "UPDATE sources SET pending_notice = 0 WHERE id = ?", (source_id,)
+    )
+
+
 def insert_source(
     conn: sqlite3.Connection,
     *,
@@ -387,13 +423,25 @@ def insert_source(
     feed_url: str | None,
     backfill: int | None,
     auto_title: str | None = None,
+    mail_address: str | None = None,
+    pending_notice: bool = False,
 ) -> None:
     conn.execute(
         """
-        INSERT INTO sources (id, kind, title, feed_url, backfill, auto_title)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO sources
+            (id, kind, title, feed_url, backfill, auto_title, mail_address, pending_notice)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (source_id, kind, title, feed_url, backfill, auto_title or title),
+        (
+            source_id,
+            kind,
+            title,
+            feed_url,
+            backfill,
+            auto_title or title,
+            mail_address,
+            1 if pending_notice else 0,
+        ),
     )
 
 
@@ -434,7 +482,7 @@ def membership_label(membership: sqlite3.Row) -> str:
     return membership["list_name"] or membership["list_slug"]
 
 
-KIND_LABELS = {"rss": "RSS", "youtube": "YouTube"}
+KIND_LABELS = {"rss": "RSS", "youtube": "YouTube", "mail": "Newsletter"}
 
 
 def source_byline(kind: str, memberships: list[sqlite3.Row]) -> str:

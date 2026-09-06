@@ -8,12 +8,12 @@
 
 - Discovery and Foundation are accepted: architecture, development, operations, and UI guidelines are in place, and a walking skeleton runs on a live Fly URL
 - Feature work now runs the change loop (`.cursor/skills/2-develop/`): one change at a time, previewed when it is visual, tried on the live app, then merged and shipped. Changes can come from any epic in any order; the epics below group the work, they do not gate it
-- Manage lists is built. Manage sources is built except for newsletters: sources can be added as feeds or YouTube channels, renamed, seen, deleted, and can belong to several lists at once through a `source_lists` membership table
-- Newsletters are auto-detected, not manually added: mail from a never-seen sender at the isolated mailbox creates its source on its own, unlisted, with a red-dot notice on the Sources button until opened
+- Manage lists is built. Manage sources is fully built: sources can be added as feeds or YouTube channels, renamed, seen, deleted, and can belong to several lists at once through a `source_lists` membership table
+- Newsletters are auto-detected, not manually added: mail from a never-seen sender at the isolated mailbox creates its source on its own, unlisted, grouped with other sources by kind (Newsletter, RSS, YouTube), with a red-dot notice on the Sources button until that source is opened. Confirmed working against a real subscribed newsletter through the live isolated mailbox
 
 **⚠️ Open:**
 
-- Standing up the live isolated mailbox and proving IMAP sync hits the morning-sync timing target. This is the one piece of remaining MVP work with real external risk
+- The morning-sync timing target for newsletter ingestion is still unmeasured
 
 ## What's Next
 
@@ -31,7 +31,7 @@ Grouped by [epic](vision/epics.md). An epic names a capability, not a work order
 - [x] Rename a source's display name
 - [x] Add a source to further lists from its own screen; a source can be on several
 - [x] YouTube channel onto Favourite channels
-- [ ] Newsletters land from the isolated mailbox, unlisted, with a red-dot notice
+- [x] Newsletters land from the isolated mailbox, unlisted, with a red-dot notice
 
 ### Bring the Library Over
 

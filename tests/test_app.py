@@ -262,6 +262,68 @@ def test_video_url_finds_no_feed(monkeypatch, tmp_path):
     assert "We could not find a feed." in response.text
 
 
+def test_sync_includes_unconfigured_mail_result(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.post("/sync")
+    assert response.status_code == 200
+    assert response.json()["mail"] == {"configured": False, "created": 0, "sources": 0}
+
+
+def _insert_mail_source(tmp_path, source_id, address, title, pending_notice=True):
+    conn = dbmod.connect(Path(tmp_path) / "reader.db")
+    dbmod.init_db(conn)
+    dbmod.insert_source(
+        conn,
+        source_id=source_id,
+        kind="mail",
+        title=title,
+        feed_url=None,
+        backfill=None,
+        mail_address=address,
+        pending_notice=pending_notice,
+    )
+    conn.commit()
+    conn.close()
+
+
+def test_sources_notice_dot_shows_and_clears_on_source_open(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _insert_mail_source(tmp_path, "mail-1", "a@newsletter.test", "A Newsletter")
+
+        home = client.get("/")
+        assert '<span class="dot" aria-hidden="true"></span>' in home.text
+
+        client.get("/sources")
+        home_still = client.get("/")
+        assert '<span class="dot" aria-hidden="true"></span>' in home_still.text
+
+        client.get("/sources/mail-1")
+        home_after = client.get("/")
+        assert '<span class="dot" aria-hidden="true"></span>' not in home_after.text
+
+
+def test_sources_page_groups_by_kind_newest_first_and_highlights_new(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _insert_mail_source(tmp_path, "mail-old", "old@newsletter.test", "Old Newsletter", pending_notice=False)
+        _insert_mail_source(tmp_path, "mail-new", "new@newsletter.test", "New Newsletter", pending_notice=True)
+        _add_to_news(client, "https://example.test/blog")
+
+        response = client.get("/sources")
+        text = response.text
+        assert text.index("Newsletter</h2>") < text.index("RSS</h2>")
+        assert text.index("New Newsletter") < text.index("Old Newsletter")
+
+        def item_class(source_id: str) -> str:
+            marker = f'href="/sources/{source_id}"'
+            before = text.split(marker)[0]
+            return before[before.rindex('<a class="') :]
+
+        assert "is-new" in item_class("mail-new")
+        assert "is-new" not in item_class("mail-old")
+
+
 def test_duplicate_feed_goes_to_existing_source(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")

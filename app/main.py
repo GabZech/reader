@@ -18,11 +18,13 @@ from app.db import (
     connect,
     count_items_for_source,
     find_list_by_name,
+    clear_source_notice,
     find_source_by_feed_url,
     format_when,
     get_item,
     get_list,
     get_source,
+    has_pending_source_notice,
     init_db,
     insert_list,
     insert_source,
@@ -50,11 +52,24 @@ from app.ingest import (
     normalize_user_url,
     source_kind_for,
 )
+from app.mail import ingest_mail
 
 APP_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 templates.env.globals["format_when"] = format_when
 templates.env.globals["reading_length"] = reading_length
+
+
+def _sources_notice_pending() -> bool:
+    conn = connect()
+    try:
+        init_db(conn)
+        return has_pending_source_notice(conn)
+    finally:
+        conn.close()
+
+
+templates.env.globals["sources_notice_pending"] = _sources_notice_pending
 
 NO_FEED = "We could not find a feed."
 TIMED_NOTE = "Timed list · only recent items"
@@ -96,6 +111,18 @@ def _sources_view(conn, rows) -> list[dict]:
             }
         )
     return result
+
+
+SOURCE_GROUP_ORDER = (("mail", "Newsletter"), ("rss", "RSS"), ("youtube", "YouTube"))
+
+
+def _grouped_sources(sources: list[dict]) -> list[dict]:
+    groups = []
+    for kind, label in SOURCE_GROUP_ORDER:
+        matching = [source for source in sources if source["kind"] == kind]
+        if matching:
+            groups.append({"label": label, "sources": matching})
+    return groups
 
 
 @app.get("/")
@@ -332,7 +359,7 @@ def sources_page(request: Request):
     return templates.TemplateResponse(
         request,
         "sources.html",
-        {"nav": "sources", "sources": sources},
+        {"nav": "sources", "groups": _grouped_sources(sources)},
     )
 
 
@@ -704,6 +731,8 @@ def source_page(
             raise HTTPException(status_code=404)
         memberships = source_memberships(conn, source_id)
         item_count = count_items_for_source(conn, source_id)
+        clear_source_notice(conn, source_id)
+        conn.commit()
     finally:
         conn.close()
     membership_views = [
@@ -900,6 +929,7 @@ def sync():
     try:
         init_db(conn)
         result = ingest_all_sources(conn)
+        result["mail"] = ingest_mail(conn)
         conn.commit()
     finally:
         conn.close()
