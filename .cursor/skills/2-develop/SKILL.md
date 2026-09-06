@@ -11,7 +11,7 @@ description: >-
 
 # Develop
 
-One change at a time, from chat direction to live and merged. Replaces Plan, Build, and Deploy. A change belongs to whatever part of the product the client names: epics group work in the roadmap, they do not gate it.
+One change at a time, from chat direction to live and merged. A change belongs to whatever part of the product the client names: epics group work in the roadmap, they do not gate it.
 
 Client-facing voice follows the **questioning** skill.
 

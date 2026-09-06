@@ -1,6 +1,6 @@
 # Deep plan
 
-Thinking a change through before building it, when the change is big enough that finding out during step 5 would be expensive. Replaces the old Plan phase: same thinking, no per-epic file, one confirm in chat.
+Thinking a change through before building it, when the change is big enough that finding out during step 5 would be expensive. No per-epic file: one confirm in chat.
 
 ## When
 

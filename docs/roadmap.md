@@ -39,14 +39,9 @@ Grouped by [epic](vision/epics.md). An epic names a capability, not a work order
 - [ ] Import saved items from the CSV
 - [ ] Import saved items from the folder of files
 
-### Morning News Pass
+### Read Later
 
-- [ ] Read through the morning newsletters on the phone
 - [ ] Send a link to Read later while browsing
-- [ ] Remove an item from News
-
-### Read-Later Pass
-
 - [ ] Library and archive, with started and unstarted apart
 - [ ] Resume an article where it was left
 - [ ] Archive a finished article, and remove an item from Read later

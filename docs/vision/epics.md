@@ -68,37 +68,17 @@ Epics are listed in the order you need them: setup and lists before sources, sou
 
 **Mockup:** no. The dummy does not cover this import. It was not an uncertainty for the clickable picture.
 
-## Morning News Pass
+## Read Later
 
-**Capability:** Get through the standing morning newsletters on the phone, and send a link to Read later while browsing.
+**Capability:** Send a link to Read later while browsing elsewhere in the app, then use free time to work through what's saved there. Switch between the library and the archive. See started versus unstarted. Resume where an article left off. Archive it when finished.
 
-**Done when:** You can get through those newsletters on the phone and send a link to Read later. You can remove an item from News.
+**Done when:** You can send a link to Read later from wherever you're browsing, then work through parked articles: library and archive, started and unstarted, resume, archive. You can remove an item from Read later.
 
 **In / out:**
-- **In:** open and read the morning newsletters; send a link to Read later; remove an item from News
-- **Out:** adding sources; highlighting and the vault note; watching videos
+- **In:** send a link to Read later while browsing (for example, from News); library and archive; started and unstarted; resume; archive; remove an item from this list
+- **Out:** highlighting and the vault note
 
 **Depends on:** [Manage sources](#manage-sources)
-
-**Journeys:** [Morning News Pass](journeys.md#morning-news-pass)
-
-**Persona:** [The Solo Reader](personas.md#the-solo-reader)
-
-**MVP or later:** MVP
-
-**Mockup:** yes. You can click through the morning session in the dummy, including sending a link to Read later and removing an item from the list. Those steps are in the dummy so the morning path is a complete story, not because they are the uncertain part of the design.
-
-## Read-Later Pass
-
-**Capability:** Use free time to read articles already saved to Read later. Switch between the library and the archive. See started versus unstarted. Resume where an article left off. Archive it when finished.
-
-**Done when:** You can work through parked articles: library and archive, started and unstarted, resume, archive. You can remove an item from Read later.
-
-**In / out:**
-- **In:** library and archive; started and unstarted; resume; archive; remove an item from this list
-- **Out:** sending a link here from News (that is [Morning News Pass](#morning-news-pass)); highlighting and the vault note
-
-**Depends on:** [Morning News Pass](#morning-news-pass)
 
 **Journeys:** [Read-Later Pass](journeys.md#read-later-pass)
 
@@ -106,7 +86,7 @@ Epics are listed in the order you need them: setup and lists before sources, sou
 
 **MVP or later:** MVP
 
-**Mockup:** yes. You can click through the library session in the dummy: open, read, archive, resume unfinished articles, and remove an item from the list.
+**Mockup:** yes. You can click through the library session in the dummy: open, read, archive, resume unfinished articles, remove an item from the list, and send a link from News to Read later while browsing.
 
 ## Highlight and Land in Obsidian
 
@@ -118,7 +98,7 @@ Epics are listed in the order you need them: setup and lists before sources, sou
 - **In:** highlight on first open; sticky section titles; delete a highlight; note arriving in the vault in the agreed format
 - **Out:** parking an article on Read later; the reading session around the article
 
-**Depends on:** [Morning News Pass](#morning-news-pass) or [Read-Later Pass](#read-later-pass) (an article is open)
+**Depends on:** [Manage sources](#manage-sources) or [Read Later](#read-later) (an article is open)
 
 **Journeys:** [Park, Highlight, and Land in Obsidian](journeys.md#park-highlight-and-land-in-obsidian)
 
@@ -158,7 +138,7 @@ Epics are listed in the order you need them: setup and lists before sources, sou
 - **In:** revising `docs/ui-guidelines.md` beyond the mockup's stone/ink/no-icon look; applying the revised look across every already-built screen
 - **Out:** any new reader-facing feature or interaction (that belongs to the epic that owns that job); the layout/density/chrome structure already proven by the walking skeleton, unless the revised look requires changing it
 
-**Depends on:** [Manage lists](#manage-lists), [Manage sources](#manage-sources), [Bring the Library Over](#bring-the-library-over), [Morning News Pass](#morning-news-pass), [Read-Later Pass](#read-later-pass), [Highlight and Land in Obsidian](#highlight-and-land-in-obsidian) (needs a full built app to restyle)
+**Depends on:** [Manage lists](#manage-lists), [Manage sources](#manage-sources), [Bring the Library Over](#bring-the-library-over), [Read Later](#read-later), [Highlight and Land in Obsidian](#highlight-and-land-in-obsidian) (needs a full built app to restyle)
 
 **Journeys:** none. Cross-cutting quality pass, not a discrete reader journey.
 
@@ -174,15 +154,15 @@ The HTML dummy is there to find out two things: whether choosing a time window w
 
 It also shows the home page and the basic workings of the app: the lists in the picture (News, Read later, Favourite channels), a list of all sources, moving between those parts, and removing any item from the list it is on. A YouTube item is not treated as a special case. A list’s Edit can rename or delete that list. Home Edit (which lists appear, and in what order) is in the dummy; it is not in **Manage lists**.
 
-You can click through Morning News Pass and Read-Later Pass so sending a link from the morning session to Read later makes sense as one story. Watching videos inside the app and filtering Shorts are not in the dummy. The dummy does not show the highlight note arriving in the vault.
+You can click through the morning newsletter session and Read Later so sending a link from News to Read later makes sense as one story. Watching videos inside the app and filtering Shorts are not in the dummy. The dummy does not show the highlight note arriving in the vault.
 
 The dummy cannot prove that morning newsletters are already in News once the source has sent, that articles you actually read stay readable inside the app, that operating cost stays at or under $10 USD/month, or that adding a newsletter can finish before the first email arrives. We accept those as open risks; they do not change what belongs in the MVP.
 
 ## MVP
 
-The MVP has to be usable as a whole: you can manage lists besides the three that are already there, sources land on lists (including YouTube channels) and can be removed, the existing library can be brought over, any item can be removed from the list it is on, the morning newsletters can be read and sent to Read later, parked articles can be worked through, and passages land in the vault.
+The MVP has to be usable as a whole: you can manage lists besides the three that are already there, sources land on lists (including YouTube channels) and can be removed, the existing library can be brought over, any item can be removed from the list it is on, a link can be sent to Read later while browsing, parked articles can be worked through, and passages land in the vault.
 
-That is **Manage lists**, **Manage sources**, **Bring the Library Over**, **Morning News Pass**, **Read-Later Pass**, **Highlight and Land in Obsidian**, and **Improve UI**, plus removing an item from any list. Leave one of those out and the MVP is not worth using. **Evening Video Triage** waits for watching inside the app, the evening session, and filtering Shorts.
+That is **Manage lists**, **Manage sources**, **Bring the Library Over**, **Read Later**, **Highlight and Land in Obsidian**, and **Improve UI**, plus removing an item from any list. Leave one of those out and the MVP is not worth using. **Evening Video Triage** waits for watching inside the app, the evening session, and filtering Shorts.
 
 The first thing to build is **Manage lists**, then **Manage sources**. The rest of the MVP does not work without those. **Improve UI** goes last: it needs a full built app to restyle.
 
