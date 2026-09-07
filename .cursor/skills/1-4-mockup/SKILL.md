@@ -1,10 +1,8 @@
 ---
 name: 1-4-mockup
 description: >-
-  Runs the Mockup phase: a clickable dummy of the solution before product
-  code, settling overall look on the mockup-scope journeys, with a guided
-  first-screen then journey walkthrough, tool choice, setup checks, and
-  agent self-review. Use when roadmap says Mockup, or after Scope is accepted.
+  Runs the Mockup phase: a clickable dummy of the solution before product code, settling overall look on the mockup-scope journeys, with a guided first-screen then journey walkthrough, tool choice, setup checks, and agent self-review.
+  Use when roadmap says Mockup, or after Scope is accepted.
 ---
 
 # Mockup

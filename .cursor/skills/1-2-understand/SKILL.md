@@ -1,9 +1,8 @@
 ---
 name: 1-2-understand
 description: >-
-  Runs the Understand phase: personas, journeys (overall use cases), and
-  cross-cutting constraints. Use when roadmap says Understand, or after
-  Kickoff is accepted.
+  Runs the Understand phase: personas, journeys (overall use cases), and cross-cutting constraints.
+  Use when roadmap says Understand, or after Kickoff is accepted.
 ---
 
 # Understand

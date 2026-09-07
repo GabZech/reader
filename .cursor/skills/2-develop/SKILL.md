@@ -1,12 +1,10 @@
 ---
 name: 2-develop
 description: >-
-  Runs the change loop for feature work: frame, shape, preview the look, build,
-  try on the live app, ship. One change at a time, from any epic, signed off
-  live before it merges. Use for any product change after Foundation is
-  accepted: a feature, a fix, a UI tweak, a chore. Also use when asked to plan
-  something properly, plan it well, think it through first, or deep plan it
-  before building.
+  Runs the change loop for feature work: frame, shape, preview the look, build, try on the live app, ship.
+  One change at a time, from any epic, signed off live before it merges.
+  Use for any product change after Foundation is accepted: a feature, a fix, a UI tweak, a chore.
+  Also use when asked to plan something properly, plan it well, think it through first, or deep plan it before building.
 ---
 
 # Develop

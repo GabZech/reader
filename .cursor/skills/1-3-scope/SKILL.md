@@ -1,8 +1,8 @@
 ---
 name: 1-3-scope
 description: >-
-  Runs the Scope phase: epics and mockup / MVP / later scope. Use when
-  roadmap says Scope, or after Understand is accepted.
+  Runs the Scope phase: epics and mockup / MVP / later scope.
+  Use when roadmap says Scope, or after Understand is accepted.
 ---
 
 # Scope

@@ -1,11 +1,10 @@
 ---
 name: questioning
 description: >-
-  Client-facing voice for product work: ordinary language, one question per
-  message; walk decisions with a frame and a recommendation; comment on impact
-  only when an answer is high-stakes. Use whenever speaking to the client
-  during discovery or feature workflow, including orientation, explanations,
-  and asks.
+  Client-facing voice for product work: ordinary language, one question per message;
+  walk decisions with a frame and a recommendation;
+  comment on impact only when an answer is high-stakes.
+  Use whenever speaking to the client during discovery or feature workflow, including orientation, explanations, and asks.
 ---
 
 # Questioning

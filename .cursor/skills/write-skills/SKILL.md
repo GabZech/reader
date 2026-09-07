@@ -1,9 +1,8 @@
 ---
 name: write-skills
 description: >-
-  Author or edit project Agent Skills under .cursor/skills/ with succinct,
-  non-redundant copy. Use when creating, updating, or refactoring SKILL.md
-  files or skill reference docs in this repo.
+  Author or edit project Agent Skills under .cursor/skills/ with succinct, non-redundant copy.
+  Use when creating, updating, or refactoring SKILL.md files or skill reference docs in this repo.
 ---
 
 # Write skills
@@ -38,6 +37,7 @@ One-line purpose.
 ```
 
 - **description:** third person; WHAT + WHEN; include trigger terms; max 1024 chars.
+- **Wrap at sentence ends**, not mid-sentence. Break the folded `>-` block only after a `.` or `;` — one full clause per line, even if the line runs long. Never break at a comma or bare connector ("and", "or", "after", …); a fixed-column auto-wrap that lands there is wrong even if it hits a comma.
 - **Body:** under ~80 lines when practical; never pad to look complete.
 
 ## Edit checklist

@@ -1,10 +1,8 @@
 ---
 name: 1-1-kickoff
 description: >-
-  Runs the Kickoff phase: capture the idea, explain the engagement, clarify,
-  then write problem statement, vision, non-goals, and success metrics. Use when
-  roadmap says Kickoff, on a greenfield first prompt, or after copying this
-  template for a new product.
+  Runs the Kickoff phase: capture the idea, explain the engagement, clarify, then write problem statement, vision, non-goals, and success metrics.
+  Use when roadmap says Kickoff, on a greenfield first prompt, or after copying this template for a new product.
 ---
 
 # Kickoff

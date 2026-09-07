@@ -1,10 +1,9 @@
 ---
 name: writing-docs
 description: >-
-  Voice and structure for human-facing living docs under docs/ (vision, metrics,
-  personas, journeys, constraints, epics, mockup, architecture, development,
-  operations, roadmap, and similar) and the product root README. Use when
-  writing or editing those files. Do not use for docs/history/.
+  Voice and structure for human-facing living docs under docs/ (vision, metrics, personas, journeys, constraints, epics, mockup, architecture, development, operations, roadmap, and similar) and the product root README.
+  Use when writing or editing those files.
+  Do not use for docs/history/.
 ---
 
 # Writing docs

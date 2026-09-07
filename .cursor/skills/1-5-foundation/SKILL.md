@@ -1,10 +1,8 @@
 ---
 name: 1-5-foundation
 description: >-
-  Runs the Foundation phase: system architecture, stack, operational basics,
-  and a walking-skeleton application shell that follows the accepted mockup
-  look, with explicit tradeoff review before any product code. Use when
-  roadmap says Foundation, or after Mockup is accepted.
+  Runs the Foundation phase: system architecture, stack, operational basics, and a walking-skeleton application shell that follows the accepted mockup look, with explicit tradeoff review before any product code.
+  Use when roadmap says Foundation, or after Mockup is accepted.
 ---
 
 # Foundation

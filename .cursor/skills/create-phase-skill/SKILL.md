@@ -1,11 +1,8 @@
 ---
 name: create-phase-skill
 description: >-
-  Creates or upgrades a project-agnostic discovery or feature phase skill and
-  its question bank: brainstorm with the client first, research and review,
-  then write files. Use when authoring a phase skill, adding questionbank.md,
-  or repeating the Kickoff/Understand skill-creation workflow for Scope,
-  Mockup, Foundation, or another discovery phase.
+  Creates or upgrades a project-agnostic discovery or feature phase skill and its question bank: brainstorm with the client first, research and review, then write files.
+  Use when authoring a phase skill, adding questionbank.md, or repeating the Kickoff/Understand skill-creation workflow for Scope, Mockup, Foundation, or another discovery phase.
 ---
 
 # Create phase skill
