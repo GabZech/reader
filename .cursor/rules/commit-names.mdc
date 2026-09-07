@@ -1,5 +1,5 @@
 ---
-description: Commit subject format: action scope, colon, then description
+description: Commit subject format - action scope, colon, then description
 alwaysApply: true
 ---
 
@@ -12,7 +12,5 @@ When creating a git commit, write the subject as:
 - **action:** a lowercase verb (`add`, `update`, `fix`, `accept`)
 - **scope:** what was touched (phase, skill, rule, doc), in ordinary words
 - **description:** after the colon, why, in a few words
-
-Examples: `add mockup skill: HTML, Penpot, and Figma tool choice`; `update mockup phase: settle overall look, one signed-off step at a time`
 
 Do not title-case the action. Do not omit the colon.
