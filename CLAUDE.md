@@ -5,7 +5,7 @@ Before starting any task, read the full contents of each file listed below (e.g.
 See:
 @.cursor/rules/commit-names.mdc
 @.cursor/rules/engagement.mdc
-@.cursor/rules/chat-output.mdc
+@.cursor/rules/chats.mdc
 
 ## Editing skills
 
