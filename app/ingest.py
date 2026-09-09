@@ -95,6 +95,22 @@ _BOLD_STYLE_RE = re.compile(r"font-weight\s*:\s*(bold|[6-9]00)", re.I)
 # other attribute - losing the centering along with it.
 _CENTER_STYLE_RE = re.compile(r"text-align\s*:\s*center", re.I)
 
+# Newsletters commonly hide an inbox-preview sentence ("preheader" text) off
+# screen with one of these, meant to never actually render. Dropping the
+# style attribute without noticing this used to leave that sentence as a
+# stray, visible, out-of-place paragraph.
+_HIDDEN_STYLE_RE = re.compile(
+    r"display\s*:\s*none|visibility\s*:\s*hidden|mso-hide\s*:\s*all", re.I
+)
+
+# Void elements never get a real closing tag in source, so a starttag call
+# for one of these can't be paired with a matching endtag call - excluded
+# from _Sanitizer's hidden-subtree depth counter to keep it balanced.
+VOID_TAGS = {
+    "br", "img", "hr", "meta", "link", "input",
+    "area", "base", "col", "embed", "source", "track", "wbr",
+}
+
 
 def _is_bold(attrs: list[tuple[str, str | None]]) -> bool:
     style = _attr(attrs, "style") or ""
@@ -109,6 +125,11 @@ def _is_centered(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
         return True
     style = _attr(attrs, "style") or ""
     return bool(_CENTER_STYLE_RE.search(style))
+
+
+def _is_hidden(attrs: list[tuple[str, str | None]]) -> bool:
+    style = _attr(attrs, "style") or ""
+    return bool(_HIDDEN_STYLE_RE.search(style))
 
 
 class _Sanitizer(HTMLParser):
@@ -134,6 +155,12 @@ class _Sanitizer(HTMLParser):
         # Whether any text/tag emitted into the current loose run happened
         # while centered - carried into the <p> that _flush_loose produces.
         self._loose_centered = False
+        # >0 while inside a hidden (display:none/visibility:hidden) subtree.
+        # Once triggered, every starttag/endtag pair (except void elements,
+        # which never get a matching endtag) adjusts this counter instead of
+        # being processed, so nothing in a hidden wrapper - however deeply
+        # nested, whatever the tags are - reaches the output.
+        self._hidden_depth = 0
 
     def _emit(self, text: str) -> None:
         if self._block_stack:
@@ -153,10 +180,18 @@ class _Sanitizer(HTMLParser):
             self._out.append(f"{open_tag}{text}</p>")
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if self._hidden_depth:
+            if tag not in VOID_TAGS:
+                self._hidden_depth += 1
+            return
         if tag in SKIPPED_CONTENT_TAGS:
             self._skip_depth += 1
             return
         if self._skip_depth:
+            return
+        if _is_hidden(attrs):
+            if tag not in VOID_TAGS:
+                self._hidden_depth = 1
             return
         canonical = TAG_ALIASES.get(tag, tag)
         bold = canonical not in {"strong", "em"} and _is_bold(attrs)
@@ -197,6 +232,10 @@ class _Sanitizer(HTMLParser):
         self._bold_wraps.append(wrapped)
 
     def handle_endtag(self, tag: str) -> None:
+        if self._hidden_depth:
+            if tag not in VOID_TAGS:
+                self._hidden_depth -= 1
+            return
         if tag in SKIPPED_CONTENT_TAGS:
             self._skip_depth = max(0, self._skip_depth - 1)
             return
@@ -218,7 +257,7 @@ class _Sanitizer(HTMLParser):
             self._emit(f"</{canonical}>")
 
     def handle_data(self, data: str) -> None:
-        if self._skip_depth:
+        if self._hidden_depth or self._skip_depth:
             return
         self._emit(_esc(data))
 

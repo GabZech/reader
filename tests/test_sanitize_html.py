@@ -68,3 +68,25 @@ def test_center_align_attribute_on_dropped_wrapper_carries_to_content():
         '<h2 style="text-align:center">Title</h2>'
         "<p>Body</p>"
     )
+
+
+def test_drops_hidden_preheader_text():
+    # Newsletters hide an inbox-preview sentence off screen with
+    # display:none (or visibility:hidden) so it's never meant to render.
+    raw = (
+        '<div style="display:none">Preview sentence for the inbox.</div>'
+        "<p>Real body.</p>"
+    )
+    assert sanitize_html(raw) == "<p>Real body.</p>"
+
+
+def test_drops_hidden_content_with_nested_tags_and_void_elements():
+    # A hidden wrapper's subtree can contain arbitrary nested tags, including
+    # void elements like <br> that never get a matching closing tag - both
+    # must be fully skipped without breaking the parser's depth tracking for
+    # what follows.
+    raw = (
+        '<div style="display:none">Hidden <b>bold</b> text<br>more<span>x</span></div>'
+        "<p>Real body.</p>"
+    )
+    assert sanitize_html(raw) == "<p>Real body.</p>"
