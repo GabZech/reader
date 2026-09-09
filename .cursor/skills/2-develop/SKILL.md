@@ -56,7 +56,11 @@ Deploy the branch to the live host per `docs/operations.md`, then a short walkth
 
 ### 6. Ship
 
-Merge to main, then redeploy from main. One live host holds the real library, so the turn is not closed until what is live is main again; the same redeploy clears an abandoned branch. Then update the living docs this change made wrong, tick the roadmap line, and write a convention or a decision record if this change produced one. Recommend a fresh chat, and a `/compact` if context has grown.
+On the branch, before merging: check the docs. Tick the roadmap line, update whichever living doc this change made wrong, and write a convention or a decision record if this change produced one. Run this check every time, even when nothing ends up changing; say so rather than skipping it silently. Commit doc changes with or before the last code commit on the branch, never after the merge.
+
+Merge to main, then redeploy from main. One live host holds the real library, so the turn is not closed until what is live is main again; the same redeploy clears an abandoned branch.
+
+Recommend `/clear` (a fresh chat without leaving the terminal), or `/compact` if context has grown but continuity still matters.
 
 If a shipped change breaks the live app: revert the merge, redeploy main.
 
@@ -81,6 +85,7 @@ Procedures for the middle four: [change-kinds.md](change-kinds.md).
 - Skip, disable, or weaken a test to get green
 - Create per-epic plan or clarifying-answers files
 - Restyle, or widen the change beyond what was asked
+- Merge to main before the doc check is done and committed on the branch
 
 ## Gate
 
