@@ -336,6 +336,11 @@ def is_item_in_list(conn: sqlite3.Connection, item_id: int, list_slug: str) -> b
     return row is not None
 
 
+def delete_item(conn: sqlite3.Connection, item_id: int) -> None:
+    conn.execute("DELETE FROM item_lists WHERE item_id = ?", (item_id,))
+    conn.execute("DELETE FROM items WHERE id = ?", (item_id,))
+
+
 def get_item(conn: sqlite3.Connection, item_id: int) -> sqlite3.Row | None:
     return conn.execute(
         """

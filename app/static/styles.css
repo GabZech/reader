@@ -155,6 +155,44 @@ body {
   border-top: 1px solid var(--bg-subtle);
 }
 
+.item-swipe {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid var(--bg-subtle);
+}
+
+.item-swipe .item {
+  position: relative;
+  background: var(--bg-card);
+  border-top: 0;
+  transition: transform 0.15s ease;
+}
+
+.item-swipe.is-open .item {
+  transform: translateX(-5.5rem);
+}
+
+.item-delete-action {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+
+.item-delete-btn {
+  width: 5.5rem;
+  border: 0;
+  background: var(--notice);
+  color: #fff;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+}
+
 .item.has-thumb {
   display: grid;
   grid-template-columns: 2.75rem minmax(0, 1fr);
@@ -183,7 +221,9 @@ body {
 }
 
 .list-head + .item,
-.item:first-child {
+.item:first-child,
+.list-head + .item-swipe,
+.item-swipe:first-child {
   border-top: 0;
 }
 

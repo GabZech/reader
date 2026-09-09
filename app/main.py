@@ -34,6 +34,7 @@ from app.db import (
     move_list,
     rename_list,
     set_list_on_home,
+    delete_item,
     delete_list,
     delete_source,
     items_for_list,
@@ -352,7 +353,7 @@ async def delete_list_submit(request: Request, slug: str):
 
 
 @app.get("/lists/{slug}")
-def list_page(request: Request, slug: str):
+def list_page(request: Request, slug: str, flash: str = ""):
     conn = connect()
     try:
         init_db(conn)
@@ -370,6 +371,7 @@ def list_page(request: Request, slug: str):
             "list_name": named["name"],
             "slug": slug,
             "items": items,
+            "flash": flash,
         },
     )
 
@@ -985,6 +987,23 @@ def item_add_later(
         f"/items/{item_id}{_item_context_query(from_source, from_list)}",
         status_code=303,
     )
+
+
+@app.post("/items/{item_id}/delete")
+def item_delete(item_id: int, from_list: str | None = None):
+    conn = connect()
+    try:
+        init_db(conn)
+        item = get_item(conn, item_id)
+        if item is None:
+            raise HTTPException(status_code=404)
+        delete_item(conn, item_id)
+        conn.commit()
+    finally:
+        conn.close()
+    if from_list:
+        return RedirectResponse(f"/lists/{from_list}?flash=Deleted", status_code=303)
+    return RedirectResponse("/", status_code=303)
 
 
 @app.post("/capture")

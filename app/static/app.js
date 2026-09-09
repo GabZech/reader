@@ -69,6 +69,88 @@
     });
   });
 
+  const initSwipeToDelete = () => {
+    const OPEN_X = -88; // 5.5rem at the default 16px root font-size, matches .item-delete-btn width
+    const THRESHOLD = OPEN_X / 2;
+    let openRow = null;
+
+    const closeRow = (row) => {
+      row.classList.remove("is-open");
+      if (openRow === row) openRow = null;
+    };
+
+    document.querySelectorAll(".item-swipe").forEach((row) => {
+      const link = row.querySelector(".item");
+      if (!link) return;
+      let startX = 0;
+      let startY = 0;
+      let dragging = false;
+      let deciding = false;
+      let justDragged = false;
+
+      link.addEventListener("pointerdown", (event) => {
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        startX = event.clientX;
+        startY = event.clientY;
+        dragging = false;
+        deciding = true;
+      });
+
+      link.addEventListener("pointermove", (event) => {
+        if (!deciding && !dragging) return;
+        const dx = event.clientX - startX;
+        const dy = event.clientY - startY;
+        if (deciding) {
+          if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+          deciding = false;
+          dragging = Math.abs(dx) > Math.abs(dy);
+          if (dragging) link.setPointerCapture(event.pointerId);
+        }
+        if (!dragging) return;
+        event.preventDefault();
+        const base = row.classList.contains("is-open") ? OPEN_X : 0;
+        const next = Math.min(0, Math.max(OPEN_X, base + dx));
+        link.style.transition = "none";
+        link.style.transform = `translateX(${next}px)`;
+      });
+
+      const finishDrag = (event) => {
+        deciding = false;
+        if (!dragging) return;
+        dragging = false;
+        // A drag release fires a trailing click on this same element; swallow it below.
+        justDragged = true;
+        link.style.transition = "";
+        link.style.transform = "";
+        const base = row.classList.contains("is-open") ? OPEN_X : 0;
+        const dx = event.clientX - startX;
+        const next = Math.min(0, Math.max(OPEN_X, base + dx));
+        if (next < THRESHOLD) {
+          if (openRow && openRow !== row) closeRow(openRow);
+          row.classList.add("is-open");
+          openRow = row;
+        } else {
+          closeRow(row);
+        }
+      };
+
+      link.addEventListener("pointerup", finishDrag);
+      link.addEventListener("pointercancel", finishDrag);
+
+      link.addEventListener("click", (event) => {
+        if (justDragged) {
+          justDragged = false;
+          event.preventDefault();
+          return;
+        }
+        if (row.classList.contains("is-open")) {
+          event.preventDefault();
+          closeRow(row);
+        }
+      });
+    });
+  };
+
   const toast = document.querySelector(".toast");
   if (toast) {
     if (window.history && window.history.replaceState) {
@@ -82,6 +164,7 @@
   }
 
   initThemeToggle();
+  initSwipeToDelete();
   registerWorker();
   syncHome();
 })();

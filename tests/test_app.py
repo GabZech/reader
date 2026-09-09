@@ -846,3 +846,42 @@ def test_capture_endpoint_rejects_a_malformed_url_cleanly(monkeypatch, tmp_path)
             "/capture", data={"url": "Some Title\r\nhttps://example.test/article"}
         )
     assert response.status_code == 400
+
+
+def test_delete_item_removes_it_from_the_list_for_good(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+
+        gone = client.post(f"/items/{item_id}/delete?from_list=news")
+        assert gone.status_code == 200
+        assert "First fixture item" not in gone.text
+        assert "Deleted" in gone.text
+
+        missing = client.get(f"/items/{item_id}")
+        assert missing.status_code == 404
+
+
+def test_delete_item_unknown_id_is_404(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        missing = client.post("/items/999999/delete")
+        assert missing.status_code == 404
+
+
+def test_delete_captured_item_clears_its_direct_list_membership(monkeypatch, tmp_path):
+    # A captured item reaches Read later through item_lists, not source_lists.
+    # Deleting it must clear that row too, or the items.id foreign key from
+    # item_lists rejects the delete.
+    with _client(monkeypatch, tmp_path) as client:
+        url = "https://www.explainx.ai/blog/hiten-shah-ai-skill-library-company-strategy-2026"
+        captured = client.post(
+            "/capture", data={"url": url, "html": CAPTURE_BLOG_HTML}
+        )
+        item_id = int(captured.json()["item_url"].removeprefix("/items/"))
+
+        gone = client.post(f"/items/{item_id}/delete?from_list=later")
+        assert gone.status_code == 200
+        assert "Hiten Shah" not in gone.text
+
+        missing = client.get(f"/items/{item_id}")
+        assert missing.status_code == 404

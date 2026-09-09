@@ -9,7 +9,7 @@
 
       <section class="list">
         {% for item in items %}
-          {{ item_row(item, list_slug=slug) }}
+          {{ item_row(item, list_slug=slug, swipeable=true) }}
         {% endfor %}
       </section>
 {% endblock %}
