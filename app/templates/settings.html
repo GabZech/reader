@@ -10,4 +10,13 @@
           <span>Appearance</span>
           <button class="theme-toggle" type="button" aria-label="Toggle dark mode">Dark</button>
         </div>
+
+        <div class="settings-row">
+          <span>Subscribe newsletters to</span>
+          {% if newsletter_address %}
+          <span>{{ newsletter_address }}</span>
+          {% else %}
+          <span>Not configured yet</span>
+          {% endif %}
+        </div>
 {% endblock %}

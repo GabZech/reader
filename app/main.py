@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.config import database_path
+from app.config import database_path, mail_imap_config
 from app.db import (
     add_source_to_list,
     all_lists,
@@ -142,10 +142,12 @@ def home(request: Request):
 
 @app.get("/settings")
 def settings_page(request: Request):
+    mail_config = mail_imap_config()
+    newsletter_address = mail_config[1] if mail_config else None
     return templates.TemplateResponse(
         request,
         "settings.html",
-        {"nav": "home"},
+        {"nav": "home", "newsletter_address": newsletter_address},
     )
 
 
