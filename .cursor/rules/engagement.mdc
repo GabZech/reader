@@ -20,36 +20,12 @@ Triggered when the user asks to build or change product functionality, reference
 Then:
 
 1. Greenfield or empty roadmap: read `docs/roadmap.md` "Where we are" and follow the matching discovery skill under `.cursor/skills/` (Kickoff for greenfield)
-2. Foundation accepted, which is where this product is: every change runs the loop below. Full detail, including the per-kind procedures, lives in `.cursor/skills/2-develop/SKILL.md`. Read it when a change needs more than the gates restated here
+2. Foundation accepted, which is where this product is: for any product change, read `.cursor/skills/2-develop/SKILL.md` in full and follow it. That file is the single source of truth for the loop, its steps, its gates, and its non-negotiables
 3. Whenever you need clarifying answers, decisions, or sign-off from the client, read and follow the **questioning** skill (`.cursor/skills/questioning/SKILL.md`)
 
-The skill files under `.cursor/skills/` are written for a tool that auto-triggers them. This rule is what carries the loop into tools that do not, so the gates below stand on their own.
-
-## The change loop (product work)
-
-One change at a time, from chat direction to live and merged. A change belongs to whatever part of the product the client names: epics group work in the roadmap, they do not gate it. Never hold a change because it belongs to a different epic than the last one.
-
-1. **Frame.** Restate the change; name its kinds (visual, behaviour, bug, data, external, chore), and every kind it carries applies. Size it: not small if it touches more than a couple of files, adds a route, changes the schema or a dependency, or is a data or external change
-2. **Shape.** Before any code, say what will change, what could break, and how it will be verified. Small: say it and keep going. Not small: one confirm, after a deep plan
-3. **Preview.** A change to what the client sees needs a signed-off screenshot of the intended look before product code exists
-4. **Build.** Branch per change. Behaviour: failing test first. Then code, then the checks in `docs/development.md`
-5. **Try.** Deploy the branch to the live host, walk the client through what to try in prose, and ask once: good, or what is missing
-6. **Ship.** Merge to main, redeploy from main, update living docs the change made wrong, tick the roadmap line
+The skill files under `.cursor/skills/` are written for a tool that auto-triggers them by description; this tool does not, so this rule is what makes sure they get read. Follow the linked skill in full rather than relying on any summary here.
 
 ## Non-negotiables (product work only)
 
-- No code before the Shape message; no product code for a visual change before its mockup is signed off
-- No merge before the client has signed off on the live app
-- The live host does not stay on a branch: shipping or abandoning a change ends with main redeployed
-- Behaviour and bug changes get a failing test first. Never skip, disable, or weaken a test to get green
-- No data or schema change without a named fallback and the library copied off the volume first
-- No outside system wired in before a probe has proved the real connection and payload
-- Two rounds of fixes that do not land mean the approach is wrong: back to Shape
-- Deep planning (`.cursor/skills/2-develop/deep-plan.md`) is required for a not-small change, and on any ask to plan it properly, plan it well, think it through first, or deep plan it
 - Whole-system stack and architecture belong to Foundation. A change reopens it only when it cannot honour it
 - **Where truth lives.** Code and tests are behaviour. Living docs under `docs/` (not `history/`) are the current agreed picture. `docs/history/` is how we got here: do not refresh it to match later code
-- No per-epic `plan.md` or `clarifying-answers.md`. The conversation is the plan; the roadmap, living docs, and git history are the record
-
-## Closing a change
-
-After Ship: recommend ending the chat and starting a new one, and a `/compact` if context has grown. The roadmap and living docs are the handoff, so nothing is lost. It is a recommendation, not a gate: stay in this chat if the client keeps going.
