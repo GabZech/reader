@@ -6,8 +6,7 @@ How to run and change the walking skeleton on a local machine. Commands in this 
 
 ## Prerequisites
 
-- Python 3.12 or newer
-- pip
+- [uv](https://docs.astral.sh/uv/), which manages the Python version and the virtual environment
 - Docker, if you want the same image operations will deploy
 
 ## Run
@@ -15,14 +14,12 @@ How to run and change the walking skeleton on a local machine. Commands in this 
 From the repo root:
 
 ```text
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python -m pytest
-uvicorn app.main:app --reload --reload-dir app --port 8000
+uv sync
+uv run pytest
+uv run uvicorn app.main:app --reload --reload-dir app --port 8000
 ```
 
-On macOS or Linux, activate with `source .venv/bin/activate`.
+`uv sync` creates `.venv` and installs the locked dependencies; no separate activate step is needed since every command runs through `uv run`.
 
 `--reload-dir app` watches only the app. Watching the whole repo stalls the restarter on Windows.
 
@@ -44,7 +41,7 @@ macOS or Linux: `lsof -ti :8000 | xargs kill`
 ## Test
 
 ```text
-python -m pytest
+uv run pytest
 ```
 
 That is the check continuous integration should run.
