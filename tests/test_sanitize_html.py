@@ -24,3 +24,69 @@ def test_keeps_allowed_tags_and_drops_disallowed_wrapper():
 def test_drops_inline_style_attribute():
     raw = '<p style="color:red">Hello</p>'
     assert sanitize_html(raw) == "<p>Hello</p>"
+
+
+def test_table_layout_sections_get_separate_paragraphs():
+    # TLDR-style newsletters lay each item out in a <table>/<div> instead of
+    # <p> tags. Dropping those wrappers without a paragraph break used to run
+    # every section's text together.
+    raw = (
+        "<table><tr><td>"
+        "<div>Headline one</div>"
+        "<div>Body text one.</div>"
+        "</td></tr></table>"
+        "<table><tr><td>"
+        "<div>Headline two</div>"
+        "<div>Body text two.</div>"
+        "</td></tr></table>"
+    )
+    assert sanitize_html(raw) == (
+        "<p>Headline one</p><p>Body text one.</p>"
+        "<p>Headline two</p><p>Body text two.</p>"
+    )
+
+
+def test_inline_bold_style_becomes_strong():
+    raw = '<div><span style="font-weight:700">Headline</span></div>'
+    assert sanitize_html(raw) == "<p><strong>Headline</strong></p>"
+
+
+def test_alternate_heading_and_bold_tags_are_aliased():
+    raw = "<h1>Title</h1><h4>Sub</h4><b>Bold</b><i>Italic</i>"
+    assert sanitize_html(raw) == (
+        "<h2>Title</h2><h3>Sub</h3><p><strong>Bold</strong><em>Italic</em></p>"
+    )
+
+
+def test_center_align_attribute_on_dropped_wrapper_carries_to_content():
+    # TLDR-style section headers use the deprecated `align="center"`
+    # attribute on a <td>/<div> wrapper that gets dropped along with every
+    # other attribute, which used to lose the centering entirely.
+    raw = '<table><tr><td align="center"><p>Icon</p><h1>Title</h1></td></tr></table><p>Body</p>'
+    assert sanitize_html(raw) == (
+        '<p style="text-align:center">Icon</p>'
+        '<h2 style="text-align:center">Title</h2>'
+        "<p>Body</p>"
+    )
+
+
+def test_drops_hidden_preheader_text():
+    # Newsletters hide an inbox-preview sentence off screen with
+    # display:none (or visibility:hidden) so it's never meant to render.
+    raw = (
+        '<div style="display:none">Preview sentence for the inbox.</div>'
+        "<p>Real body.</p>"
+    )
+    assert sanitize_html(raw) == "<p>Real body.</p>"
+
+
+def test_drops_hidden_content_with_nested_tags_and_void_elements():
+    # A hidden wrapper's subtree can contain arbitrary nested tags, including
+    # void elements like <br> that never get a matching closing tag - both
+    # must be fully skipped without breaking the parser's depth tracking for
+    # what follows.
+    raw = (
+        '<div style="display:none">Hidden <b>bold</b> text<br>more<span>x</span></div>'
+        "<p>Real body.</p>"
+    )
+    assert sanitize_html(raw) == "<p>Real body.</p>"

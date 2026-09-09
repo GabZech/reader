@@ -39,6 +39,28 @@ ALLOWED_TAGS = {
     "figcaption",
 }
 
+# Layout wrappers, not content. Newsletters (TLDR included) lay each
+# section/item out in these instead of <p>/<h2-h3> tags. Dropping them
+# outright (as if they were inline) ran every section's text together with
+# no paragraph break, so hitting one now flushes any accumulated "loose"
+# text (see _Sanitizer._flush_loose) into its own <p> first.
+BLOCK_BOUNDARY_TAGS = {
+    "div",
+    "table",
+    "tbody",
+    "thead",
+    "tfoot",
+    "tr",
+    "td",
+    "th",
+    "center",
+    "section",
+    "article",
+    "header",
+    "footer",
+    "hr",
+}
+
 # Tags whose entire contents are non-visible markup (CSS/JS/metadata) rather
 # than article text. HTMLParser still delivers their inner text via
 # handle_data even though the tags themselves are dropped, so without this
@@ -46,51 +68,203 @@ ALLOWED_TAGS = {
 # rendered article body as literal text.
 SKIPPED_CONTENT_TAGS = {"style", "script", "head", "title"}
 
+# Spellings that mean the same thing as one of ALLOWED_TAGS. Newsletters
+# often use <h1>/<h4-h6> for section headers instead of the two heading
+# levels this app supports, and <b>/<i> instead of <strong>/<em>.
+TAG_ALIASES = {
+    "h1": "h2",
+    "h4": "h3",
+    "h5": "h3",
+    "h6": "h3",
+    "b": "strong",
+    "i": "em",
+}
+
+# Allowed tags that open/close a paragraph-level block of their own, as
+# opposed to inline tags (a, br, em, strong, code, img) that live inside one.
+BLOCK_TAGS = {"p", "h2", "h3", "li", "blockquote", "pre", "ul", "ol"}
+
+# Newsletter headlines are frequently bolded via an inline style rather than
+# a <strong>/<b> tag (e.g. a <span style="font-weight:700"> or a styled
+# <a>), which the old sanitizer dropped along with every other attribute.
+_BOLD_STYLE_RE = re.compile(r"font-weight\s*:\s*(bold|[6-9]00)", re.I)
+
+# Section headers in table-based email layouts are centered via the
+# deprecated `align="center"` attribute (old-school email HTML) or a
+# `text-align:center` style, on a wrapper that gets dropped along with every
+# other attribute - losing the centering along with it.
+_CENTER_STYLE_RE = re.compile(r"text-align\s*:\s*center", re.I)
+
+# Newsletters commonly hide an inbox-preview sentence ("preheader" text) off
+# screen with one of these, meant to never actually render. Dropping the
+# style attribute without noticing this used to leave that sentence as a
+# stray, visible, out-of-place paragraph.
+_HIDDEN_STYLE_RE = re.compile(
+    r"display\s*:\s*none|visibility\s*:\s*hidden|mso-hide\s*:\s*all", re.I
+)
+
+# Void elements never get a real closing tag in source, so a starttag call
+# for one of these can't be paired with a matching endtag call - excluded
+# from _Sanitizer's hidden-subtree depth counter to keep it balanced.
+VOID_TAGS = {
+    "br", "img", "hr", "meta", "link", "input",
+    "area", "base", "col", "embed", "source", "track", "wbr",
+}
+
+
+def _is_bold(attrs: list[tuple[str, str | None]]) -> bool:
+    style = _attr(attrs, "style") or ""
+    return bool(_BOLD_STYLE_RE.search(style))
+
+
+def _is_centered(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
+    if tag == "center":
+        return True
+    align = (_attr(attrs, "align") or "").strip().lower()
+    if align == "center":
+        return True
+    style = _attr(attrs, "style") or ""
+    return bool(_CENTER_STYLE_RE.search(style))
+
+
+def _is_hidden(attrs: list[tuple[str, str | None]]) -> bool:
+    style = _attr(attrs, "style") or ""
+    return bool(_HIDDEN_STYLE_RE.search(style))
+
 
 class _Sanitizer(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self._out: list[str] = []
+        # Text/inline markup seen since the last paragraph boundary that
+        # isn't already inside an explicit block tag (p/h2/h3/li/
+        # blockquote/pre) - e.g. text sitting directly in a <td> or <div>.
+        # Flushed into its own <p> at the next block boundary.
+        self._loose: list[str] = []
+        self._block_stack: list[str] = []
         self._skip_depth = 0
+        # One entry per non-skipped starttag, recording whether it opened a
+        # synthetic <strong> (for inline-style bold) that the matching
+        # endtag needs to close.
+        self._bold_wraps: list[bool] = []
+        # Depth of centered wrappers currently open (any tag can carry the
+        # centering signal, including ones that get dropped), plus one entry
+        # per non-skipped starttag recording whether it added to that depth.
+        self._center_depth = 0
+        self._center_wraps: list[bool] = []
+        # Whether any text/tag emitted into the current loose run happened
+        # while centered - carried into the <p> that _flush_loose produces.
+        self._loose_centered = False
+        # >0 while inside a hidden (display:none/visibility:hidden) subtree.
+        # Once triggered, every starttag/endtag pair (except void elements,
+        # which never get a matching endtag) adjusts this counter instead of
+        # being processed, so nothing in a hidden wrapper - however deeply
+        # nested, whatever the tags are - reaches the output.
+        self._hidden_depth = 0
+
+    def _emit(self, text: str) -> None:
+        if self._block_stack:
+            self._out.append(text)
+        else:
+            if self._center_depth:
+                self._loose_centered = True
+            self._loose.append(text)
+
+    def _flush_loose(self) -> None:
+        text = "".join(self._loose).strip()
+        self._loose.clear()
+        centered = self._loose_centered
+        self._loose_centered = False
+        if text:
+            open_tag = '<p style="text-align:center">' if centered else "<p>"
+            self._out.append(f"{open_tag}{text}</p>")
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if self._hidden_depth:
+            if tag not in VOID_TAGS:
+                self._hidden_depth += 1
+            return
         if tag in SKIPPED_CONTENT_TAGS:
             self._skip_depth += 1
             return
-        if self._skip_depth or tag not in ALLOWED_TAGS:
+        if self._skip_depth:
             return
-        if tag == "br":
-            self._out.append("<br>")
+        if _is_hidden(attrs):
+            if tag not in VOID_TAGS:
+                self._hidden_depth = 1
             return
-        if tag == "img":
-            src = _attr(attrs, "src")
-            alt = _attr(attrs, "alt") or ""
-            if src:
-                self._out.append(f'<img src="{_esc(src)}" alt="{_esc(alt)}">')
-            return
-        if tag == "a":
-            href = _attr(attrs, "href")
-            if href:
-                self._out.append(f'<a href="{_esc(href)}" rel="noreferrer">')
+        canonical = TAG_ALIASES.get(tag, tag)
+        bold = canonical not in {"strong", "em"} and _is_bold(attrs)
+        centers = _is_centered(canonical, attrs)
+        if centers:
+            self._center_depth += 1
+        self._center_wraps.append(centers)
+
+        if canonical in BLOCK_BOUNDARY_TAGS:
+            self._flush_loose()
+        elif canonical in BLOCK_TAGS:
+            self._flush_loose()
+            self._block_stack.append(canonical)
+            align = ' style="text-align:center"' if self._center_depth else ""
+            self._out.append(f"<{canonical}{align}>")
+        elif canonical in ALLOWED_TAGS:
+            if canonical == "br":
+                self._emit("<br>")
+            elif canonical == "img":
+                src = _attr(attrs, "src")
+                alt = _attr(attrs, "alt") or ""
+                if src:
+                    self._emit(f'<img src="{_esc(src)}" alt="{_esc(alt)}">')
+            elif canonical == "a":
+                href = _attr(attrs, "href")
+                if href:
+                    self._emit(f'<a href="{_esc(href)}" rel="noreferrer">')
+                else:
+                    self._emit("<a>")
             else:
-                self._out.append("<a>")
-            return
-        self._out.append(f"<{tag}>")
+                self._emit(f"<{canonical}>")
+        # else: unknown tag (e.g. span, font) - dropped, contents kept.
+
+        wrapped = False
+        if bold:
+            self._emit("<strong>")
+            wrapped = True
+        self._bold_wraps.append(wrapped)
 
     def handle_endtag(self, tag: str) -> None:
+        if self._hidden_depth:
+            if tag not in VOID_TAGS:
+                self._hidden_depth -= 1
+            return
         if tag in SKIPPED_CONTENT_TAGS:
             self._skip_depth = max(0, self._skip_depth - 1)
             return
-        if self._skip_depth or tag not in ALLOWED_TAGS or tag in {"br", "img"}:
-            return
-        self._out.append(f"</{tag}>")
-
-    def handle_data(self, data: str) -> None:
         if self._skip_depth:
             return
-        self._out.append(_esc(data))
+        canonical = TAG_ALIASES.get(tag, tag)
+        if self._bold_wraps and self._bold_wraps.pop():
+            self._emit("</strong>")
+        if self._center_wraps and self._center_wraps.pop():
+            self._center_depth -= 1
+
+        if canonical in BLOCK_BOUNDARY_TAGS:
+            self._flush_loose()
+        elif canonical in BLOCK_TAGS:
+            if self._block_stack and self._block_stack[-1] == canonical:
+                self._block_stack.pop()
+                self._out.append(f"</{canonical}>")
+        elif canonical in ALLOWED_TAGS and canonical not in {"br", "img"}:
+            self._emit(f"</{canonical}>")
+
+    def handle_data(self, data: str) -> None:
+        if self._hidden_depth or self._skip_depth:
+            return
+        self._emit(_esc(data))
 
     def result(self) -> str:
+        self._flush_loose()
+        while self._block_stack:
+            self._out.append(f"</{self._block_stack.pop()}>")
         return "".join(self._out)
 
 
