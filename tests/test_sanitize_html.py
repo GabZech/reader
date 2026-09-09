@@ -56,3 +56,15 @@ def test_alternate_heading_and_bold_tags_are_aliased():
     assert sanitize_html(raw) == (
         "<h2>Title</h2><h3>Sub</h3><p><strong>Bold</strong><em>Italic</em></p>"
     )
+
+
+def test_center_align_attribute_on_dropped_wrapper_carries_to_content():
+    # TLDR-style section headers use the deprecated `align="center"`
+    # attribute on a <td>/<div> wrapper that gets dropped along with every
+    # other attribute, which used to lose the centering entirely.
+    raw = '<table><tr><td align="center"><p>Icon</p><h1>Title</h1></td></tr></table><p>Body</p>'
+    assert sanitize_html(raw) == (
+        '<p style="text-align:center">Icon</p>'
+        '<h2 style="text-align:center">Title</h2>'
+        "<p>Body</p>"
+    )

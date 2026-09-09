@@ -89,10 +89,26 @@ BLOCK_TAGS = {"p", "h2", "h3", "li", "blockquote", "pre", "ul", "ol"}
 # <a>), which the old sanitizer dropped along with every other attribute.
 _BOLD_STYLE_RE = re.compile(r"font-weight\s*:\s*(bold|[6-9]00)", re.I)
 
+# Section headers in table-based email layouts are centered via the
+# deprecated `align="center"` attribute (old-school email HTML) or a
+# `text-align:center` style, on a wrapper that gets dropped along with every
+# other attribute - losing the centering along with it.
+_CENTER_STYLE_RE = re.compile(r"text-align\s*:\s*center", re.I)
+
 
 def _is_bold(attrs: list[tuple[str, str | None]]) -> bool:
     style = _attr(attrs, "style") or ""
     return bool(_BOLD_STYLE_RE.search(style))
+
+
+def _is_centered(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
+    if tag == "center":
+        return True
+    align = (_attr(attrs, "align") or "").strip().lower()
+    if align == "center":
+        return True
+    style = _attr(attrs, "style") or ""
+    return bool(_CENTER_STYLE_RE.search(style))
 
 
 class _Sanitizer(HTMLParser):
@@ -110,15 +126,31 @@ class _Sanitizer(HTMLParser):
         # synthetic <strong> (for inline-style bold) that the matching
         # endtag needs to close.
         self._bold_wraps: list[bool] = []
+        # Depth of centered wrappers currently open (any tag can carry the
+        # centering signal, including ones that get dropped), plus one entry
+        # per non-skipped starttag recording whether it added to that depth.
+        self._center_depth = 0
+        self._center_wraps: list[bool] = []
+        # Whether any text/tag emitted into the current loose run happened
+        # while centered - carried into the <p> that _flush_loose produces.
+        self._loose_centered = False
 
     def _emit(self, text: str) -> None:
-        (self._out if self._block_stack else self._loose).append(text)
+        if self._block_stack:
+            self._out.append(text)
+        else:
+            if self._center_depth:
+                self._loose_centered = True
+            self._loose.append(text)
 
     def _flush_loose(self) -> None:
         text = "".join(self._loose).strip()
         self._loose.clear()
+        centered = self._loose_centered
+        self._loose_centered = False
         if text:
-            self._out.append(f"<p>{text}</p>")
+            open_tag = '<p style="text-align:center">' if centered else "<p>"
+            self._out.append(f"{open_tag}{text}</p>")
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in SKIPPED_CONTENT_TAGS:
@@ -128,13 +160,18 @@ class _Sanitizer(HTMLParser):
             return
         canonical = TAG_ALIASES.get(tag, tag)
         bold = canonical not in {"strong", "em"} and _is_bold(attrs)
+        centers = _is_centered(canonical, attrs)
+        if centers:
+            self._center_depth += 1
+        self._center_wraps.append(centers)
 
         if canonical in BLOCK_BOUNDARY_TAGS:
             self._flush_loose()
         elif canonical in BLOCK_TAGS:
             self._flush_loose()
             self._block_stack.append(canonical)
-            self._out.append(f"<{canonical}>")
+            align = ' style="text-align:center"' if self._center_depth else ""
+            self._out.append(f"<{canonical}{align}>")
         elif canonical in ALLOWED_TAGS:
             if canonical == "br":
                 self._emit("<br>")
@@ -168,6 +205,8 @@ class _Sanitizer(HTMLParser):
         canonical = TAG_ALIASES.get(tag, tag)
         if self._bold_wraps and self._bold_wraps.pop():
             self._emit("</strong>")
+        if self._center_wraps and self._center_wraps.pop():
+            self._center_depth -= 1
 
         if canonical in BLOCK_BOUNDARY_TAGS:
             self._flush_loose()
