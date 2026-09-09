@@ -2,9 +2,9 @@
 {% from "macros.html" import item_row %}
 {% block title %}{{ source.title }}{% endblock %}
 {% block body %}
-      <header class="top">
-        <a class="back" href="/sources/{{ source.id }}">Back</a>
+      <header class="top top-row">
         <h1>{{ source.title }}</h1>
+        <a class="top-edit" href="/sources/{{ source.id }}">Settings</a>
       </header>
       {% if items %}
       <section class="list">

@@ -16,7 +16,6 @@ from app.db import (
     all_lists,
     all_sources,
     connect,
-    count_items_for_source,
     find_list_by_name,
     clear_source_notice,
     find_source_by_feed_url,
@@ -673,6 +672,8 @@ def source_items_page(request: Request, source_id: str):
         if source is None:
             raise HTTPException(status_code=404)
         items = items_for_source(conn, source_id)
+        clear_source_notice(conn, source_id)
+        conn.commit()
     finally:
         conn.close()
     return templates.TemplateResponse(
@@ -732,7 +733,6 @@ def source_page(
         if source is None:
             raise HTTPException(status_code=404)
         memberships = source_memberships(conn, source_id)
-        item_count = count_items_for_source(conn, source_id)
         clear_source_notice(conn, source_id)
         conn.commit()
     finally:
@@ -751,7 +751,6 @@ def source_page(
                 "byline": source_byline(source["kind"], memberships),
             },
             "memberships": membership_views,
-            "item_count": item_count,
             "already": already == "1",
             "flash": flash,
         },

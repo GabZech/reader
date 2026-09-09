@@ -297,7 +297,7 @@ def test_sources_notice_dot_shows_and_clears_on_source_open(monkeypatch, tmp_pat
         home_still = client.get("/")
         assert '<span class="dot" aria-hidden="true"></span>' in home_still.text
 
-        client.get("/sources/mail-1")
+        client.get("/sources/mail-1/items")
         home_after = client.get("/")
         assert '<span class="dot" aria-hidden="true"></span>' not in home_after.text
 
@@ -316,7 +316,7 @@ def test_sources_page_groups_by_kind_newest_first_and_highlights_new(
         assert text.index("New Newsletter") < text.index("Old Newsletter")
 
         def item_class(source_id: str) -> str:
-            marker = f'href="/sources/{source_id}"'
+            marker = f'href="/sources/{source_id}/items"'
             before = text.split(marker)[0]
             return before[before.rindex('<a class="') :]
 
@@ -338,7 +338,6 @@ def test_duplicate_feed_goes_to_existing_source(monkeypatch, tmp_path):
         page = client.get(again.headers["location"])
         assert page.status_code == 200
         assert "Fixture news is already in Sources." in page.text
-        assert "See all 2 items of this source" in page.text
         assert "Delete source" in page.text
         assert "News (&lt;7days)" in page.text
         sources = client.get("/sources")
@@ -540,13 +539,26 @@ def test_see_items_of_source(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
         source_id = dbmod.source_id_for("https://example.test/feed.xml")
-        page = client.get(f"/sources/{source_id}")
-        assert "See all 2 items of this source" in page.text
         items = client.get(f"/sources/{source_id}/items")
         assert items.status_code == 200
         assert "First fixture item" in items.text
         assert "Second fixture item" in items.text
         assert "from_source=" in items.text
+
+
+def test_sources_list_opens_items_by_default_with_settings_link(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        sources = client.get("/sources")
+        assert f'href="/sources/{source_id}/items"' in sources.text
+
+        items = client.get(f"/sources/{source_id}/items")
+        assert f'href="/sources/{source_id}"' in items.text
+        assert "Settings" in items.text
+
+        settings = client.get(f"/sources/{source_id}")
+        assert f'href="/sources/{source_id}/items"' in settings.text
 
 
 def _add_unlisted(client: TestClient, url: str = "https://example.test/feed.xml"):
