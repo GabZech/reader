@@ -835,3 +835,15 @@ def test_capture_endpoint_requires_a_url(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         response = client.post("/capture", data={"html": CAPTURE_BLOG_HTML})
         assert response.status_code == 400
+
+
+def test_capture_endpoint_rejects_a_malformed_url_cleanly(monkeypatch, tmp_path):
+    # No html given, so this exercises the real server-side fetch (not the
+    # fixture-mocked one from _client), which is what actually rejects a
+    # url containing a stray control character.
+    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "reader.db"))
+    with TestClient(app) as client:
+        response = client.post(
+            "/capture", data={"url": "Some Title\r\nhttps://example.test/article"}
+        )
+    assert response.status_code == 400

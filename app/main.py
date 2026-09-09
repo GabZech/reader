@@ -1000,6 +1000,8 @@ async def capture(request: Request):
         init_db(conn)
         try:
             item_id, title = capture_article(conn, url, html=html)
+        except httpx.InvalidURL:
+            raise HTTPException(status_code=400, detail="Invalid url")
         except httpx.HTTPError:
             raise HTTPException(status_code=502, detail="Could not reach that page")
         conn.commit()
