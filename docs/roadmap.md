@@ -8,8 +8,8 @@
 
 - Discovery and Foundation are accepted: architecture, development, operations, and UI guidelines are in place, and a walking skeleton runs on a live Fly URL
 - Feature work now runs the change loop (`.cursor/skills/2-develop/`): one change at a time, previewed when it is visual, tried on the live app, then merged and shipped. Changes can come from any epic in any order; the epics below group the work, they do not gate it
-- Manage lists is built. Manage sources is fully built: sources can be added as feeds or YouTube channels, renamed, seen, deleted, and can belong to several lists at once through a `source_lists` membership table
-- Newsletters are auto-detected, not manually added: mail from a never-seen sender at the isolated mailbox creates its source on its own, unlisted, grouped with other sources by kind (Newsletter, RSS, YouTube), with a red-dot notice on the Sources button until that source is opened. Confirmed working against a real subscribed newsletter through the live isolated mailbox
+- Manage lists and Manage sources are fully built (ticks below); newsletter auto-detection is confirmed working against a real subscribed newsletter through the live isolated mailbox
+- Recent polish: the isolated mailbox's address now shows in Settings so a newsletter can actually be subscribed to it, and tapping a source opens its item list directly, with Settings moved behind a link from there
 
 **⚠️ Open:**
 
