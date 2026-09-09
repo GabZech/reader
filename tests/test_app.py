@@ -816,15 +816,14 @@ def test_capture_endpoint_saves_a_captured_page_to_read_later(monkeypatch, tmp_p
         assert "skill library" in item_page.text
 
 
-def test_capture_endpoint_shows_html_confirmation_for_a_browser_navigation(
+def test_capture_endpoint_shows_html_confirmation_for_the_bookmarklet(
     monkeypatch, tmp_path
 ):
     with _client(monkeypatch, tmp_path) as client:
         url = "https://www.explainx.ai/blog/hiten-shah-ai-skill-library-company-strategy-2026"
         response = client.post(
-            "/capture",
+            "/capture?format=html",
             data={"url": url, "html": CAPTURE_BLOG_HTML},
-            headers={"Accept": "text/html,application/xhtml+xml"},
         )
         assert response.status_code == 200
         assert "Saved to Read later" in response.text

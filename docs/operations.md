@@ -55,7 +55,7 @@ Sending a link to Read later from outside the app (any site, not just a subscrib
 - **iPhone:** a Shortcut, set up once in the Shortcuts app so it then appears in the Share Sheet:
   1. Create a new shortcut. Set "Accepts" (under the shortcut's Share Sheet settings) to Safari web pages.
   2. Add **Run JavaScript on Webpage**, with the script `completion(document.documentElement.outerHTML);`.
-  3. Add **Get Contents of URL**: URL `https://reader-skeleton.fly.dev/capture`, Method POST, Request Body Form, with fields `url` (Shortcut Input) and `html` (the previous action's result). Add a header `Accept: application/json`.
+  3. Add **Get Contents of URL**: URL `https://reader-skeleton.fly.dev/capture`, Method POST, Request Body Form, with fields `url` (Shortcut Input) and `html` (the previous action's result). No headers needed; `/capture` returns JSON by default and only serves the confirmation page when called with `?format=html` (what the bookmarklet uses).
   4. Parse the response as a dictionary and read its `title` and `item_url` fields.
   5. Show an alert with the title and two options, Done and Read now; Read now opens `https://reader-skeleton.fly.dev` + the returned `item_url`.
   6. Name it (e.g. "Save to Reader"), turn on "Show in Share Sheet", and restrict its share types to Safari web pages.

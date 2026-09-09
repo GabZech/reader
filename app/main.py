@@ -144,7 +144,7 @@ def home(request: Request):
 
 
 def _bookmarklet_href(request: Request) -> str:
-    action = f"{str(request.base_url).rstrip('/')}/capture"
+    action = f"{str(request.base_url).rstrip('/')}/capture?format=html"
     script = (
         "(function(){"
         "var f=document.createElement('form');"
@@ -1008,7 +1008,7 @@ async def capture(request: Request):
     finally:
         conn.close()
     item_url = f"/items/{item_id}"
-    if "text/html" in request.headers.get("accept", ""):
+    if request.query_params.get("format") == "html":
         return templates.TemplateResponse(
             request,
             "capture_result.html",
