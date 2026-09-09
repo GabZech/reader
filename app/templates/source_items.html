@@ -9,7 +9,7 @@
       {% if items %}
       <section class="list">
         {% for item in items %}
-          {{ item_row(item, source_id=source.id) }}
+          {{ item_row(item, source_id=source.id, swipeable=true) }}
         {% endfor %}
       </section>
       {% endif %}

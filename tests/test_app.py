@@ -868,6 +868,23 @@ def test_delete_item_unknown_id_is_404(monkeypatch, tmp_path):
         assert missing.status_code == 404
 
 
+def test_delete_item_from_source_items_view_redirects_there(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+
+        gone = client.post(f"/items/{item_id}/delete?from_source={source_id}")
+        assert gone.status_code == 200
+        assert gone.request.url.path == f"/sources/{source_id}/items"
+        assert "First fixture item" not in gone.text
+        assert "Deleted" in gone.text
+
+        # And it's actually gone, not just off this one page.
+        news = client.get("/lists/news")
+        assert "First fixture item" not in news.text
+
+
 def test_delete_captured_item_clears_its_direct_list_membership(monkeypatch, tmp_path):
     # A captured item reaches Read later through item_lists, not source_lists.
     # Deleting it must clear that row too, or the items.id foreign key from

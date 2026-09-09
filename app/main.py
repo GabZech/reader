@@ -691,7 +691,7 @@ def source_added(request: Request, source_id: str):
 
 
 @app.get("/sources/{source_id}/items")
-def source_items_page(request: Request, source_id: str):
+def source_items_page(request: Request, source_id: str, flash: str = ""):
     conn = connect()
     try:
         init_db(conn)
@@ -710,6 +710,7 @@ def source_items_page(request: Request, source_id: str):
             "nav": "sources",
             "source": source,
             "items": items,
+            "flash": flash,
         },
     )
 
@@ -990,7 +991,11 @@ def item_add_later(
 
 
 @app.post("/items/{item_id}/delete")
-def item_delete(item_id: int, from_list: str | None = None):
+def item_delete(
+    item_id: int,
+    from_source: str | None = None,
+    from_list: str | None = None,
+):
     conn = connect()
     try:
         init_db(conn)
@@ -1001,6 +1006,10 @@ def item_delete(item_id: int, from_list: str | None = None):
         conn.commit()
     finally:
         conn.close()
+    if from_source:
+        return RedirectResponse(
+            f"/sources/{from_source}/items?flash=Deleted", status_code=303
+        )
     if from_list:
         return RedirectResponse(f"/lists/{from_list}?flash=Deleted", status_code=303)
     return RedirectResponse("/", status_code=303)
