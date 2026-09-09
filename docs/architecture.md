@@ -15,7 +15,7 @@ Reader is a personal reading hub for one person. A single hosted web app holds t
 ## Parts
 
 1. **Web app.** Serves Home, Lists, Sources, list views, and item reading. Copies the accepted dummy look.
-2. **SQLite file.** The library on the host. Copied off for backup and for a later move to another machine. A source can belong to several lists at once: membership lives in a `source_lists` table, which also carries the recency window for that source on that list.
+2. **SQLite file.** The library on the host. Copied off for backup and for a later move to another machine. A source can belong to several lists at once: membership lives in a `source_lists` table, which also carries the recency window for that source on that list. A single item can also belong to a list directly (`item_lists`), for Read later, regardless of its source; direct membership never expires by recency.
 3. **Ingest on sync.** On open (when online): poll RSS/Atom and public YouTube channel feeds; later, read new mail from the isolated newsletter mailbox. Incremental sync aims to stay under 5 seconds on a typical morning (10 second ceiling). First sync and a large backlog may take longer. Linked-article cleanup waits until an item is opened. Newsletter bodies come with the mail, once mail is wired.
 4. **Device cache.** A PWA (installable site with an offline cache) keeps already fetched News and Read later pages on the phone or computer.
 5. **Vault files (later).** Markdown in a folder the Obsidian vault can open. Not a highlight-sync vendor. Not in the walking skeleton.
@@ -25,6 +25,7 @@ Data moves: browser opens the app → if online, the app syncs inbound sources i
 ## Stack
 
 - Python, FastAPI, Jinja templates, a small amount of page JavaScript
+- trafilatura, to fetch and clean an arbitrary captured page's HTML into the same article view a subscribed source's items use
 - HTML and CSS copied from the accepted dummy look
 - SQLite
 - Docker

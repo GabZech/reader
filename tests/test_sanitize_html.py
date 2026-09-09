@@ -46,6 +46,33 @@ def test_table_layout_sections_get_separate_paragraphs():
     )
 
 
+def test_preserve_tables_keeps_a_real_content_table_intact():
+    # A captured article's table is usually real tabular content, unlike a
+    # newsletter's layout table (above) - preserve_tables keeps its
+    # structure instead of flattening it into a run of paragraphs.
+    raw = (
+        "<table><tr><th>Model</th><th>Score</th></tr>"
+        "<tr><td>A</td><td>27%</td></tr></table>"
+    )
+    assert sanitize_html(raw, preserve_tables=True) == (
+        "<table><tr><th>Model</th><th>Score</th></tr>"
+        "<tr><td>A</td><td>27%</td></tr></table>"
+    )
+
+
+def test_centering_does_not_leak_past_an_uncentered_nested_wrapper():
+    # A newsletter's outermost table is usually centered to position the
+    # whole email column on the page, not to center its text. A section
+    # further inside, in its own plain (uncentered) wrapper, must not
+    # inherit that outer centering just because it's nested within it.
+    raw = (
+        '<table align="center">'
+        "<tr><td><h1>Section</h1><p>Body text.</p></td></tr>"
+        "</table>"
+    )
+    assert sanitize_html(raw) == "<h2>Section</h2><p>Body text.</p>"
+
+
 def test_inline_bold_style_becomes_strong():
     raw = '<div><span style="font-weight:700">Headline</span></div>'
     assert sanitize_html(raw) == "<p><strong>Headline</strong></p>"

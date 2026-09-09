@@ -10,6 +10,7 @@
 - Feature work now runs the change loop (`.cursor/skills/2-develop/`): one change at a time, previewed when it is visual, tried on the live app, then merged and shipped. Changes can come from any epic in any order; the epics below group the work, they do not gate it
 - Manage lists and Manage sources are fully built (ticks below); newsletter auto-detection is confirmed working against a real subscribed newsletter through the live isolated mailbox
 - Recent polish: the isolated mailbox's address now shows in Settings so a newsletter can actually be subscribed to it, and tapping a source opens its item list directly, with Settings moved behind a link from there
+- Read Later's first line is live: a Read later button on any item, a desktop bookmarklet, and an iPhone Shortcut all send a page in, fetching and cleaning outside pages (not just subscribed sources) with trafilatura
 
 **⚠️ Open:**
 
@@ -41,7 +42,7 @@ Grouped by [epic](vision/epics.md). An epic names a capability, not a work order
 
 ### Read Later
 
-- [ ] Send a link to Read later while browsing
+- [x] Send a link to Read later while browsing
 - [ ] Library and archive, with started and unstarted apart
 - [ ] Resume an article where it was left
 - [ ] Archive a finished article, and remove an item from Read later

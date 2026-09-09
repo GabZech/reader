@@ -69,6 +69,15 @@ BLOCK_BOUNDARY_TAGS = {
     "hr",
 }
 
+# In a newsletter, table/tr/td are near-always layout scaffolding (see
+# BLOCK_BOUNDARY_TAGS above), so flattening them is correct there. A captured
+# web article's table is usually real tabular content instead; flattening it
+# the same way loses the row/column structure entirely (a comparison table
+# reads back as a run of disconnected one-line paragraphs). sanitize_html's
+# preserve_tables option moves these tags here instead, so a captured
+# article keeps its tables as tables.
+TABLE_TAGS = {"table", "thead", "tbody", "tfoot", "tr", "th", "td"}
+
 # Tags whose entire contents are non-visible markup (CSS/JS/metadata) rather
 # than article text. HTMLParser still delivers their inner text via
 # handle_data even though the tags themselves are dropped, so without this
@@ -141,8 +150,14 @@ def _is_hidden(attrs: list[tuple[str, str | None]]) -> bool:
 
 
 class _Sanitizer(HTMLParser):
-    def __init__(self) -> None:
+    def __init__(self, preserve_tables: bool = False) -> None:
         super().__init__(convert_charrefs=True)
+        if preserve_tables:
+            self._block_boundary_tags = BLOCK_BOUNDARY_TAGS - TABLE_TAGS
+            self._block_tags = BLOCK_TAGS | TABLE_TAGS
+        else:
+            self._block_boundary_tags = BLOCK_BOUNDARY_TAGS
+            self._block_tags = BLOCK_TAGS
         self._out: list[str] = []
         # Text/inline markup seen since the last paragraph boundary that
         # isn't already inside an explicit block tag (p/h2/h3/li/
@@ -155,11 +170,19 @@ class _Sanitizer(HTMLParser):
         # synthetic <strong> (for inline-style bold) that the matching
         # endtag needs to close.
         self._bold_wraps: list[bool] = []
-        # Depth of centered wrappers currently open (any tag can carry the
-        # centering signal, including ones that get dropped), plus one entry
-        # per non-skipped starttag recording whether it added to that depth.
-        self._center_depth = 0
-        self._center_wraps: list[bool] = []
+        # One entry per currently-open layout wrapper (a BLOCK_BOUNDARY_TAG:
+        # div/table/tr/td/...), recording whether THAT wrapper itself is
+        # centered. Only these tags open a new centering scope; a heading or
+        # paragraph inherits whichever scope directly encloses it. Without
+        # this a newsletter's outermost centered wrapper (there to center
+        # the whole email column on the page, not to center its text) would
+        # leak into every paragraph anywhere inside it - a nested wrapper
+        # that isn't itself centered has to be able to shadow that, not
+        # inherit it.
+        self._center_scopes: list[bool] = []
+        # One entry per non-skipped starttag, recording whether it pushed a
+        # scope above, so the matching endtag knows whether to pop one.
+        self._center_pushes: list[bool] = []
         # Whether any text/tag emitted into the current loose run happened
         # while centered - carried into the <p> that _flush_loose produces.
         self._loose_centered = False
@@ -170,11 +193,14 @@ class _Sanitizer(HTMLParser):
         # nested, whatever the tags are - reaches the output.
         self._hidden_depth = 0
 
+    def _current_centered(self) -> bool:
+        return self._center_scopes[-1] if self._center_scopes else False
+
     def _emit(self, text: str) -> None:
         if self._block_stack:
             self._out.append(text)
         else:
-            if self._center_depth:
+            if self._current_centered():
                 self._loose_centered = True
             self._loose.append(text)
 
@@ -204,16 +230,21 @@ class _Sanitizer(HTMLParser):
         canonical = TAG_ALIASES.get(tag, tag)
         bold = canonical not in {"strong", "em"} and _is_bold(attrs)
         centers = _is_centered(canonical, attrs)
-        if centers:
-            self._center_depth += 1
-        self._center_wraps.append(centers)
+        pushes_scope = canonical in self._block_boundary_tags
+        if pushes_scope:
+            self._center_scopes.append(centers)
+        self._center_pushes.append(pushes_scope)
 
-        if canonical in BLOCK_BOUNDARY_TAGS:
+        if canonical in self._block_boundary_tags:
             self._flush_loose()
-        elif canonical in BLOCK_TAGS:
+        elif canonical in self._block_tags:
             self._flush_loose()
             self._block_stack.append(canonical)
-            align = ' style="text-align:center"' if self._center_depth else ""
+            align = (
+                ' style="text-align:center"'
+                if self._current_centered() or centers
+                else ""
+            )
             self._out.append(f"<{canonical}{align}>")
         elif canonical in ALLOWED_TAGS:
             if canonical == "br":
@@ -252,12 +283,13 @@ class _Sanitizer(HTMLParser):
         canonical = TAG_ALIASES.get(tag, tag)
         if self._bold_wraps and self._bold_wraps.pop():
             self._emit("</strong>")
-        if self._center_wraps and self._center_wraps.pop():
-            self._center_depth -= 1
+        if self._center_pushes and self._center_pushes.pop():
+            if self._center_scopes:
+                self._center_scopes.pop()
 
-        if canonical in BLOCK_BOUNDARY_TAGS:
+        if canonical in self._block_boundary_tags:
             self._flush_loose()
-        elif canonical in BLOCK_TAGS:
+        elif canonical in self._block_tags:
             if self._block_stack and self._block_stack[-1] == canonical:
                 self._block_stack.pop()
                 self._out.append(f"</{canonical}>")
@@ -292,10 +324,10 @@ def _esc(value: str) -> str:
     )
 
 
-def sanitize_html(raw: str | None) -> str:
+def sanitize_html(raw: str | None, *, preserve_tables: bool = False) -> str:
     if not raw:
         return ""
-    parser = _Sanitizer()
+    parser = _Sanitizer(preserve_tables=preserve_tables)
     parser.feed(raw)
     parser.close()
     return parser.result()
@@ -373,7 +405,7 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
     metadata = trafilatura.extract_metadata(html, default_url=url)
     title = (metadata.title if metadata else None) or url
     extracted = trafilatura.extract(html, url=url, output_format="html", favor_recall=True)
-    body = sanitize_html(extracted) if extracted else None
+    body = sanitize_html(extracted, preserve_tables=True) if extracted else None
     upsert_item(
         conn,
         source_id=CAPTURED_SOURCE_ID,

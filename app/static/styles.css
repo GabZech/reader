@@ -478,6 +478,27 @@ body {
   height: auto;
 }
 
+.article-body table {
+  display: block;
+  overflow-x: auto;
+  margin: 0 0 1rem;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.article-body th,
+.article-body td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.article-body th {
+  font-weight: 600;
+  background: var(--bg-subtle);
+}
+
 .list > form {
   display: contents;
 }
