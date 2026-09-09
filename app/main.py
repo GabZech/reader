@@ -5,6 +5,7 @@ from pathlib import Path
 
 from urllib.parse import urlencode
 
+import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -12,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import database_path, mail_imap_config
 from app.db import (
+    add_item_to_list,
     add_source_to_list,
     all_lists,
     all_sources,
@@ -27,6 +29,7 @@ from app.db import (
     init_db,
     insert_list,
     insert_source,
+    is_item_in_list,
     lists_for_home_edit,
     move_list,
     rename_list,
@@ -45,6 +48,7 @@ from app.db import (
     source_memberships,
 )
 from app.ingest import (
+    capture_article,
     discover_feed,
     ingest_all_sources,
     ingest_url,
@@ -139,6 +143,23 @@ def home(request: Request):
     )
 
 
+def _bookmarklet_href(request: Request) -> str:
+    action = f"{str(request.base_url).rstrip('/')}/capture?format=html"
+    script = (
+        "(function(){"
+        "var f=document.createElement('form');"
+        "f.method='POST';f.target='_blank';"
+        f"f.action='{action}';"
+        "function a(n,v){var i=document.createElement('input');"
+        "i.type='hidden';i.name=n;i.value=v;f.appendChild(i);}"
+        "a('url',location.href);"
+        "a('html',document.documentElement.outerHTML);"
+        "document.body.appendChild(f);f.submit();f.remove();"
+        "})();"
+    )
+    return "javascript:" + script
+
+
 @app.get("/settings")
 def settings_page(request: Request):
     mail_config = mail_imap_config()
@@ -146,7 +167,11 @@ def settings_page(request: Request):
     return templates.TemplateResponse(
         request,
         "settings.html",
-        {"nav": "home", "newsletter_address": newsletter_address},
+        {
+            "nav": "home",
+            "newsletter_address": newsletter_address,
+            "bookmarklet_href": _bookmarklet_href(request),
+        },
     )
 
 
@@ -896,6 +921,14 @@ async def source_window_submit(request: Request, source_id: str):
     return RedirectResponse(f"/sources/{source_id}?flash=Saved", status_code=303)
 
 
+def _item_context_query(from_source: str | None, from_list: str | None) -> str:
+    if from_source:
+        return f"?{urlencode({'from_source': from_source})}"
+    if from_list:
+        return f"?{urlencode({'from_list': from_list})}"
+    return ""
+
+
 @app.get("/items/{item_id}")
 def item_page(
     request: Request,
@@ -907,6 +940,7 @@ def item_page(
     try:
         init_db(conn)
         item = get_item(conn, item_id)
+        in_read_later = item is not None and is_item_in_list(conn, item_id, "later")
     finally:
         conn.close()
     if item is None:
@@ -917,11 +951,70 @@ def item_page(
         back = f"/lists/{from_list}"
     else:
         back = "/"
+    context_query = _item_context_query(from_source, from_list)
     return templates.TemplateResponse(
         request,
         "item.html",
-        {"nav": "home", "item": item, "back": back},
+        {
+            "nav": "home",
+            "item": item,
+            "back": back,
+            "in_read_later": in_read_later,
+            "later_action": f"/items/{item_id}/later{context_query}",
+        },
     )
+
+
+@app.post("/items/{item_id}/later")
+def item_add_later(
+    item_id: int,
+    from_source: str | None = None,
+    from_list: str | None = None,
+):
+    conn = connect()
+    try:
+        init_db(conn)
+        item = get_item(conn, item_id)
+        if item is None:
+            raise HTTPException(status_code=404)
+        add_item_to_list(conn, item_id, "later")
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(
+        f"/items/{item_id}{_item_context_query(from_source, from_list)}",
+        status_code=303,
+    )
+
+
+@app.post("/capture")
+async def capture(request: Request):
+    form = await request.form()
+    url = str(form.get("url") or "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="Missing url")
+    html = form.get("html")
+    html = str(html) if html else None
+    conn = connect()
+    try:
+        init_db(conn)
+        try:
+            item_id, title = capture_article(conn, url, html=html)
+        except httpx.InvalidURL:
+            raise HTTPException(status_code=400, detail="Invalid url")
+        except httpx.HTTPError:
+            raise HTTPException(status_code=502, detail="Could not reach that page")
+        conn.commit()
+    finally:
+        conn.close()
+    item_url = f"/items/{item_id}"
+    if request.query_params.get("format") == "html":
+        return templates.TemplateResponse(
+            request,
+            "capture_result.html",
+            {"nav": "home", "title": title, "item_url": item_url},
+        )
+    return {"item_id": item_id, "title": title, "item_url": item_url}
 
 
 @app.post("/sync")

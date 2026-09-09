@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Saved{% endblock %}
+{% block body %}
+      <header class="top">
+        <h1>Saved to Read later</h1>
+      </header>
+      <p class="lede">{{ title }}</p>
+      <div class="actions">
+        <a href="{{ item_url }}">Read now</a>
+      </div>
+{% endblock %}

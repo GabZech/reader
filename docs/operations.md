@@ -47,6 +47,21 @@ Injected as environment variables on the host. Secrets stay out of Git.
 - `SKELETON_FEED_URL`: public RSS URL for the skeleton sync
 - `MAIL_IMAP_HOST`, `MAIL_IMAP_USER`, `MAIL_IMAP_PASSWORD`: isolated newsletter mailbox (dedicated Gmail account, app password, IMAP enabled), set as Fly secrets 2026-08-24. Never personal-mailbox credentials. The app does not yet read them (increment 8, not built).
 
+## Capturing a page to Read later
+
+Sending a link to Read later from outside the app (any site, not just a subscribed source) uses the same `/capture` endpoint from two one-time setups, since Reader is a web app rather than a native app with its own Share Sheet extension:
+
+- **Desktop:** a bookmarklet, listed in Settings. Drag it to the bookmarks bar once; clicking it on any page sends that page.
+- **iPhone:** a Shortcut, set up once in the Shortcuts app so it then appears in the Share Sheet:
+  1. Create a new shortcut. Set "Accepts" (under the shortcut's Share Sheet settings) to Safari web pages.
+  2. Add **Run JavaScript on Webpage**, with the script `completion(document.documentElement.outerHTML);`.
+  3. Add **Get Contents of URL**: URL `https://reader-skeleton.fly.dev/capture`, Method POST, Request Body Form, with fields `url` (Shortcut Input) and `html` (the previous action's result). No headers needed; `/capture` returns JSON by default and only serves the confirmation page when called with `?format=html` (what the bookmarklet uses).
+  4. Parse the response as a dictionary and read its `title` and `item_url` fields.
+  5. Show an alert with the title and two options, Done and Read now; Read now opens `https://reader-skeleton.fly.dev` + the returned `item_url`.
+  6. Name it (e.g. "Save to Reader"), turn on "Show in Share Sheet", and restrict its share types to Safari web pages.
+
+Once set up, sharing any page from Safari offers this shortcut, saving it to Read later with a confirmation and a way to jump straight in.
+
 ## Backup and data control
 
 The library is the SQLite file. Copy it off the volume (or off `data/reader.db` locally) to back up. That file is what you move to another host. Highlights will later be markdown you already keep in the vault.

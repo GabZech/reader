@@ -56,7 +56,7 @@ Deploy the branch to the live host per `docs/operations.md`, then a short walkth
 
 ### 6. Ship
 
-On the branch, before merging: check the docs. Tick the roadmap line, update whichever living doc this change made wrong, and write a convention or a decision record if this change produced one. Run this check every time, even when nothing ends up changing; say so rather than skipping it silently. Commit doc changes with or before the last code commit on the branch, never after the merge.
+On the branch, once the client has signed off live: check the docs. Tick the roadmap line, update whichever living doc this change made wrong, and write a convention or a decision record if this change produced one. Run this check every time, even when nothing ends up changing; say so rather than skipping it silently. Commit doc changes with or before the last code commit on the branch, never after the merge.
 
 Merge to main, push, then redeploy from main. One live host holds the real library, so the turn is not closed until what is live is main again; the same redeploy clears an abandoned branch.
 
@@ -80,6 +80,7 @@ Procedures for the middle four: [change-kinds.md](change-kinds.md).
 ## Do not
 
 - Write code before Shape, or product code for a visual change before its mockup is signed off
+- Commit before the client has signed off on the live app: Build and Try can run several rounds uncommitted, deploying straight from the working tree
 - Merge before the client has signed off on the live app
 - Leave the live host on a branch once the turn is over
 - Skip, disable, or weaken a test to get green

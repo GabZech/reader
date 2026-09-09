@@ -347,8 +347,15 @@ body {
   margin-bottom: 0.65rem;
 }
 
-.actions a {
+.actions a,
+.actions form {
   flex: 1;
+}
+
+.actions a,
+.actions form button {
+  display: block;
+  width: 100%;
   padding: 0.65rem 0.5rem;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
@@ -356,11 +363,14 @@ body {
   color: inherit;
   font-size: 0.9375rem;
   font-weight: 550;
+  font-family: inherit;
   text-align: center;
   text-decoration: none;
+  cursor: pointer;
 }
 
-.actions a.is-active {
+.actions a.is-active,
+.actions form button.is-active {
   font-weight: 700;
   background: var(--bg-subtle);
 }
@@ -466,6 +476,27 @@ body {
 .article-body img {
   max-width: 100%;
   height: auto;
+}
+
+.article-body table {
+  display: block;
+  overflow-x: auto;
+  margin: 0 0 1rem;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.article-body th,
+.article-body td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.article-body th {
+  font-weight: 600;
+  background: var(--bg-subtle);
 }
 
 .list > form {

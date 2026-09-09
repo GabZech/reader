@@ -18,6 +18,7 @@ LISTS = (
 )
 
 SKELETON_SOURCE_ID = "skeleton-rss"
+CAPTURED_SOURCE_ID = "captured"
 
 
 def connect(path: Path | None = None) -> sqlite3.Connection:
@@ -81,6 +82,13 @@ def init_db(conn: sqlite3.Connection) -> None:
             word_count INTEGER,
             UNIQUE(source_id, guid)
         );
+
+        CREATE TABLE IF NOT EXISTS item_lists (
+            item_id INTEGER NOT NULL REFERENCES items(id),
+            list_slug TEXT NOT NULL REFERENCES lists(slug),
+            added_at TEXT NOT NULL,
+            PRIMARY KEY (item_id, list_slug)
+        );
         """
     )
     if not lists_table_existed:
@@ -117,6 +125,14 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE sources DROP COLUMN window")
     conn.execute("DELETE FROM items WHERE source_id = ?", (SKELETON_SOURCE_ID,))
     conn.execute("DELETE FROM sources WHERE id = ?", (SKELETON_SOURCE_ID,))
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO sources
+            (id, kind, title, feed_url, backfill, auto_title, mail_address, pending_notice)
+        VALUES (?, 'captured', 'Captured', NULL, NULL, 'Captured', NULL, 0)
+        """,
+        (CAPTURED_SOURCE_ID,),
+    )
 
 
 def lists_with_items(conn: sqlite3.Connection, limit_per_list: int | None = None) -> list[dict]:
@@ -175,16 +191,26 @@ def _visible_items(
     now = now or datetime.now(timezone.utc)
     rows = conn.execute(
         """
-        SELECT items.*, sources.title AS source_title, source_lists.window AS window
+        SELECT items.*, sources.title AS source_title,
+               MAX(source_lists.window) AS window,
+               MAX(item_lists.list_slug IS NOT NULL) AS is_direct
         FROM items
         JOIN sources ON sources.id = items.source_id
-        JOIN source_lists ON source_lists.source_id = items.source_id
-        WHERE source_lists.list_slug = ?
+        LEFT JOIN source_lists
+            ON source_lists.source_id = items.source_id AND source_lists.list_slug = ?
+        LEFT JOIN item_lists
+            ON item_lists.item_id = items.id AND item_lists.list_slug = ?
+        WHERE source_lists.list_slug IS NOT NULL OR item_lists.list_slug IS NOT NULL
+        GROUP BY items.id
         ORDER BY datetime(items.published_at) DESC, items.id DESC
         """,
-        (slug,),
+        (slug, slug),
     ).fetchall()
-    return [row for row in rows if item_in_window(row["window"], row["published_at"], now)]
+    return [
+        row
+        for row in rows
+        if row["is_direct"] or item_in_window(row["window"], row["published_at"], now)
+    ]
 
 
 def item_in_window(
@@ -292,6 +318,24 @@ def delete_list(conn: sqlite3.Connection, slug: str) -> None:
     conn.execute("DELETE FROM lists WHERE slug = ?", (slug,))
 
 
+def add_item_to_list(conn: sqlite3.Connection, item_id: int, list_slug: str) -> None:
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO item_lists (item_id, list_slug, added_at)
+        VALUES (?, ?, ?)
+        """,
+        (item_id, list_slug, datetime.now(timezone.utc).isoformat()),
+    )
+
+
+def is_item_in_list(conn: sqlite3.Connection, item_id: int, list_slug: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM item_lists WHERE item_id = ? AND list_slug = ?",
+        (item_id, list_slug),
+    ).fetchone()
+    return row is not None
+
+
 def get_item(conn: sqlite3.Connection, item_id: int) -> sqlite3.Row | None:
     return conn.execute(
         """
@@ -305,7 +349,10 @@ def get_item(conn: sqlite3.Connection, item_id: int) -> sqlite3.Row | None:
 
 
 def all_sources(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute("SELECT * FROM sources ORDER BY rowid DESC").fetchall()
+    return conn.execute(
+        "SELECT * FROM sources WHERE id != ? ORDER BY rowid DESC",
+        (CAPTURED_SOURCE_ID,),
+    ).fetchall()
 
 
 def source_memberships(conn: sqlite3.Connection, source_id: str) -> list[sqlite3.Row]:
@@ -547,6 +594,14 @@ def upsert_item(
         ),
     )
     return existing is None
+
+
+def find_item_id(conn: sqlite3.Connection, source_id: str, guid: str) -> int | None:
+    row = conn.execute(
+        "SELECT id FROM items WHERE source_id = ? AND guid = ?",
+        (source_id, guid),
+    ).fetchone()
+    return row["id"] if row else None
 
 
 def delete_items_except_guids(
