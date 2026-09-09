@@ -58,7 +58,7 @@ Deploy the branch to the live host per `docs/operations.md`, then a short walkth
 
 On the branch, before merging: check the docs. Tick the roadmap line, update whichever living doc this change made wrong, and write a convention or a decision record if this change produced one. Run this check every time, even when nothing ends up changing; say so rather than skipping it silently. Commit doc changes with or before the last code commit on the branch, never after the merge.
 
-Merge to main, then redeploy from main. One live host holds the real library, so the turn is not closed until what is live is main again; the same redeploy clears an abandoned branch.
+Merge to main, push, then redeploy from main. One live host holds the real library, so the turn is not closed until what is live is main again; the same redeploy clears an abandoned branch.
 
 Recommend `/clear` (a fresh chat without leaving the terminal), or `/compact` if context has grown but continuity still matters.
 
