@@ -12,7 +12,9 @@ Local run is for development. The intended production path is this hosted app. M
 
 ## Deploy
 
-The image is built from the `Dockerfile` at the repo root. Fly's remote builder is enough; Docker Desktop is not required on the operator machine. The volume must stay attached so the library survives a new version. Deploy one machine only (`--ha=false`) so a spare copy is not created.
+Every push to GitHub deploys automatically: a GitHub Actions job (`.github/workflows/test.yml`, `deploy`) runs after tests pass and pushes that commit live with `flyctl deploy --remote-only --ha=false`, using a `FLY_API_TOKEN` repository secret. This is what Build's trial pushes and Ship's redeploy-from-main both rely on. It requires that secret to be set once in the repo's GitHub settings (Settings → Secrets and variables → Actions); without it the deploy job fails cleanly and the live app simply stays on its last successful deploy.
+
+Deploying by hand (a machine that can reach Fly's remote builder directly) still works the same way: the image is built from the `Dockerfile` at the repo root, using Fly's remote builder; Docker Desktop is not required on the operator machine. The volume must stay attached so the library survives a new version. Deploy one machine only (`--ha=false`) so a spare copy is not created.
 
 First standup (already done for `reader-skeleton`):
 
