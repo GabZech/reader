@@ -12,7 +12,7 @@
           <h2>{{ group.label }}</h2>
         </div>
         {% for source in group.sources %}
-        <a class="item{% if source.unlisted %} is-unlisted{% endif %}{% if source.pending_notice %} is-new{% endif %}" href="/sources/{{ source.id }}">
+        <a class="item{% if source.unlisted %} is-unlisted{% endif %}{% if source.pending_notice %} is-new{% endif %}" href="/sources/{{ source.id }}/items">
           <span class="title">{{ source.title }}</span>
           <span class="sub">
             <span class="byline">{{ source.byline }}</span>

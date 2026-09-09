@@ -2,7 +2,7 @@
 {% block title %}{{ source.title }}{% endblock %}
 {% block body %}
       <header class="top">
-        <a class="back" href="/sources">Sources</a>
+        <a class="back" href="/sources/{{ source.id }}/items">Back</a>
         <h1>{{ source.title }}</h1>
       </header>
       {% if already %}
@@ -29,9 +29,6 @@
         </a>
       </section>
       <section class="list">
-        <a class="item" href="/sources/{{ source.id }}/items">
-          <span class="title">See all {{ item_count }} items of this source</span>
-        </a>
         <form method="post" action="/sources/{{ source.id }}/delete">
           <button class="item" type="submit">
             <span class="title">Delete source</span>
