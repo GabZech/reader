@@ -468,6 +468,18 @@ def test_delete_list_removes_it_and_unlists_sources(monkeypatch, tmp_path):
         assert "Not on a list" in sources.text
 
 
+def test_deleting_a_default_list_does_not_bring_it_back(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        deleted = client.post("/lists/fav/delete")
+        assert deleted.status_code == 200
+
+        # A later request re-runs init_db; the deleted default list must stay gone.
+        lists = client.get("/lists")
+        assert "Favourite channels" not in lists.text
+        home = client.get("/")
+        assert "Favourite channels" not in home.text
+
+
 def _to_choose_list(client: TestClient, url: str = "https://example.test/feed.xml"):
     added = client.post("/sources/add", data={"url": url})
     assert added.status_code == 200

@@ -39,6 +39,12 @@ def session(path: Path | None = None) -> Iterator[sqlite3.Connection]:
 
 
 def init_db(conn: sqlite3.Connection) -> None:
+    lists_table_existed = (
+        conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'lists'"
+        ).fetchone()
+        is not None
+    )
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS lists (
@@ -77,15 +83,16 @@ def init_db(conn: sqlite3.Connection) -> None:
         );
         """
     )
-    for slug, name, position in LISTS:
-        conn.execute(
-            """
-            INSERT INTO lists (slug, name, position, on_home)
-            VALUES (?, ?, ?, 1)
-            ON CONFLICT(slug) DO NOTHING
-            """,
-            (slug, name, position),
-        )
+    if not lists_table_existed:
+        for slug, name, position in LISTS:
+            conn.execute(
+                """
+                INSERT INTO lists (slug, name, position, on_home)
+                VALUES (?, ?, ?, 1)
+                ON CONFLICT(slug) DO NOTHING
+                """,
+                (slug, name, position),
+            )
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(sources)")}
     if "backfill" not in columns:
         conn.execute("ALTER TABLE sources ADD COLUMN backfill INTEGER")
