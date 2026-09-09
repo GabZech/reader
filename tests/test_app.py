@@ -9,6 +9,9 @@ from app import db as dbmod
 from app.main import app
 
 FIXTURE = Path(__file__).parent / "fixtures" / "feed.xml"
+CAPTURE_BLOG_HTML = (
+    Path(__file__).parent / "fixtures" / "capture" / "blog.html"
+).read_text(encoding="utf-8")
 BLOG_HTML = """<!doctype html>
 <html><head>
 <link rel="alternate" type="application/rss+xml" href="https://example.test/feed.xml">
@@ -118,6 +121,16 @@ def test_settings_page_has_theme_toggle(monkeypatch, tmp_path):
     assert response.status_code == 200
     assert "Appearance" in response.text
     assert "theme-toggle" in response.text
+
+
+def test_settings_page_has_a_read_later_bookmarklet(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "reader.db"))
+    with TestClient(app) as client:
+        response = client.get("/settings")
+    assert response.status_code == 200
+    assert 'href="javascript:' in response.text
+    assert "/capture" in response.text
+    assert "outerHTML" in response.text
 
 
 def test_home_edit_shows_lists_with_move_boundaries(monkeypatch, tmp_path):
@@ -722,3 +735,103 @@ def test_delete_source_removes_it_and_items(monkeypatch, tmp_path):
         assert "First fixture item" not in news.text
         missing = client.get(f"/sources/{source_id}")
         assert missing.status_code == 404
+
+
+def _first_item_id(tmp_path) -> int:
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        return dbmod.items_for_list(conn, "news")[0]["id"]
+    finally:
+        conn.close()
+
+
+def test_item_page_has_read_later_button(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        page = client.get(f"/items/{item_id}")
+        assert page.status_code == 200
+        assert "Read later" in page.text
+
+
+def test_tapping_read_later_adds_item_to_the_list(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        added = client.post(f"/items/{item_id}/later")
+        assert added.status_code == 200
+        assert "Saved to Read later" in added.text
+        later = client.get("/lists/later")
+        assert "First fixture item" in later.text
+
+
+def test_read_later_is_idempotent_on_repeat_taps(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        client.post(f"/items/{item_id}/later")
+        later = client.get("/lists/later")
+        assert later.text.count("First fixture item") == 1
+
+
+def test_read_later_on_missing_item_is_404(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.post("/items/999999/later")
+        assert response.status_code == 404
+
+
+def test_direct_read_later_membership_ignores_source_window(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml", window="week")
+        item_id = _first_item_id(tmp_path)
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            dbmod.init_db(conn)
+            conn.execute(
+                "UPDATE items SET published_at = ? WHERE id = ?",
+                ("2020-01-01T00:00:00+00:00", item_id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        news = client.get("/lists/news")
+        assert "First fixture item" not in news.text
+        client.post(f"/items/{item_id}/later")
+        later = client.get("/lists/later")
+        assert "First fixture item" in later.text
+
+
+def test_capture_endpoint_saves_a_captured_page_to_read_later(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        url = "https://www.explainx.ai/blog/hiten-shah-ai-skill-library-company-strategy-2026"
+        response = client.post("/capture", data={"url": url, "html": CAPTURE_BLOG_HTML})
+        assert response.status_code == 200
+        body = response.json()
+        assert "Hiten Shah" in body["title"]
+        assert body["item_url"].startswith("/items/")
+        later = client.get("/lists/later")
+        assert "Hiten Shah" in later.text
+        item_page = client.get(body["item_url"])
+        assert "skill library" in item_page.text
+
+
+def test_capture_endpoint_shows_html_confirmation_for_a_browser_navigation(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        url = "https://www.explainx.ai/blog/hiten-shah-ai-skill-library-company-strategy-2026"
+        response = client.post(
+            "/capture",
+            data={"url": url, "html": CAPTURE_BLOG_HTML},
+            headers={"Accept": "text/html,application/xhtml+xml"},
+        )
+        assert response.status_code == 200
+        assert "Saved to Read later" in response.text
+        assert "Read now" in response.text
+
+
+def test_capture_endpoint_requires_a_url(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.post("/capture", data={"html": CAPTURE_BLOG_HTML})
+        assert response.status_code == 400

@@ -8,8 +8,16 @@ from urllib.parse import urljoin, urlparse
 
 import feedparser
 import httpx
+import trafilatura
 
-from app.db import delete_items_except_guids, rss_sources, upsert_item
+from app.db import (
+    CAPTURED_SOURCE_ID,
+    add_item_to_list,
+    delete_items_except_guids,
+    find_item_id,
+    rss_sources,
+    upsert_item,
+)
 
 COMMON_FEED_PATHS = (
     "/feed",
@@ -355,6 +363,32 @@ def fetch_url(url: str, timeout: float = 8.0) -> tuple[str, str]:
 def fetch_feed_xml(url: str, timeout: float = 8.0) -> str:
     _final_url, text = fetch_url(url, timeout=timeout)
     return text
+
+
+def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
+    """Clean an arbitrary page (fetching it first if the caller has no rendered
+    copy already) and file it under Read later. Idempotent per URL."""
+    if html is None:
+        _final_url, html = fetch_url(url)
+    metadata = trafilatura.extract_metadata(html, default_url=url)
+    title = (metadata.title if metadata else None) or url
+    extracted = trafilatura.extract(html, url=url, output_format="html", favor_recall=True)
+    body = sanitize_html(extracted) if extracted else None
+    upsert_item(
+        conn,
+        source_id=CAPTURED_SOURCE_ID,
+        guid=url,
+        title=title,
+        author=metadata.author if metadata else None,
+        url=url,
+        published_at=metadata.date if metadata else None,
+        body_html=body,
+        image_url=metadata.image if metadata else None,
+        word_count=word_count(body) if body else None,
+    )
+    item_id = find_item_id(conn, CAPTURED_SOURCE_ID, url)
+    add_item_to_list(conn, item_id, "later")
+    return item_id, title
 
 
 def ingest_xml(

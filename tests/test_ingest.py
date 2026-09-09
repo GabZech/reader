@@ -9,12 +9,14 @@ from app.db import (
     format_when,
     init_db,
     insert_source,
+    is_item_in_list,
     item_in_window,
     items_for_list,
 )
-from app.ingest import ingest_xml, parse_feed
+from app.ingest import capture_article, ingest_xml, parse_feed
 
 FIXTURE = Path(__file__).parent / "fixtures" / "feed.xml"
+CAPTURE_FIXTURES = Path(__file__).parent / "fixtures" / "capture"
 SOURCE_ID = "fixture-rss"
 
 
@@ -107,3 +109,71 @@ def test_format_when_today_and_date():
     assert format_when("2026-08-20T08:00:00+00:00", now) == "Today"
     assert format_when("2026-08-19T08:00:00+00:00", now) == "Yesterday"
     assert format_when("2026-08-17T08:00:00+00:00", now) == "17/08/26"
+
+
+def _capture_fixture(name: str) -> str:
+    return (CAPTURE_FIXTURES / name).read_text(encoding="utf-8")
+
+
+def test_capture_article_cleans_a_real_page_and_adds_it_to_read_later(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://www.explainx.ai/blog/hiten-shah-ai-skill-library-company-strategy-2026"
+    item_id, title = capture_article(conn, url, html=_capture_fixture("blog.html"))
+    conn.commit()
+    assert "Hiten Shah" in title
+    assert is_item_in_list(conn, item_id, "later")
+    item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    assert item["url"] == url
+    assert "skill library" in item["body_html"]
+    assert item["word_count"] > 0
+
+
+def test_capture_article_falls_back_to_a_server_fetch_when_given_no_html(
+    monkeypatch, tmp_path
+):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://dataproducts.substack.com/p/the-shift-left-manifesto-v2"
+    monkeypatch.setattr(
+        "app.ingest.fetch_url", lambda u, timeout=8.0: (u, _capture_fixture("substack.html"))
+    )
+    item_id, title = capture_article(conn, url)
+    conn.commit()
+    assert "Shift Left" in title
+    item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    assert item["word_count"] > 0
+
+
+def test_capture_article_still_saves_a_link_it_cannot_clean(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://www.nexojornal.com.br/colunistas/2026/09/02/paywalled"
+    item_id, title = capture_article(conn, url, html=_capture_fixture("paywalled.html"))
+    conn.commit()
+    assert title and title != url
+    item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    assert not item["body_html"]
+    assert is_item_in_list(conn, item_id, "later")
+
+
+def test_capture_article_does_not_crash_on_a_javascript_only_page(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://x.com/seanlinehan/status/2091955290552078418/"
+    item_id, title = capture_article(conn, url, html=_capture_fixture("js_shell.html"))
+    conn.commit()
+    assert title
+    assert is_item_in_list(conn, item_id, "later")
+
+
+def test_capture_article_is_idempotent_per_url(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://www.explainx.ai/blog/hiten-shah-ai-skill-library-company-strategy-2026"
+    first_id, _ = capture_article(conn, url, html=_capture_fixture("blog.html"))
+    second_id, _ = capture_article(conn, url, html=_capture_fixture("blog.html"))
+    conn.commit()
+    assert first_id == second_id
+    count = conn.execute("SELECT COUNT(*) AS n FROM items WHERE url = ?", (url,)).fetchone()
+    assert count["n"] == 1
