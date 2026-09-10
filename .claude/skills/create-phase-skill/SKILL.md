@@ -9,9 +9,9 @@ description: >-
 
 Build or upgrade a **project-agnostic** phase skill (and optional question bank) with the client. Do not jump to files or web research on the first turn.
 
-Authoring craft (succinct copy, split style vs content, SKILL.md shape) lives in the **write-skills** skill (`.cursor/skills/write-skills/SKILL.md`). This skill owns the **engagement sequence** only.
+Authoring craft (succinct copy, split style vs content, SKILL.md shape) lives in the **write-skills** skill (`.claude/skills/write-skills/SKILL.md`). This skill owns the **engagement sequence** only.
 
-Discovery phases only. Feature work runs the change loop (`.cursor/skills/2-develop/`), which has no phases and no question bank: do not build one for it.
+Discovery phases only. Feature work runs the change loop (`.claude/skills/2-develop/`), which has no phases and no question bank: do not build one for it.
 
 ## When
 
@@ -46,8 +46,8 @@ After the client agrees on structure:
 
 On explicit go-ahead:
 
-- Add or update `.cursor/skills/<phase>/SKILL.md` (Entry, Artifacts, Do, clarifying flow, ready-to-draft-artifacts, Gate)
-- Add or update `.cursor/skills/<phase>/questionbank.md` when the phase needs a clarifying menu; link it from the phase skill like Kickoff/Understand
+- Add or update `.claude/skills/<phase>/SKILL.md` (Entry, Artifacts, Do, clarifying flow, ready-to-draft-artifacts, Gate)
+- Add or update `.claude/skills/<phase>/questionbank.md` when the phase needs a clarifying menu; link it from the phase skill like Kickoff/Understand
 - Follow **write-skills** and **questioning** (style stays in questioning; menu content stays in the bank)
 - Match house patterns already used in `1-1-kickoff` and `1-2-understand`
 - Do not embed the current product’s domain into the skill or bank

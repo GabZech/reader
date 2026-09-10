@@ -25,10 +25,10 @@ Capture the product idea, set how the engagement runs, clarify what matters, and
 
 **Include:**
 - Restate the client’s idea once, briefly, then explain the workflow in a few sentences
-- Clarifying questions from this skill (see below); deliver each ask using the **questioning** skill (`.cursor/skills/questioning/SKILL.md`)
+- Clarifying questions from this skill (see below); deliver each ask using the **questioning** skill (`.claude/skills/questioning/SKILL.md`)
 - Problem statement, product vision, and explicit non-goals in `proposition.md`
 - How success will be measured in `metrics.md`
-- Initialise `docs/roadmap.md` per the **Roadmap** section in the writing-docs skill (`.cursor/skills/writing-docs/SKILL.md`)
+- Initialise `docs/roadmap.md` per the **Roadmap** section in the writing-docs skill (`.claude/skills/writing-docs/SKILL.md`)
 
 **Do not** save client prompts (verbatim chat messages or “initial prompt” dumps) under `docs/` or elsewhere in the repo. Capture durable facts in clarifying answers and living docs only.
 
@@ -40,7 +40,7 @@ Do not write personas, journeys, epics, or stack choices yet.
 
 Goal: gather only what `proposition.md` and `metrics.md` need. Defer deep user/journey detail to Understand; defer stack to Foundation.
 
-**Style:** follow `.cursor/skills/questioning/SKILL.md`.
+**Style:** follow `.claude/skills/questioning/SKILL.md`.
 
 **What to ask:** use the menu in [questionbank.md](questionbank.md). Walk clusters one question at a time; skip what the client already answered well in conversation.
 

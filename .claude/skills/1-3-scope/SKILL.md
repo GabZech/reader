@@ -27,7 +27,7 @@ Turn accepted journeys into named capabilities (epics) and decide mockup scope, 
 - Which epic is the first piece of the MVP to implement after Mockup (honours Depends on)
 - Refresh `docs/roadmap.md` from those scopes (Milestone, Summary, Decisions, Open). The catalog stays in `epics.md`.
 
-**Clarifying questions:** deliver each ask using the **questioning** skill (`.cursor/skills/questioning/SKILL.md`). **What to ask:** [questionbank.md](questionbank.md). Walk clusters one at a time; skip what Understand or this conversation already answered well.
+**Clarifying questions:** deliver each ask using the **questioning** skill (`.claude/skills/questioning/SKILL.md`). **What to ask:** [questionbank.md](questionbank.md). Walk clusters one at a time; skip what Understand or this conversation already answered well.
 
 Do not rewrite personas or invent primary journeys. If a path is missing, reopen Understand. Do not write user stories or acceptance criteria. Do not choose stack or architecture. Do not design dummy screens.
 

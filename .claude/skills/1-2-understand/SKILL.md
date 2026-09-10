@@ -28,7 +28,7 @@ Build a shared picture of who the product is for, what they try to do end to end
 - Constraints: cross-cutting hard vs soft **limits** (cost, ownership, must-nots, quality bars). Not a parking lot for product wishes.
 - Open questions that still block a clear picture of users or journeys
 
-**Clarifying questions:** deliver each ask using the **questioning** skill (`.cursor/skills/questioning/SKILL.md`). **What to ask:** [questionbank.md](questionbank.md). Walk clusters one at a time; skip what Kickoff or this conversation already answered well.
+**Clarifying questions:** deliver each ask using the **questioning** skill (`.claude/skills/questioning/SKILL.md`). **What to ask:** [questionbank.md](questionbank.md). Walk clusters one at a time; skip what Kickoff or this conversation already answered well.
 
 Do not write epics. Do not assign mockup / MVP / later. Do not invent stack or architecture. Do not write user stories or acceptance criteria.
 

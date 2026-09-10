@@ -1,6 +1,6 @@
 # Mockup question bank
 
-Clarifying **content** for Mockup. Deliver each ask with the questioning skill (`.cursor/skills/questioning/SKILL.md`) — style lives there; this file is only the menu.
+Clarifying **content** for Mockup. Deliver each ask with the questioning skill (`.claude/skills/questioning/SKILL.md`) — style lives there; this file is only the menu.
 
 Pick and adapt; do not read as a script. Reuse Scope; design the dummy, do not restart epic packaging.
 

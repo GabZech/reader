@@ -1,6 +1,6 @@
 # Foundation question bank
 
-Clarifying **content** for Foundation. Deliver each ask with the questioning skill (`.cursor/skills/questioning/SKILL.md`) — style lives there; this file is only the menu.
+Clarifying **content** for Foundation. Deliver each ask with the questioning skill (`.claude/skills/questioning/SKILL.md`) — style lives there; this file is only the menu.
 
 Pick and adapt; do not read as a script. Reuse Understand constraints, Scope’s first MVP epic, and Mockup look; design the system, do not restart discovery.
 

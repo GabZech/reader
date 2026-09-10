@@ -1,6 +1,8 @@
 ---
-description: Commit practices - incremental commits, subject format, and git safety
-alwaysApply: false
+name: commits
+description: >-
+  Commit practices: incremental commits, subject format, and git safety.
+  Use when creating a git commit.
 ---
 
 # Commits
