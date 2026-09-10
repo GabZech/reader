@@ -44,7 +44,7 @@ macOS or Linux: `lsof -ti :8000 | xargs kill`
 uv run pytest
 ```
 
-That is the check continuous integration should run.
+That is the check continuous integration runs (`.github/workflows/test.yml`).
 
 ## Local config
 
@@ -53,4 +53,4 @@ Copy `.env.example` to `.env` if you need to override defaults. Names only, no s
 - `DATABASE_PATH`: SQLite file (default `data/reader.db`)
 - `SKELETON_FEED_URL`: public RSS URL used by the skeleton sync (default is a public news feed)
 
-Mailbox credentials are not used in the skeleton. They wait for Add a Source to a List.
+Mailbox credentials (`MAIL_IMAP_HOST`, `MAIL_IMAP_USER`, `MAIL_IMAP_PASSWORD`) are read on `/sync` when set; without them mail sync is skipped. Local runs do not need them unless you are working on that path — see `docs/operations.md` for the live values.
