@@ -45,8 +45,8 @@ def _client(monkeypatch, tmp_path):
     real_visible = dbmod._visible_items
     frozen = datetime(2026, 8, 20, 12, tzinfo=timezone.utc)
 
-    def visible(conn, slug, now=None):
-        return real_visible(conn, slug, now or frozen)
+    def visible(conn, slug, now=None, archived=False, read=False):
+        return real_visible(conn, slug, now or frozen, archived=archived, read=read)
 
     monkeypatch.setattr(dbmod, "_visible_items", visible)
     return TestClient(app)
@@ -883,6 +883,199 @@ def test_delete_item_from_source_items_view_redirects_there(monkeypatch, tmp_pat
         # And it's actually gone, not just off this one page.
         news = client.get("/lists/news")
         assert "First fixture item" not in news.text
+
+
+def test_opening_an_item_marks_it_seen_in_list_rows(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+
+        before = client.get("/lists/news")
+        assert "is-seen" not in before.text
+
+        client.get(f"/items/{item_id}")
+
+        after = client.get("/lists/news")
+        assert "is-seen" in after.text
+
+
+def test_opening_an_item_twice_keeps_the_first_seen_timestamp(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.get(f"/items/{item_id}")
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            first_seen = conn.execute(
+                "SELECT seen_at FROM items WHERE id = ?", (item_id,)
+            ).fetchone()["seen_at"]
+        finally:
+            conn.close()
+
+        client.get(f"/items/{item_id}")
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            second_seen = conn.execute(
+                "SELECT seen_at FROM items WHERE id = ?", (item_id,)
+            ).fetchone()["seen_at"]
+        finally:
+            conn.close()
+
+        assert first_seen == second_seen
+
+
+def test_archive_button_shows_only_once_saved_to_read_later(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+
+        before = client.get(f"/items/{item_id}")
+        assert "Archive" not in before.text
+
+        client.post(f"/items/{item_id}/later")
+        after = client.get(f"/items/{item_id}")
+        assert "Archive" in after.text
+
+
+def test_archiving_an_item_removes_it_from_read_later_and_home(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        url = "https://www.explainx.ai/blog/hiten-shah-ai-skill-library-company-strategy-2026"
+        captured = client.post(
+            "/capture", data={"url": url, "html": CAPTURE_BLOG_HTML}
+        )
+        item_id = int(captured.json()["item_url"].removeprefix("/items/"))
+
+        archived = client.post(f"/items/{item_id}/archive?from_list=later")
+        assert archived.status_code == 200
+        assert archived.request.url.path == "/lists/later"
+        assert "Hiten Shah" not in archived.text
+        assert "Archived" in archived.text
+
+        home = client.get("/")
+        assert "Hiten Shah" not in home.text
+
+
+def test_archiving_an_item_keeps_it_saved_to_read_later(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        client.post(f"/items/{item_id}/archive")
+
+        page = client.get(f"/items/{item_id}")
+        assert "Saved to Read later" in page.text
+
+
+def test_archive_on_missing_item_is_404(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.post("/items/999999/archive")
+        assert response.status_code == 404
+
+
+def test_delete_button_on_article_page_removes_it_for_good(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+
+        before = client.get(f"/items/{item_id}")
+        assert "Delete" not in before.text
+
+        client.post(f"/items/{item_id}/later")
+        after = client.get(f"/items/{item_id}")
+        assert "Delete" in after.text
+
+        gone = client.post(f"/items/{item_id}/delete?from_list=later")
+        assert gone.status_code == 200
+        missing = client.get(f"/items/{item_id}")
+        assert missing.status_code == 404
+
+
+def test_read_later_list_shows_library_archive_toggle_with_counts(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+
+        library = client.get("/lists/later")
+        assert "Library (1)" in library.text
+        assert "Archive (0)" in library.text
+        assert "First fixture item" in library.text
+
+        client.post(f"/items/{item_id}/archive")
+
+        library_after = client.get("/lists/later")
+        assert "Library (0)" in library_after.text
+        assert "Archive (1)" in library_after.text
+        assert "First fixture item" not in library_after.text
+
+        archive_view = client.get("/lists/later?view=archive")
+        assert "First fixture item" in archive_view.text
+
+
+def test_other_lists_do_not_show_library_archive_toggle(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        news = client.get("/lists/news")
+        assert "Library (" not in news.text
+        assert "Archive (" not in news.text
+
+
+def test_later_list_does_not_show_unread_read_toggle(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        later = client.get("/lists/later")
+        assert "Unread (" not in later.text
+        assert "Read (" not in later.text
+
+
+def test_mark_as_read_shown_only_when_opened_from_a_non_later_list(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+
+        no_context = client.get(f"/items/{item_id}")
+        assert "Mark as read" not in no_context.text
+
+        from_news = client.get(f"/items/{item_id}?from_list=news")
+        assert "Mark as read" in from_news.text
+
+        client.post(f"/items/{item_id}/later")
+        from_later = client.get(f"/items/{item_id}?from_list=later")
+        assert "Mark as read" not in from_later.text
+
+
+def test_marking_read_moves_item_to_read_tab_and_off_home(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+
+        news = client.get("/lists/news")
+        assert "Unread (2)" in news.text
+        assert "Read (0)" in news.text
+
+        read = client.post(f"/items/{item_id}/read?from_list=news")
+        assert read.status_code == 200
+        assert read.request.url.path == "/lists/news"
+        assert "Read" in read.text
+
+        news_after = client.get("/lists/news")
+        assert "Unread (1)" in news_after.text
+        assert "Read (1)" in news_after.text
+        assert "First fixture item" not in news_after.text
+
+        read_view = client.get("/lists/news?view=read")
+        assert "First fixture item" in read_view.text
+
+        home = client.get("/")
+        assert "First fixture item" not in home.text
 
 
 def test_delete_captured_item_clears_its_direct_list_membership(monkeypatch, tmp_path):

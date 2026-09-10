@@ -17,7 +17,9 @@ from app.db import (
     add_source_to_list,
     all_lists,
     all_sources,
+    archive_item_in_list,
     connect,
+    count_for_list,
     find_list_by_name,
     clear_source_notice,
     find_source_by_feed_url,
@@ -31,6 +33,8 @@ from app.db import (
     insert_source,
     is_item_in_list,
     lists_for_home_edit,
+    mark_item_read,
+    mark_item_seen,
     move_list,
     rename_list,
     set_list_on_home,
@@ -353,14 +357,21 @@ async def delete_list_submit(request: Request, slug: str):
 
 
 @app.get("/lists/{slug}")
-def list_page(request: Request, slug: str, flash: str = ""):
+def list_page(request: Request, slug: str, flash: str = "", view: str = ""):
     conn = connect()
     try:
         init_db(conn)
         named = get_list(conn, slug)
         if named is None:
             raise HTTPException(status_code=404)
-        items = items_for_list(conn, slug)
+        is_later = slug == "later"
+        archived = is_later and view == "archive"
+        read = (not is_later) and view == "read"
+        items = items_for_list(conn, slug, archived=archived, read=read)
+        library_count = count_for_list(conn, slug) if is_later else None
+        archive_count = count_for_list(conn, slug, archived=True) if is_later else None
+        unread_count = count_for_list(conn, slug) if not is_later else None
+        read_count = count_for_list(conn, slug, read=True) if not is_later else None
     finally:
         conn.close()
     return templates.TemplateResponse(
@@ -372,6 +383,11 @@ def list_page(request: Request, slug: str, flash: str = ""):
             "slug": slug,
             "items": items,
             "flash": flash,
+            "view": view,
+            "library_count": library_count,
+            "archive_count": archive_count,
+            "unread_count": unread_count,
+            "read_count": read_count,
         },
     )
 
@@ -943,6 +959,9 @@ def item_page(
     try:
         init_db(conn)
         item = get_item(conn, item_id)
+        if item is not None:
+            mark_item_seen(conn, item_id)
+            conn.commit()
         in_read_later = item is not None and is_item_in_list(conn, item_id, "later")
     finally:
         conn.close()
@@ -964,6 +983,13 @@ def item_page(
             "back": back,
             "in_read_later": in_read_later,
             "later_action": f"/items/{item_id}/later{context_query}",
+            "archive_action": f"/items/{item_id}/archive{context_query}",
+            "delete_action": f"/items/{item_id}/delete{context_query}",
+            "mark_read_action": (
+                f"/items/{item_id}/read{context_query}"
+                if from_list and from_list != "later"
+                else None
+            ),
         },
     )
 
@@ -988,6 +1014,50 @@ def item_add_later(
         f"/items/{item_id}{_item_context_query(from_source, from_list)}",
         status_code=303,
     )
+
+
+@app.post("/items/{item_id}/archive")
+def item_archive(
+    item_id: int,
+    from_source: str | None = None,
+    from_list: str | None = None,
+):
+    conn = connect()
+    try:
+        init_db(conn)
+        item = get_item(conn, item_id)
+        if item is None:
+            raise HTTPException(status_code=404)
+        archive_item_in_list(conn, item_id, "later")
+        conn.commit()
+    finally:
+        conn.close()
+    if from_source:
+        return RedirectResponse(
+            f"/sources/{from_source}/items?flash=Archived", status_code=303
+        )
+    if from_list:
+        return RedirectResponse(f"/lists/{from_list}?flash=Archived", status_code=303)
+    return RedirectResponse("/", status_code=303)
+
+
+@app.post("/items/{item_id}/read")
+def item_mark_read(
+    item_id: int,
+    from_list: str,
+    from_source: str | None = None,
+):
+    conn = connect()
+    try:
+        init_db(conn)
+        item = get_item(conn, item_id)
+        if item is None:
+            raise HTTPException(status_code=404)
+        mark_item_read(conn, item_id, from_list)
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(f"/lists/{from_list}?flash=Read", status_code=303)
 
 
 @app.post("/items/{item_id}/delete")

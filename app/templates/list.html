@@ -7,6 +7,18 @@
         <a class="top-edit" href="/lists/{{ slug }}/edit">Edit</a>
       </header>
 
+      {% if slug == "later" %}
+      <div class="actions">
+        <a href="/lists/later"{% if view != "archive" %} class="is-active"{% endif %}>Library ({{ library_count }})</a>
+        <a href="/lists/later?view=archive"{% if view == "archive" %} class="is-active"{% endif %}>Archive ({{ archive_count }})</a>
+      </div>
+      {% else %}
+      <div class="actions">
+        <a href="/lists/{{ slug }}"{% if view != "read" %} class="is-active"{% endif %}>Unread ({{ unread_count }})</a>
+        <a href="/lists/{{ slug }}?view=read"{% if view == "read" %} class="is-active"{% endif %}>Read ({{ read_count }})</a>
+      </div>
+      {% endif %}
+
       <section class="list">
         {% for item in items %}
           {{ item_row(item, list_slug=slug, swipeable=true) }}

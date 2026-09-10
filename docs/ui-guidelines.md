@@ -39,4 +39,4 @@ Dark is the default: a reader who has never touched the theme toggle in Settings
 
 ## Out of scope
 
-Feature interactions (add to list, time window, highlighting, list edit, home edit, mark as seen, archive) wait for that epic’s Build. Later-scope evening video watching is out. Do not restyle to match a component library. A home-screen and tab logo for Add to Home Screen waits until the MVP ships; it does not add icons inside the app.
+Feature interactions (add to list, time window, highlighting, list edit, home edit) wait for that epic’s Build. Later-scope evening video watching is out. Do not restyle to match a component library. A home-screen and tab logo for Add to Home Screen waits until the MVP ships; it does not add icons inside the app.

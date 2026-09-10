@@ -11,6 +11,7 @@
 - Manage lists and Manage sources are fully built (ticks below); newsletter auto-detection is confirmed working against a real subscribed newsletter through the live isolated mailbox
 - Recent polish: the isolated mailbox's address now shows in Settings so a newsletter can actually be subscribed to it, and tapping a source opens its item list directly, with Settings moved behind a link from there
 - Read Later's first line is live: a Read later button on any item, a desktop bookmarklet, and an iPhone Shortcut all send a page in, fetching and cleaning outside pages (not just subscribed sources) with trafilatura
+- Read Later now splits into Library and Archive, with an Archive button and a permanent Delete on the article page. Every other list (News, Favourite channels, and any custom list) got the equivalent Unread/Read split with a Mark as read action, plus automatic seen tracking that bolds an item's row until it is first opened
 
 **⚠️ Open:**
 
@@ -43,9 +44,17 @@ Grouped by [epic](vision/epics.md). An epic names a capability, not a work order
 ### Read Later
 
 - [x] Send a link to Read later while browsing
-- [ ] Library and archive, with started and unstarted apart
+- [x] Library and archive
+- [ ] Started and unstarted apart on this list (the seen tracking below already carries the signal; resume will surface it here as a label)
 - [ ] Resume an article where it was left
-- [ ] Archive a finished article, and remove an item from Read later
+- [x] Archive a finished article, and remove an item from Read later
+
+### Reading Progress
+
+Not its own epic in [epics](vision/epics.md); tracked here since it is built. Applies to every list except Read later, which uses Library/Archive and, once resume lands, Started/Unstarted instead.
+
+- [x] Unread/Read split on every other list, with a Mark as read action on the article page; Home shows unread only
+- [x] Automatic seen tracking: an item's row is bold until first opened, everywhere it is listed
 
 ### Highlight and Land in Obsidian
 
