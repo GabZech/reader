@@ -12,9 +12,11 @@ Local run is for development. The intended production path is this hosted app. M
 
 ## Deploy
 
-Every push to GitHub deploys automatically: a GitHub Actions job (`.github/workflows/test.yml`, `deploy`) runs after tests pass and pushes that commit live with `flyctl deploy --remote-only --ha=false`, using a `FLY_API_TOKEN` repository secret. This is what Build's trial pushes and Ship's redeploy-from-main both rely on. It requires that secret to be set once in the repo's GitHub settings (Settings → Secrets and variables → Actions); without it the deploy job fails cleanly and the live app simply stays on its last successful deploy.
+A push to `main` deploys automatically: a GitHub Actions job (`.github/workflows/test.yml`, `deploy`) runs after tests pass and pushes that commit live with `flyctl deploy --remote-only --ha=false`, using a `FLY_API_TOKEN` repository secret. This is what Ship's merge-and-redeploy relies on. It requires that secret to be set once in the repo's GitHub settings (Settings → Secrets and variables → Actions); without it the deploy job fails cleanly and the live app simply stays on its last successful deploy.
 
-Deploying by hand (a machine that can reach Fly's remote builder directly) still works the same way: the image is built from the `Dockerfile` at the repo root, using Fly's remote builder; Docker Desktop is not required on the operator machine. The volume must stay attached so the library survives a new version. Deploy one machine only (`--ha=false`) so a spare copy is not created.
+Trying a branch on the live host before it is merged uses the same job on demand, without deploying every push: `gh workflow run test.yml --ref <branch>`. This is what Try's "once told to deploy" step relies on for a change built in a cloud session, which cannot reach Fly's remote builder directly (see below).
+
+Deploying by hand (a machine that can reach Fly's remote builder directly) still works the same way: the image is built from the `Dockerfile` at the repo root, using Fly's remote builder; Docker Desktop is not required on the operator machine. The volume must stay attached so the library survives a new version. Deploy one machine only (`--ha=false`) so a spare copy is not created. A cloud agent session's own network cannot reach Fly's remote builder (its gRPC handshake fails through the sandbox's egress proxy), which is why the GitHub Actions job above exists.
 
 First standup (already done for `reader-skeleton`):
 
@@ -47,7 +49,7 @@ Injected as environment variables on the host. Secrets stay out of Git.
 
 - `DATABASE_PATH`: path to the SQLite file on the volume (`/data/reader.db` on Fly)
 - `SKELETON_FEED_URL`: public RSS URL for the skeleton sync
-- `MAIL_IMAP_HOST`, `MAIL_IMAP_USER`, `MAIL_IMAP_PASSWORD`: isolated newsletter mailbox (dedicated Gmail account, app password, IMAP enabled), set as Fly secrets 2026-08-24. Never personal-mailbox credentials. The app does not yet read them (increment 8, not built).
+- `MAIL_IMAP_HOST`, `MAIL_IMAP_USER`, `MAIL_IMAP_PASSWORD`: isolated newsletter mailbox (dedicated Gmail account, app password, IMAP enabled), set as Fly secrets 2026-08-24. Never personal-mailbox credentials.
 
 ## Capturing a page to Read later
 
