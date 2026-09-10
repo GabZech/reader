@@ -130,11 +130,11 @@ def ingest_mail(conn: sqlite3.Connection) -> dict:
                 if is_new:
                     created += 1
                 _mark_seen(client, uid)
-            except Exception:
+            except Exception:  # noqa: BLE001, S112 - one bad message must not stop the sync
                 continue
     finally:
         try:
             client.logout()
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 - cleanup only, sync already succeeded or failed
             pass
     return {"configured": True, "connected": True, "created": created, "sources": len(touched)}

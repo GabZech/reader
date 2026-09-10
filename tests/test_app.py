@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -44,7 +44,7 @@ def _client(monkeypatch, tmp_path):
     monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "reader.db"))
     monkeypatch.setattr("app.ingest.fetch_url", _fetch)
     real_visible = dbmod._visible_items
-    frozen = datetime(2026, 8, 20, 12, tzinfo=timezone.utc)
+    frozen = datetime(2026, 8, 20, 12, tzinfo=UTC)
 
     def visible(conn, slug, now=None, archived=False, read=False):
         return real_visible(conn, slug, now or frozen, archived=archived, read=read)
@@ -214,7 +214,7 @@ def test_youtube_channel_url_lands_on_favourite_channels(monkeypatch, tmp_path):
         added = client.post("/sources/add", data={"url": YOUTUBE_CHANNEL_URL})
         assert added.status_code == 200
         assert "This feed currently has" in added.text
-        listed = client.post(
+        client.post(
             "/sources/add/count",
             data={
                 "feed_url": YOUTUBE_FEED_URL,

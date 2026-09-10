@@ -5,7 +5,7 @@ import re
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -213,7 +213,7 @@ def _visible_items(
     archived: bool = False,
     read: bool = False,
 ) -> list[sqlite3.Row]:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     archived_clause = (
         "item_lists.archived_at IS NOT NULL"
         if archived
@@ -260,7 +260,7 @@ def item_in_window(
     except ValueError:
         return True
     if stamp.tzinfo is None:
-        stamp = stamp.replace(tzinfo=timezone.utc)
+        stamp = stamp.replace(tzinfo=UTC)
     delta = now.astimezone(stamp.tzinfo) - stamp
     if window == "day":
         return delta <= timedelta(hours=24)
@@ -359,14 +359,14 @@ def add_item_to_list(conn: sqlite3.Connection, item_id: int, list_slug: str) -> 
         INSERT OR IGNORE INTO item_lists (item_id, list_slug, added_at)
         VALUES (?, ?, ?)
         """,
-        (item_id, list_slug, datetime.now(timezone.utc).isoformat()),
+        (item_id, list_slug, datetime.now(UTC).isoformat()),
     )
 
 
 def mark_item_seen(conn: sqlite3.Connection, item_id: int) -> None:
     conn.execute(
         "UPDATE items SET seen_at = COALESCE(seen_at, ?) WHERE id = ?",
-        (datetime.now(timezone.utc).isoformat(), item_id),
+        (datetime.now(UTC).isoformat(), item_id),
     )
 
 
@@ -383,14 +383,14 @@ def mark_item_read(conn: sqlite3.Connection, item_id: int, list_slug: str) -> No
         INSERT OR IGNORE INTO item_read (item_id, list_slug, read_at)
         VALUES (?, ?, ?)
         """,
-        (item_id, list_slug, datetime.now(timezone.utc).isoformat()),
+        (item_id, list_slug, datetime.now(UTC).isoformat()),
     )
 
 
 def archive_item_in_list(conn: sqlite3.Connection, item_id: int, list_slug: str) -> None:
     conn.execute(
         "UPDATE item_lists SET archived_at = ? WHERE item_id = ? AND list_slug = ?",
-        (datetime.now(timezone.utc).isoformat(), item_id, list_slug),
+        (datetime.now(UTC).isoformat(), item_id, list_slug),
     )
 
 
@@ -691,13 +691,13 @@ def delete_items_except_guids(
 def format_when(published_at: str | None, now: datetime | None = None) -> str:
     if not published_at:
         return ""
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     try:
         stamp = datetime.fromisoformat(published_at)
     except ValueError:
         return published_at
     if stamp.tzinfo is None:
-        stamp = stamp.replace(tzinfo=timezone.utc)
+        stamp = stamp.replace(tzinfo=UTC)
     local_now = now.astimezone(stamp.tzinfo)
     delta = local_now.date() - stamp.date()
     if delta.days == 0:
