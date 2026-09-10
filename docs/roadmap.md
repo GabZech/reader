@@ -78,9 +78,11 @@ Last in the MVP: it needs a full built app to restyle.
 
 ## Concluded
 
-- ✅ **Kickoff:** [proposition](vision/proposition.md), [metrics](vision/metrics.md); session log under [history/discovery/01-kickoff](history/discovery/01-kickoff/)
-- ✅ **Understand:** [personas](vision/personas.md), [journeys](vision/journeys.md), [constraints](vision/constraints.md); session log under [history/discovery/02-understand](history/discovery/02-understand/)
-- ✅ **Scope:** [epics](vision/epics.md); session log under [history/discovery/03-scope](history/discovery/03-scope/)
-- ✅ **Mockup:** [mockup](history/discovery/04-mockup/mockup.md); session log under [history/discovery/04-mockup](history/discovery/04-mockup/)
-- ✅ **Foundation:** [architecture](architecture.md), [development](development.md), [operations](operations.md), [UI guidelines](ui-guidelines.md); session log under [history/discovery/05-foundation](history/discovery/05-foundation/)
-- ✅ **Epic workflow:** replaced by the change loop; working files frozen under [history/epics](history/epics/)
+- ✅ **Kickoff:** [proposition](vision/proposition.md), [metrics](vision/metrics.md)
+- ✅ **Understand:** [personas](vision/personas.md), [journeys](vision/journeys.md), [constraints](vision/constraints.md)
+- ✅ **Scope:** [epics](vision/epics.md)
+- ✅ **Mockup:** [mockup pointer](mockup/README.md)
+- ✅ **Foundation:** [architecture](architecture.md), [development](development.md), [operations](operations.md), [UI guidelines](ui-guidelines.md)
+- ✅ **Epic workflow:** replaced by the change loop; see [decisions](decisions.md) 2026-08-28
+
+Session logs for these phases, and the epic-workflow working files, are frozen at git tag `archive/history-2026-09` (was `docs/history/`; collapsed per [decisions](decisions.md) 2026-09-10).

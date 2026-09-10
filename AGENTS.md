@@ -43,7 +43,7 @@ One manual for any AI coding tool working in this repo, vendor-neutral. Read it 
 
 ## Where truth lives
 
-Code and tests are behaviour. Living docs under `docs/` (not `history/`) are the current agreed picture: keep them true as part of the change that makes one wrong. `docs/decisions.md` records choices that are expensive to undo. `docs/history/` is how we got here; do not refresh it to match later code.
+Code and tests are behaviour. Living docs under `docs/` are the current agreed picture: keep them true as part of the change that makes one wrong. `docs/decisions.md` records choices that are expensive to undo.
 
 ## Commands
 
