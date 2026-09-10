@@ -18,7 +18,6 @@ These files settle who the product is for and what it must do, before a stack is
 ## Engagement
 
 - **[Roadmap](roadmap.md).** Where the product stands now: what is built, what is next grouped by epic, and what is still open.
-- **[Conventions](conventions.md).** Repo writing conventions, and the standing preferences about how changes get made.
 
 ## System
 

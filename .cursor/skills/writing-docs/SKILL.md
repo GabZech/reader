@@ -12,7 +12,7 @@ Style for reports and living docs under `docs/` meant for humans. Purpose and co
 
 ## Scope
 
-- **Apply** to human-facing living docs under `docs/` (e.g. vision, architecture, development, operations, roadmap, conventions, ui-guidelines) and the product root `README.md`
+- **Apply** to human-facing living docs under `docs/` (e.g. vision, architecture, development, operations, roadmap, ui-guidelines) and the product root `README.md`
 - **Skip** `docs/history/` (frozen engagement log; it keeps the shape it had when it was written)
 
 ## Voice
