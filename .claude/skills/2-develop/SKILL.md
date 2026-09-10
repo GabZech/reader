@@ -24,7 +24,7 @@ Client-facing voice follows the **questioning** skill.
 - Working software, merged to main and live
 - Living docs, updated only where this change made them wrong
 - `docs/roadmap.md`: the ticked line under "What's next", always; the "Where we are" Summary only when the product's overall state changes, never one bullet per change
-- `docs/history/decisions/`: a decision record, only when the choice is expensive to undo
+- `docs/decisions.md`: a dated entry, only when the choice is expensive to undo
 
 ## The loop
 
