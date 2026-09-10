@@ -42,13 +42,13 @@ A change to what the client sees needs a screenshot of the intended look, signed
 
 ### 4. Build
 
-A branch per change. Behaviour: write the failing test first. Then the code, then `uv run pytest` and the local checks in `docs/development.md`. Read the diff against what Shape said and close gaps before the client sees it.
+A branch per change. Behaviour: write the failing test first. Then the code, then `uv run pytest` and the local checks in `docs/development.md`. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
 
 ### 5. Try
 
-A change is built once its tests pass. Do not deploy it yet: for a change to what the client sees, capture a screenshot of the real local app (mechanics: [preview.md](preview.md), against the running app instead of a mockup); for a behaviour-only change, say what changed. Ask whether to deploy now or keep building more changes first — several can stack up before one deploy.
+A change is built once its tests pass and committed. Show it before deploying: for a change to what the client sees, capture a screenshot of the real local app (mechanics: [preview.md](preview.md), against the running app instead of a mockup); for a behaviour-only change, say what changed. Ask whether to deploy now or keep building more changes first — several can stack up, committed, before one deploy.
 
-Once told to deploy: push the branch to the live host per `docs/operations.md`, then a short walkthrough in prose covering every change since the last deploy: what to open first, what to try next, which failure mode is worth checking. One ask: good, or what is missing.
+Once told to deploy: trigger the deploy per `docs/operations.md` (a local `flyctl deploy`, or the manual CI dispatch from a cloud session), then a short walkthrough in prose covering every change since the last deploy: what to open first, what to try next, which failure mode is worth checking. One ask: good, or what is missing.
 
 - Never ask for sign-off without the walkthrough in the same message
 - Never paste curl output, route lists, or test logs in place of the walkthrough
@@ -81,9 +81,8 @@ Procedures for the middle four: [change-kinds.md](change-kinds.md).
 ## Do not
 
 - Write code before Shape, or product code for a visual change before its mockup is signed off
-- Commit before the client has signed off on the live app: Build and Try can run several rounds uncommitted, deploying straight from the working tree
 - Merge before the client has signed off on the live app
-- Push before the client's reply says to deploy — showing the screenshot is not itself permission
+- Deploy before the client's reply says to — showing the screenshot is not itself permission
 - Leave the live host on a branch once the turn is over
 - Skip, disable, or weaken a test to get green
 - Create per-epic plan or clarifying-answers files

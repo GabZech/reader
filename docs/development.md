@@ -29,6 +29,8 @@ Before trying a Python change, restart on 8000 so the running app is this revisi
 
 `--reload` has proven unreliable on Windows in this repo: `WatchFiles` sometimes misses edits to `app/main.py`, `app/ingest.py`, or templates after the first reload, and a killed reloader can leave an orphaned child still bound to the port, so a later start looks successful while requests keep hitting stale code. Prefer running without `--reload` (drop that flag and `--reload-dir`) and restarting by hand after each code change; confirm the restart actually took by re-testing the specific route you changed, not just `/health`. Before restarting, always confirm nothing is still listening on 8000 (see the stop command above) rather than trusting that the previous stop succeeded.
 
+VS Code's own embedded browser panel throttles JS timers (e.g. `setTimeout`), which can make timing-sensitive UI (an auto-dismiss toast, a poll) look broken there when it isn't. Verify timing-sensitive behaviour in a real OS browser tab, not that panel.
+
 Windows, stop whatever is on 8000:
 
 ```text
@@ -44,7 +46,7 @@ macOS or Linux: `lsof -ti :8000 | xargs kill`
 uv run pytest
 ```
 
-That is the check continuous integration should run.
+That is the check continuous integration runs (`.github/workflows/test.yml`).
 
 ## Local config
 
@@ -53,4 +55,4 @@ Copy `.env.example` to `.env` if you need to override defaults. Names only, no s
 - `DATABASE_PATH`: SQLite file (default `data/reader.db`)
 - `SKELETON_FEED_URL`: public RSS URL used by the skeleton sync (default is a public news feed)
 
-Mailbox credentials are not used in the skeleton. They wait for Add a Source to a List.
+Mailbox credentials (`MAIL_IMAP_HOST`, `MAIL_IMAP_USER`, `MAIL_IMAP_PASSWORD`) are read on `/sync` when set; without them mail sync is skipped. Local runs do not need them unless you are working on that path — see `docs/operations.md` for the live values.

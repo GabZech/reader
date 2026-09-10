@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(git push *)",
+      "Bash(flyctl deploy *)",
+      "Bash(gh workflow run *)"
+    ]
+  }
+}

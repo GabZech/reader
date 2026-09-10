@@ -53,7 +53,7 @@ Grouped by [epic](vision/epics.md). An epic names a capability, not a work order
 
 ### Reading Progress
 
-Not its own epic in [epics](vision/epics.md); tracked here since it is built. Applies to every list except Read later, which uses Library/Archive and, once resume lands, Started/Unstarted instead.
+Not its own epic in [epics](vision/epics.md); tracked here since it is built. Applies to every list except Read later, which uses Library/Archive and Started/Unstarted instead.
 
 - [x] Unread/Read split on every other list, with a Mark as read action on the article page; Home shows unread only
 - [x] Automatic seen tracking: an item's row is bold until first opened, everywhere it is listed
