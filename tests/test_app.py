@@ -981,7 +981,7 @@ def test_delete_button_on_article_page_removes_it_for_good(monkeypatch, tmp_path
         item_id = _first_item_id(tmp_path)
 
         before = client.get(f"/items/{item_id}")
-        assert "Delete" not in before.text
+        assert "Delete" in before.text
 
         client.post(f"/items/{item_id}/later")
         after = client.get(f"/items/{item_id}")
@@ -991,6 +991,16 @@ def test_delete_button_on_article_page_removes_it_for_good(monkeypatch, tmp_path
         assert gone.status_code == 200
         missing = client.get(f"/items/{item_id}")
         assert missing.status_code == 404
+
+
+def test_delete_button_shown_when_opened_from_a_source(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+
+        page = client.get(f"/items/{item_id}?from_source={source_id}")
+        assert "Delete" in page.text
 
 
 def test_read_later_list_shows_library_archive_toggle_with_counts(

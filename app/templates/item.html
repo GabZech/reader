@@ -32,14 +32,14 @@
         </form>
       </section>
       {% endif %}
-      {% if in_read_later %}
       <section class="list">
+        {% if in_read_later %}
         <form method="post" action="{{ archive_action }}">
           <button type="submit" class="item item-action item-archive">Archive</button>
         </form>
+        {% endif %}
         <form method="post" action="{{ delete_action }}">
           <button type="submit" class="item item-action item-delete">Delete</button>
         </form>
       </section>
-      {% endif %}
 {% endblock %}
