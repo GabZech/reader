@@ -45,7 +45,7 @@ The change loop's Ship step owns keeping this current; no standing refresh ask o
 Orient the reader; do not duplicate vision or a full feature inventory.
 
 - **Where We Are:** 🏁 Milestone (MVP / none set); 📄 Summary, 2-4 prosaic bullets on what is accepted, built, and how feature work runs, not the pitch or a feature inventory; ⚠️ Open, only genuinely unresolved risk right now (a provisional MVP-boundary choice goes in Post-MVP Notes instead)
-- **What's Next:** remaining work grouped by epic from `vision/epics.md`, epics-need-epics order. `###` group heading, then `[x]`/`[ ]` lines, one per turn of the change loop, named the way the reader would. Tick a line as part of shipping the change that earned it. Close with **Later** for deferred capabilities
+- **What's Next:** remaining work grouped by epic from `docs/vision/epics.md`, epics-need-epics order. `###` group heading, then `[x]`/`[ ]` lines, one per turn of the change loop, named the way the reader would. Tick a line as part of shipping the change that earned it. Close with **Later** for deferred capabilities
 - **Post-MVP Notes:** choices explicitly deferred to after MVP, each with a real MVP-boundary trigger to revisit; not a parking lot. Remove once acted on
 - **Concluded:** one ✅ bullet per accepted phase or milestone, linking its living-doc results
 
