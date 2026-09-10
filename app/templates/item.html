@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 {% block title %}{{ item.title }}{% endblock %}
 {% block body %}
-      <header class="top">
+      <div class="article-top">
         <div class="actions">
           <a href="{{ back }}">Close</a>
         </div>
+      </div>
+      <header class="top">
         <h1>{{ item.title }}</h1>
       </header>
       <p class="lede">{{ item.author or item.source_title }}{% if item.published_at %} · {{ format_when(item.published_at) }}{% endif %}{% if item.word_count %} · {{ reading_length(item.word_count) }}{% endif %}</p>
@@ -18,7 +20,7 @@
           <button type="submit"{% if in_read_later %} class="is-active"{% endif %}>{{ "Saved to Read later" if in_read_later else "Read later" }}</button>
         </form>
       </div>
-      <div class="article-body">
+      <div class="article-body" data-progress-action="{{ progress_action }}"{% if item.progress_index is not none %} data-progress-index="{{ item.progress_index }}"{% endif %}>
         {% if item.body_html %}
           {{ item.body_html | safe }}
         {% endif %}
@@ -35,9 +37,11 @@
         <form method="post" action="{{ archive_action }}">
           <button type="submit" class="item item-action item-archive">Archive</button>
         </form>
+      </section>
+      {% endif %}
+      <section class="list">
         <form method="post" action="{{ delete_action }}">
           <button type="submit" class="item item-action item-delete">Delete</button>
         </form>
       </section>
-      {% endif %}
 {% endblock %}

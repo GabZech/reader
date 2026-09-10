@@ -83,6 +83,7 @@ Procedures for the middle four: [change-kinds.md](change-kinds.md).
 - Write code before Shape, or product code for a visual change before its mockup is signed off
 - Commit before the client has signed off on the live app: Build and Try can run several rounds uncommitted, deploying straight from the working tree
 - Merge before the client has signed off on the live app
+- Push before the client's reply says to deploy — showing the screenshot is not itself permission
 - Leave the live host on a branch once the turn is over
 - Skip, disable, or weaken a test to get green
 - Create per-epic plan or clarifying-answers files

@@ -151,6 +151,64 @@
     });
   };
 
+  const initReadingProgress = () => {
+    const body = document.querySelector(".article-body[data-progress-action]");
+    if (!body) return;
+    const blocks = Array.from(body.children);
+    if (blocks.length === 0) return;
+    const saveUrl = body.dataset.progressAction;
+
+    let currentIndex = -1;
+    if ("IntersectionObserver" in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              currentIndex = blocks.indexOf(entry.target);
+            }
+          });
+        },
+        { rootMargin: "0px 0px -85% 0px" }
+      );
+      blocks.forEach((block) => observer.observe(block));
+    }
+
+    const sendProgress = () => {
+      if (currentIndex < 0) return;
+      const data = new URLSearchParams({ index: String(currentIndex) });
+      try {
+        navigator.sendBeacon(saveUrl, data);
+      } catch {
+        fetch(saveUrl, { method: "POST", body: data, keepalive: true }).catch(() => {});
+      }
+    };
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") sendProgress();
+    });
+    window.addEventListener("pagehide", sendProgress);
+
+    const resumeIndex = parseInt(body.dataset.progressIndex || "", 10);
+    if (Number.isInteger(resumeIndex) && resumeIndex >= 2 && blocks[resumeIndex]) {
+      window.addEventListener("load", () => {
+        const target = blocks[resumeIndex];
+        target.classList.add("is-resume");
+        target.scrollIntoView({ block: "start" });
+        showToast("Resumed");
+      });
+    }
+  };
+
+  const showToast = (text) => {
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.setAttribute("role", "status");
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(() => el.classList.add("is-hidden"), 5000);
+    setTimeout(() => el.remove(), 5600);
+  };
+
   const toast = document.querySelector(".toast");
   if (toast) {
     if (window.history && window.history.replaceState) {
@@ -165,6 +223,7 @@
 
   initThemeToggle();
   initSwipeToDelete();
+  initReadingProgress();
   registerWorker();
   syncHome();
 })();

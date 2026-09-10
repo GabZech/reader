@@ -35,6 +35,7 @@ from app.db import (
     lists_for_home_edit,
     mark_item_read,
     mark_item_seen,
+    set_item_progress,
     move_list,
     rename_list,
     set_list_on_home,
@@ -940,12 +941,17 @@ async def source_window_submit(request: Request, source_id: str):
     return RedirectResponse(f"/sources/{source_id}?flash=Saved", status_code=303)
 
 
-def _item_context_query(from_source: str | None, from_list: str | None) -> str:
+def _item_context_query(
+    from_source: str | None, from_list: str | None, from_home: str | None = None
+) -> str:
+    params: dict[str, str] = {}
     if from_source:
-        return f"?{urlencode({'from_source': from_source})}"
-    if from_list:
-        return f"?{urlencode({'from_list': from_list})}"
-    return ""
+        params["from_source"] = from_source
+    elif from_list:
+        params["from_list"] = from_list
+    if from_home:
+        params["from_home"] = from_home
+    return f"?{urlencode(params)}" if params else ""
 
 
 @app.get("/items/{item_id}")
@@ -954,6 +960,7 @@ def item_page(
     item_id: int,
     from_source: str | None = None,
     from_list: str | None = None,
+    from_home: str | None = None,
 ):
     conn = connect()
     try:
@@ -969,11 +976,13 @@ def item_page(
         raise HTTPException(status_code=404)
     if from_source and item["source_id"] == from_source:
         back = f"/sources/{from_source}/items"
+    elif from_home:
+        back = "/"
     elif from_list:
         back = f"/lists/{from_list}"
     else:
         back = "/"
-    context_query = _item_context_query(from_source, from_list)
+    context_query = _item_context_query(from_source, from_list, from_home)
     return templates.TemplateResponse(
         request,
         "item.html",
@@ -985,6 +994,7 @@ def item_page(
             "later_action": f"/items/{item_id}/later{context_query}",
             "archive_action": f"/items/{item_id}/archive{context_query}",
             "delete_action": f"/items/{item_id}/delete{context_query}",
+            "progress_action": f"/items/{item_id}/progress",
             "mark_read_action": (
                 f"/items/{item_id}/read{context_query}"
                 if from_list and from_list != "later"
@@ -994,11 +1004,32 @@ def item_page(
     )
 
 
+@app.post("/items/{item_id}/progress")
+async def item_save_progress(item_id: int, request: Request):
+    form = await request.form()
+    try:
+        index = int(str(form.get("index") or ""))
+    except ValueError:
+        raise HTTPException(status_code=400)
+    conn = connect()
+    try:
+        init_db(conn)
+        item = get_item(conn, item_id)
+        if item is None:
+            raise HTTPException(status_code=404)
+        set_item_progress(conn, item_id, index)
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True}
+
+
 @app.post("/items/{item_id}/later")
 def item_add_later(
     item_id: int,
     from_source: str | None = None,
     from_list: str | None = None,
+    from_home: str | None = None,
 ):
     conn = connect()
     try:
@@ -1011,7 +1042,7 @@ def item_add_later(
     finally:
         conn.close()
     return RedirectResponse(
-        f"/items/{item_id}{_item_context_query(from_source, from_list)}",
+        f"/items/{item_id}{_item_context_query(from_source, from_list, from_home)}",
         status_code=303,
     )
 
