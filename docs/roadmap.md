@@ -11,8 +11,9 @@
 - Manage lists and Manage sources are fully built (ticks below); newsletter auto-detection is confirmed working against a real subscribed newsletter through the live isolated mailbox
 - Recent polish: the isolated mailbox's address now shows in Settings so a newsletter can actually be subscribed to it, and tapping a source opens its item list directly, with Settings moved behind a link from there
 - Read Later's first line is live: a Read later button on any item, a desktop bookmarklet, and an iPhone Shortcut all send a page in, fetching and cleaning outside pages (not just subscribed sources) with trafilatura
-- Read Later now splits into Library and Archive, with an Archive button and a permanent Delete on the article page. Every other list (News, Favourite channels, and any custom list) got the equivalent Unread/Read split with a Mark as read action, plus automatic seen tracking that bolds an item's row until it is first opened
-- Reopening a partly-read article resumes at the paragraph you left off at (highlighted, scrolled into view), on any list, not just Read later. The article page's Close header now stays pinned while scrolling
+- Read Later now splits into Library and Archive, with an Archive button on the article page. Every other list (News, Favourite channels, and any custom list) got the equivalent Unread/Read split with a Mark as read action, plus automatic seen tracking that bolds an item's row until it is first opened
+- Reopening a partly-read article resumes at the paragraph you left off at (highlighted, scrolled into view), on any list, not just Read later. The article page's Close header now stays pinned while scrolling, and always returns to wherever the article was opened from, Home included
+- Delete on the article page is no longer Read Later-only: it is on every article regardless of which list or source it was opened from, styled the same everywhere (Archive, Read Later's own action, keeps its own separate card above it)
 
 **⚠️ Open:**
 
