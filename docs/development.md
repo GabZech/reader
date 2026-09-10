@@ -43,10 +43,11 @@ macOS or Linux: `lsof -ti :8000 | xargs kill`
 ## Test
 
 ```text
+uv run ruff check
 uv run pytest
 ```
 
-That is the check continuous integration runs (`.github/workflows/test.yml`).
+That is what continuous integration runs (`.github/workflows/test.yml`), lint then tests. `pytest` and `ruff` are dev-only dependencies; the deployed image does not install them.
 
 ## Local config
 

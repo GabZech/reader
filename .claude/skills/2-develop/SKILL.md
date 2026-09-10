@@ -17,14 +17,14 @@ Client-facing voice follows the **questioning** skill.
 
 - Foundation is accepted
 - Any product change: feature, fix, UI tweak, chore
-- Once per chat, read `docs/roadmap.md` "Where we are" before the first change
+- `AGENTS.md`'s start protocol has run this session: git and live state seen, `PROGRESS.md` read, `docs/roadmap.md` "Where we are" read once per chat
 
 ## Artifacts
 
 - Working software, merged to main and live
 - Living docs, updated only where this change made them wrong
-- `docs/roadmap.md`: "Where we are", and the ticked line under "What's next"
-- `docs/history/decisions/`: a decision record, only when the choice is expensive to undo
+- `docs/roadmap.md`: the ticked line under "What's next", always; the "Where we are" Summary only when the product's overall state changes, never one bullet per change
+- `docs/decisions.md`: a dated entry, only when the choice is expensive to undo
 
 ## The loop
 
@@ -34,7 +34,7 @@ Restate the change in a sentence or two. Name its kinds; a change can carry seve
 
 ### 2. Shape
 
-Before any code, one message: what will change, what could break, how it will be verified. Small: say it and keep going. Not small: stop for one confirm. No plan file.
+Before any code, one message: what will change, what could break, how it will be verified, and what it will leave alone. Small: say it and keep going. Not small: stop for one confirm. No plan file.
 
 ### 3. Preview
 
@@ -55,11 +55,15 @@ Once told to deploy: trigger the deploy per `docs/operations.md` (a local `flyct
 - Two rounds of fixes that do not land mean the approach is wrong, not the details: back to Shape
 - "Scrap this" is a clean outcome: delete the branch, redeploy main
 
+### Pause
+
+Leaving mid-change, before Ship: commit what is checked on the branch, update `PROGRESS.md`'s in-flight section (the change, its kinds, the branch, what Shape agreed including what it leaves alone, feedback rounds so far, the next step), and say what is currently live. The next session resumes from that file instead of the conversation.
+
 ### 6. Ship
 
 On the branch, once the client has signed off live: check the docs. Tick the roadmap line, update whichever living doc this change made wrong, and write a convention or a decision record if this change produced one. Run this check every time, even when nothing ends up changing; say so rather than skipping it silently. Commit doc changes with or before the last code commit on the branch, never after the merge.
 
-Merge to main, push, then redeploy from main. One live host holds the real library, so the turn is not closed until what is live is main again; the same redeploy clears an abandoned branch.
+Merge to main, push, then redeploy from main. One live host holds the real library, so the turn is not closed until what is live is main again; the same redeploy clears an abandoned branch. Then the rest of the clean-state checklist: clear `PROGRESS.md` back to its empty template, empty `preview/`, free port 8000, and confirm live equals main with `bash init.sh --quick`.
 
 Recommend `/clear` (a fresh chat without leaving the terminal), or `/compact` if context has grown but continuity still matters.
 

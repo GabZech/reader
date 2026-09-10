@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from email.message import EmailMessage
 
-import app.mail as mail
+from app import mail
 from app.db import (
     all_sources,
     connect,

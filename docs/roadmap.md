@@ -6,14 +6,9 @@
 
 **📄 Summary:**
 
-- Discovery and Foundation are accepted: architecture, development, operations, and UI guidelines are in place, and a walking skeleton runs on a live Fly URL
-- Feature work now runs the change loop (`.cursor/skills/2-develop/`): one change at a time, previewed when it is visual, tried on the live app, then merged and shipped. Changes can come from any epic in any order; the epics below group the work, they do not gate it
-- Manage lists and Manage sources are fully built (ticks below); newsletter auto-detection is confirmed working against a real subscribed newsletter through the live isolated mailbox
-- Recent polish: the isolated mailbox's address now shows in Settings so a newsletter can actually be subscribed to it, and tapping a source opens its item list directly, with Settings moved behind a link from there
-- Read Later's first line is live: a Read later button on any item, a desktop bookmarklet, and an iPhone Shortcut all send a page in, fetching and cleaning outside pages (not just subscribed sources) with trafilatura
-- Read Later now splits into Library and Archive, with an Archive button on the article page. Every other list (News, Favourite channels, and any custom list) got the equivalent Unread/Read split with a Mark as read action, plus automatic seen tracking that bolds an item's row until it is first opened
-- Reopening a partly-read article resumes at the paragraph you left off at (highlighted, scrolled into view), on any list, not just Read later. The article page's Close header now stays pinned while scrolling, and always returns to wherever the article was opened from, Home included
-- Delete on the article page is no longer Read Later-only: it is on every article regardless of which list or source it was opened from, styled the same everywhere (Archive, Read Later's own action, keeps its own separate card above it)
+- Discovery and Foundation are accepted, and feature work runs the change loop (`.claude/skills/2-develop/`): one change at a time from any epic, previewed when visual, tried on the live app, then merged and shipped
+- Manage Lists, Manage Sources, and Read Later's core line (send in, library/archive, resume, delete) are fully built; every list carries Unread/Read with automatic seen tracking
+- Newsletters land from the isolated mailbox and RSS, blog, and YouTube sources all work end to end on the live host
 
 **⚠️ Open:**
 
@@ -83,9 +78,11 @@ Last in the MVP: it needs a full built app to restyle.
 
 ## Concluded
 
-- ✅ **Kickoff:** [proposition](vision/proposition.md), [metrics](vision/metrics.md); session log under [history/discovery/01-kickoff](history/discovery/01-kickoff/)
-- ✅ **Understand:** [personas](vision/personas.md), [journeys](vision/journeys.md), [constraints](vision/constraints.md); session log under [history/discovery/02-understand](history/discovery/02-understand/)
-- ✅ **Scope:** [epics](vision/epics.md); session log under [history/discovery/03-scope](history/discovery/03-scope/)
-- ✅ **Mockup:** [mockup](history/discovery/04-mockup/mockup.md); session log under [history/discovery/04-mockup](history/discovery/04-mockup/)
-- ✅ **Foundation:** [architecture](architecture.md), [development](development.md), [operations](operations.md), [UI guidelines](ui-guidelines.md); session log under [history/discovery/05-foundation](history/discovery/05-foundation/)
-- ✅ **Epic workflow:** replaced by the change loop; working files frozen under [history/epics](history/epics/)
+- ✅ **Kickoff:** [proposition](vision/proposition.md), [metrics](vision/metrics.md)
+- ✅ **Understand:** [personas](vision/personas.md), [journeys](vision/journeys.md), [constraints](vision/constraints.md)
+- ✅ **Scope:** [epics](vision/epics.md)
+- ✅ **Mockup:** [mockup pointer](mockup/README.md)
+- ✅ **Foundation:** [architecture](architecture.md), [development](development.md), [operations](operations.md), [UI guidelines](ui-guidelines.md)
+- ✅ **Epic workflow:** replaced by the change loop; see [decisions](decisions.md) 2026-08-28
+
+Session logs for these phases, and the epic-workflow working files, are frozen at git tag `archive/history-2026-09` (was `docs/history/`; collapsed per [decisions](decisions.md) 2026-09-10).

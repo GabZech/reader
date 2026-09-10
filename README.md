@@ -11,9 +11,6 @@ The product is built for a solo reader who wants full ownership of their corpus,
 Left alone, an agent will start coding before either side understands the product. Discovery and foundation run once: agree what matters, design the system, and hang a walking skeleton. After that, feature work is a loop, one change at a time, driven from chat.
 
 Each change goes through the same six steps. Frame names what the change is and what kind it is, because the kind decides what has to happen before code: a change to what you see needs a mockup, a bug needs a test that reproduces it, a change to the library needs a backup. Shape states what will change and how it will be verified, briefly for something small and with a proper plan for something that is not. Preview settles the look on a screenshot before product code exists. Build writes the failing test first and then the code. Try puts the change on the live app so you judge it running, not on a report. Ship merges it, puts the live app back on the main branch, and brings the living docs and roadmap up to date. A change can come from any part of the product: the roadmap groups work by epic, but nothing has to wait for an epic to finish.
-
-For discovery and foundation, see the [template workflow overview](https://github.com/GabZech/template-spec-workflow#workflow-overview). Feature work in this repo is that change loop, not that template’s SPEC stairs.
-
 ## Docs
 
 The `docs/` folder is split by the kind of question you are asking. The list below is the front door; the [index](docs/README.md) has the rest.

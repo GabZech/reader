@@ -11,8 +11,13 @@ dependencies = [
     "httpx==0.28.1",
     "feedparser==6.0.11",
     "trafilatura==2.2.0",
-    "pytest==8.4.1",
 ]
 
 [tool.uv]
 package = false
+
+[dependency-groups]
+dev = [
+    "pytest==8.4.1",
+    "ruff==0.16.6",
+]

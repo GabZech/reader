@@ -2,7 +2,7 @@
 
 This folder is the living record of the product and how we work on it. Read it to see what has been agreed, not to hunt for filenames.
 
-**Where truth lives.** The running app and its tests are behaviour. The living files below are the current agreed picture. History under `docs/history/` is how we got here; do not update it to match later code. Feature work keeps no separate working record: the conversation is the plan, and these files plus git history are what survives it. Everything here follows the writing-docs skill.
+**Where truth lives.** The running app and its tests are behaviour. The living files below are the current agreed picture. [Decisions](decisions.md) records choices that are expensive to undo. Feature work keeps no separate working record: the conversation is the plan, and these files plus git history are what survives it. Everything here follows the writing-docs skill.
 
 ## Vision
 
@@ -14,6 +14,7 @@ These files settle who the product is for and what it must do, before a stack is
 - **[Journeys](vision/journeys.md).** The overall use cases those people already have, and what should change on each path.
 - **[Constraints](vision/constraints.md).** Cross-cutting limits that steer every later choice (devices, ownership, cost, freshness).
 - **[Epics](vision/epics.md).** Named capabilities, which belong in the MVP, and which wait. Progress against these is tracked in the roadmap, not here.
+- **[Obsidian export sample](vision/obsidian-export-example.md).** The settled markdown shape a highlighted article exports as: frontmatter, title, summary, highlights.
 
 ## Engagement
 

@@ -14,7 +14,7 @@ Local run is for development. The intended production path is this hosted app. M
 
 A push to `main` deploys automatically: a GitHub Actions job (`.github/workflows/test.yml`, `deploy`) runs after tests pass and pushes that commit live with `flyctl deploy --remote-only --ha=false`, using a `FLY_API_TOKEN` repository secret. This is what Ship's merge-and-redeploy relies on. It requires that secret to be set once in the repo's GitHub settings (Settings → Secrets and variables → Actions); without it the deploy job fails cleanly and the live app simply stays on its last successful deploy.
 
-Trying a branch on the live host before it is merged uses the same job on demand, without deploying every push: `gh workflow run test.yml --ref <branch>`. This is what Try's "once told to deploy" step relies on for a change built in a cloud session, which cannot reach Fly's remote builder directly (see below).
+Trying a branch on the live host before it is merged uses the same job on demand, without deploying every push. Locally, with `gh` installed and authenticated: `gh workflow run test.yml --ref <branch>`. In a cloud session `gh` is not installed; dispatch the same `workflow_dispatch` event on `test.yml` for that branch through the GitHub MCP server's workflow-trigger tool instead (verified 2026-09-10: `gh` is absent, the MCP tool is present and reaches this repo). This is what Try's "once told to deploy" step relies on for a change built in a cloud session, which cannot reach Fly's remote builder directly (see below).
 
 Deploying by hand (a machine that can reach Fly's remote builder directly) still works the same way: the image is built from the `Dockerfile` at the repo root, using Fly's remote builder; Docker Desktop is not required on the operator machine. The volume must stay attached so the library survives a new version. Deploy one machine only (`--ha=false`) so a spare copy is not created. A cloud agent session's own network cannot reach Fly's remote builder (its gRPC handshake fails through the sandbox's egress proxy), which is why the GitHub Actions job above exists.
 
@@ -27,8 +27,10 @@ First standup (already done for `reader-skeleton`):
 A later version of the same app, from the repo root:
 
 ```text
-flyctl deploy --remote-only --ha=false
+flyctl deploy --remote-only --ha=false --build-arg GIT_SHA=$(git rev-parse --short HEAD)
 ```
+
+`GIT_SHA` lands in the running container and comes back from `/health`, so a deploy from any path (hand or CI) can be confirmed against `git rev-parse --short HEAD` afterward.
 
 Do not allocate a dedicated IPv4. Shared IPv4 on fly.dev is enough.
 
@@ -79,3 +81,5 @@ One always-on shared-cpu 256 MB machine in São Paulo plus a 1 GB volume is abou
 After deploy: open [https://reader-skeleton.fly.dev/](https://reader-skeleton.fly.dev/), wait for Home to finish sync, confirm News shows feed items, then turn on airplane mode and open an item already seen. It should still read.
 
 Online part ran 2026-08-20 on the live URL: health returned ok, Home sync kept five demo RSS items (feed had 107), News listed those five, and an item page rendered. Phone walk the same day: an already seen item still read with airplane mode on.
+
+`/health` also reports the deployed commit (`{"ok": true, "sha": "<short sha>"}`, `"dev"` outside a built image), so "live is back on main" is a comparison, not an assumption: `init.sh` does that comparison automatically.

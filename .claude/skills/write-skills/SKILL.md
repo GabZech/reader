@@ -1,15 +1,13 @@
 ---
 name: write-skills
 description: >-
-  Author or edit project Agent Skills under .cursor/skills/ with succinct, non-redundant copy.
+  Author or edit project Agent Skills under .claude/skills/ with succinct, non-redundant copy.
   Use when creating, updating, or refactoring SKILL.md files or skill reference docs in this repo.
 ---
 
 # Write skills
 
-Conventions for skills in `.cursor/skills/`. Follow these when adding or changing a skill.
-
-For **project-agnostic phase skills and question banks**, follow the engagement sequence in the **create-phase-skill** skill (`.cursor/skills/create-phase-skill/SKILL.md`) before applying the craft rules below.
+Conventions for skills in `.claude/skills/`. Follow these when adding or changing a skill.
 
 ## Hard rules
 

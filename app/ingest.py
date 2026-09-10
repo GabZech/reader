@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import UTC
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urljoin, urlparse
@@ -104,20 +105,20 @@ BLOCK_TAGS = {"p", "h2", "h3", "li", "blockquote", "pre", "ul", "ol"}
 # Newsletter headlines are frequently bolded via an inline style rather than
 # a <strong>/<b> tag (e.g. a <span style="font-weight:700"> or a styled
 # <a>), which the old sanitizer dropped along with every other attribute.
-_BOLD_STYLE_RE = re.compile(r"font-weight\s*:\s*(bold|[6-9]00)", re.I)
+_BOLD_STYLE_RE = re.compile(r"font-weight\s*:\s*(bold|[6-9]00)", re.IGNORECASE)
 
 # Section headers in table-based email layouts are centered via the
 # deprecated `align="center"` attribute (old-school email HTML) or a
 # `text-align:center` style, on a wrapper that gets dropped along with every
 # other attribute - losing the centering along with it.
-_CENTER_STYLE_RE = re.compile(r"text-align\s*:\s*center", re.I)
+_CENTER_STYLE_RE = re.compile(r"text-align\s*:\s*center", re.IGNORECASE)
 
 # Newsletters commonly hide an inbox-preview sentence ("preheader" text) off
 # screen with one of these, meant to never actually render. Dropping the
 # style attribute without noticing this used to leave that sentence as a
 # stray, visible, out-of-place paragraph.
 _HIDDEN_STYLE_RE = re.compile(
-    r"display\s*:\s*none|visibility\s*:\s*hidden|mso-hide\s*:\s*all", re.I
+    r"display\s*:\s*none|visibility\s*:\s*hidden|mso-hide\s*:\s*all", re.IGNORECASE
 )
 
 # Void elements never get a real closing tag in source, so a starttag call
@@ -283,9 +284,8 @@ class _Sanitizer(HTMLParser):
         canonical = TAG_ALIASES.get(tag, tag)
         if self._bold_wraps and self._bold_wraps.pop():
             self._emit("</strong>")
-        if self._center_pushes and self._center_pushes.pop():
-            if self._center_scopes:
-                self._center_scopes.pop()
+        if self._center_pushes and self._center_pushes.pop() and self._center_scopes:
+            self._center_scopes.pop()
 
         if canonical in self._block_boundary_tags:
             self._flush_loose()
@@ -506,7 +506,7 @@ def normalize_user_url(raw: str) -> str | None:
     text = raw.strip()
     if not text:
         return None
-    if not re.match(r"^https?://", text, re.I):
+    if not re.match(r"^https?://", text, re.IGNORECASE):
         text = "https://" + text
     parsed = urlparse(text)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
@@ -538,8 +538,7 @@ def discover_feed(url: str) -> DiscoveredFeed | None:
             )
         if first:
             first = False
-            for href in _feed_links(body, final_url):
-                candidates.append(href)
+            candidates.extend(_feed_links(body, final_url))
             origin = f"{urlparse(final_url).scheme}://{urlparse(final_url).netloc}"
             for path in COMMON_FEED_PATHS:
                 candidates.append(urljoin(origin, path))
@@ -573,7 +572,7 @@ def _feed_links(html: str, base_url: str) -> list[str]:
     try:
         parser.feed(html)
         parser.close()
-    except Exception:
+    except Exception:  # noqa: BLE001 - arbitrary page HTML, any parse failure means no links
         return []
     return [urljoin(base_url, href) for href in parser.hrefs]
 
@@ -582,10 +581,10 @@ def _entry_published(entry: Any) -> str | None:
     parsed = entry.get("published_parsed") or entry.get("updated_parsed")
     if not parsed:
         return None
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     try:
-        stamp = datetime(*parsed[:6], tzinfo=timezone.utc)
+        stamp = datetime(*parsed[:6], tzinfo=UTC)
     except (TypeError, ValueError):
         return None
     return stamp.isoformat()

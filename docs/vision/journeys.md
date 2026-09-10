@@ -82,7 +82,7 @@ The lists in the picture now are **News**, **Read later**, and **Favourite chann
 4. Do nothing else in the reading app. Readwise syncs in the background.
 5. The next time Obsidian is opened, the note is in the vault.
 
-**Outcome:** A markdown note matching the settled export format: YAML frontmatter (`author`, `published_date`, `source`, `last_highlighted_date`), title, summary, and highlights. Sample: [export-example-obsidian.md](../history/discovery/02-understand/export-example-obsidian.md).
+**Outcome:** A markdown note matching the settled export format: YAML frontmatter (`author`, `published_date`, `source`, `last_highlighted_date`), title, summary, and highlights. Sample: [export-example-obsidian.md](obsidian-export-example.md).
 
 **Costly edges:** The export pipe itself is considered fine. The awkward part is assigning section titles while highlighting (note-on-highlight workaround). Highlighting currently requires the Read later round-trip.
 

@@ -5,5 +5,17 @@
       "Bash(flyctl deploy *)",
       "Bash(gh workflow run *)"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/init.sh\" --quick"
+          }
+        ]
+      }
+    ]
   }
 }

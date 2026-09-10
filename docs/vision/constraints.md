@@ -8,7 +8,7 @@ Hard limits are fixed for this product direction until explicitly reopened. Soft
 
 - **Solo.** One person’s tool. Not shared, not multi-user.
 - **Ownership.** Ingested content and highlights live in client-controlled, exportable formats.
-- **Vault format.** Obsidian export matches the settled sample: YAML frontmatter (`author`, `published_date`, `source`, `last_highlighted_date`), title, summary, highlights, and `###` section headings. See [export-example-obsidian.md](../history/discovery/02-understand/export-example-obsidian.md).
+- **Vault format.** Obsidian export matches the settled sample: YAML frontmatter (`author`, `published_date`, `source`, `last_highlighted_date`), title, summary, highlights, and `###` section headings. See [export-example-obsidian.md](obsidian-export-example.md).
 - **Morning freshness.** On opening the app with a connection, newsletters the source has already sent must be in the News list after a typical-morning incremental sync (target under 5 seconds, 10 seconds ceiling), then remain readable if the connection drops. First sync and a large backlog may take longer. An overnight fetch while the app is closed is not required. Amended in Foundation (2026-08-20).
 - **Devices.** Phone for the morning News pass, usually on home Wi-Fi unless the reader is not at home. Other reading, including Read later, is mostly on the phone and sometimes on the computer. Computer is primary only for Favourite channels.
 - **Cost.** About $5 USD/month preferred. $10 USD/month is the hard ceiling. That total includes hosting, ingestion, storage, and any store or developer fees.

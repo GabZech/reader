@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.db import (
@@ -51,7 +51,7 @@ def test_ingest_xml_stores_news_items(tmp_path):
     assert result["kept"] == 2
     assert result["feed_total"] == 2
     items = items_for_list(
-        conn, "news", now=datetime(2026, 8, 20, 12, tzinfo=timezone.utc)
+        conn, "news", now=datetime(2026, 8, 20, 12, tzinfo=UTC)
     )
     assert [row["title"] for row in items] == [
         "First fixture item",
@@ -89,14 +89,14 @@ def test_ingest_xml_keeps_only_latest_five_when_limited(tmp_path):
     titles = [
         row["title"]
         for row in items_for_list(
-            conn, "news", now=datetime(2026, 8, 20, 12, tzinfo=timezone.utc)
+            conn, "news", now=datetime(2026, 8, 20, 12, tzinfo=UTC)
         )
     ]
     assert titles == ["Item 7", "Item 6", "Item 5", "Item 4", "Item 3"]
 
 
 def test_item_in_window_day_and_week():
-    now = datetime(2026, 8, 20, 12, tzinfo=timezone.utc)
+    now = datetime(2026, 8, 20, 12, tzinfo=UTC)
     assert item_in_window("day", "2026-08-20T08:00:00+00:00", now)
     assert not item_in_window("day", "2026-08-19T08:00:00+00:00", now)
     assert item_in_window("week", "2026-08-14T08:00:00+00:00", now)
@@ -105,7 +105,7 @@ def test_item_in_window_day_and_week():
 
 
 def test_format_when_today_and_date():
-    now = datetime(2026, 8, 20, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)
     assert format_when("2026-08-20T08:00:00+00:00", now) == "Today"
     assert format_when("2026-08-19T08:00:00+00:00", now) == "Yesterday"
     assert format_when("2026-08-17T08:00:00+00:00", now) == "17/08/26"

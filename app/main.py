@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-
 from urllib.parse import urlencode
 
 import httpx
@@ -11,17 +10,20 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.config import database_path, mail_imap_config
+from app.config import database_path, git_sha, mail_imap_config
 from app.db import (
     add_item_to_list,
     add_source_to_list,
     all_lists,
     all_sources,
     archive_item_in_list,
+    clear_source_notice,
     connect,
     count_for_list,
+    delete_item,
+    delete_list,
+    delete_source,
     find_list_by_name,
-    clear_source_notice,
     find_source_by_feed_url,
     format_when,
     get_item,
@@ -32,23 +34,20 @@ from app.db import (
     insert_list,
     insert_source,
     is_item_in_list,
-    lists_for_home_edit,
-    mark_item_read,
-    mark_item_seen,
-    set_item_progress,
-    move_list,
-    rename_list,
-    set_list_on_home,
-    delete_item,
-    delete_list,
-    delete_source,
     items_for_list,
     items_for_source,
+    lists_for_home_edit,
     lists_with_items,
+    mark_item_read,
+    mark_item_seen,
     membership_label,
+    move_list,
     reading_length,
     remove_source_from_list,
+    rename_list,
     rename_source,
+    set_item_progress,
+    set_list_on_home,
     source_byline,
     source_id_for,
     source_memberships,
@@ -1179,7 +1178,7 @@ def manifest():
 @app.get("/health")
 def health():
     database_path()
-    return {"ok": True}
+    return {"ok": True, "sha": git_sha()}
 
 
 @app.get("/favicon.ico")
@@ -1336,7 +1335,7 @@ def _commit_source(
             add_source_to_list(conn, source_id, list_slug, window)
         ingest_url(conn, feed_url, source_id, limit=backfill)
         conn.commit()
-    except Exception:
+    except Exception:  # noqa: BLE001 - any add-source failure reports NO_FEED, not a 500
         conn.rollback()
         return add_source(request, error=NO_FEED, url=feed_url)
     finally:
