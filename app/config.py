@@ -30,6 +30,10 @@ def database_path() -> Path:
     return path
 
 
+def git_sha() -> str:
+    return os.environ.get("GIT_SHA", "dev")
+
+
 def mail_imap_config() -> tuple[str, str, str] | None:
     host = os.environ.get("MAIL_IMAP_HOST")
     user = os.environ.get("MAIL_IMAP_USER")

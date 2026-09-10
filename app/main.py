@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.config import database_path, mail_imap_config
+from app.config import database_path, git_sha, mail_imap_config
 from app.db import (
     add_item_to_list,
     add_source_to_list,
@@ -1178,7 +1178,7 @@ def manifest():
 @app.get("/health")
 def health():
     database_path()
-    return {"ok": True}
+    return {"ok": True, "sha": git_sha()}
 
 
 @app.get("/favicon.ico")

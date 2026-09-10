@@ -27,8 +27,10 @@ First standup (already done for `reader-skeleton`):
 A later version of the same app, from the repo root:
 
 ```text
-flyctl deploy --remote-only --ha=false
+flyctl deploy --remote-only --ha=false --build-arg GIT_SHA=$(git rev-parse --short HEAD)
 ```
+
+`GIT_SHA` lands in the running container and comes back from `/health`, so a deploy from any path (hand or CI) can be confirmed against `git rev-parse --short HEAD` afterward.
 
 Do not allocate a dedicated IPv4. Shared IPv4 on fly.dev is enough.
 
@@ -79,3 +81,5 @@ One always-on shared-cpu 256 MB machine in São Paulo plus a 1 GB volume is abou
 After deploy: open [https://reader-skeleton.fly.dev/](https://reader-skeleton.fly.dev/), wait for Home to finish sync, confirm News shows feed items, then turn on airplane mode and open an item already seen. It should still read.
 
 Online part ran 2026-08-20 on the live URL: health returned ok, Home sync kept five demo RSS items (feed had 107), News listed those five, and an item page rendered. Phone walk the same day: an already seen item still read with airplane mode on.
+
+`/health` also reports the deployed commit (`{"ok": true, "sha": "<short sha>"}`, `"dev"` outside a built image), so "live is back on main" is a comparison, not an assumption: `init.sh` does that comparison automatically.

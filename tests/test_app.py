@@ -53,6 +53,19 @@ def _client(monkeypatch, tmp_path):
     return TestClient(app)
 
 
+def test_health_reports_ok_and_sha(monkeypatch, tmp_path):
+    monkeypatch.setenv("GIT_SHA", "abc1234")
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.get("/health")
+        assert response.json() == {"ok": True, "sha": "abc1234"}
+
+
+def test_health_sha_defaults_to_dev(monkeypatch, tmp_path):
+    monkeypatch.delenv("GIT_SHA", raising=False)
+    with _client(monkeypatch, tmp_path) as client:
+        assert client.get("/health").json()["sha"] == "dev"
+
+
 def _add_to_news(client: TestClient, url: str, window: str = "week", backfill: str = "all"):
     added = client.post("/sources/add", data={"url": url})
     assert added.status_code == 200
