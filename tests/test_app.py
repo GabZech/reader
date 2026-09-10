@@ -1095,3 +1095,38 @@ def test_delete_captured_item_clears_its_direct_list_membership(monkeypatch, tmp
 
         missing = client.get(f"/items/{item_id}")
         assert missing.status_code == 404
+
+
+def test_saving_progress_persists_and_resumes_on_reopen(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+
+        saved = client.post(f"/items/{item_id}/progress", data={"index": "4"})
+        assert saved.status_code == 200
+
+        page = client.get(f"/items/{item_id}")
+        assert page.status_code == 200
+        assert 'data-progress-index="4"' in page.text
+
+
+def test_saving_progress_unknown_item_is_404(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        missing = client.post("/items/999999/progress", data={"index": "1"})
+        assert missing.status_code == 404
+
+
+def test_saving_progress_rejects_a_non_integer_index(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        bad = client.post(f"/items/{item_id}/progress", data={"index": "nope"})
+        assert bad.status_code == 400
+
+
+def test_item_page_has_no_progress_index_when_never_read(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        page = client.get(f"/items/{item_id}")
+        assert "data-progress-index" not in page.text

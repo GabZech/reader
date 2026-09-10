@@ -104,6 +104,8 @@ def init_db(conn: sqlite3.Connection) -> None:
     items_columns = {row["name"] for row in conn.execute("PRAGMA table_info(items)")}
     if "seen_at" not in items_columns:
         conn.execute("ALTER TABLE items ADD COLUMN seen_at TEXT")
+    if "progress_index" not in items_columns:
+        conn.execute("ALTER TABLE items ADD COLUMN progress_index INTEGER")
     if not lists_table_existed:
         for slug, name, position in LISTS:
             conn.execute(
@@ -365,6 +367,13 @@ def mark_item_seen(conn: sqlite3.Connection, item_id: int) -> None:
     conn.execute(
         "UPDATE items SET seen_at = COALESCE(seen_at, ?) WHERE id = ?",
         (datetime.now(timezone.utc).isoformat(), item_id),
+    )
+
+
+def set_item_progress(conn: sqlite3.Connection, item_id: int, progress_index: int) -> None:
+    conn.execute(
+        "UPDATE items SET progress_index = ? WHERE id = ?",
+        (progress_index, item_id),
     )
 
 

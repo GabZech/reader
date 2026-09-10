@@ -35,6 +35,7 @@ from app.db import (
     lists_for_home_edit,
     mark_item_read,
     mark_item_seen,
+    set_item_progress,
     move_list,
     rename_list,
     set_list_on_home,
@@ -985,6 +986,7 @@ def item_page(
             "later_action": f"/items/{item_id}/later{context_query}",
             "archive_action": f"/items/{item_id}/archive{context_query}",
             "delete_action": f"/items/{item_id}/delete{context_query}",
+            "progress_action": f"/items/{item_id}/progress",
             "mark_read_action": (
                 f"/items/{item_id}/read{context_query}"
                 if from_list and from_list != "later"
@@ -992,6 +994,26 @@ def item_page(
             ),
         },
     )
+
+
+@app.post("/items/{item_id}/progress")
+async def item_save_progress(item_id: int, request: Request):
+    form = await request.form()
+    try:
+        index = int(str(form.get("index") or ""))
+    except ValueError:
+        raise HTTPException(status_code=400)
+    conn = connect()
+    try:
+        init_db(conn)
+        item = get_item(conn, item_id)
+        if item is None:
+            raise HTTPException(status_code=404)
+        set_item_progress(conn, item_id, index)
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True}
 
 
 @app.post("/items/{item_id}/later")
