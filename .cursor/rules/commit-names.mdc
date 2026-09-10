@@ -1,6 +1,6 @@
 ---
 description: Commit subject format - action scope, colon, then description
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Commit names

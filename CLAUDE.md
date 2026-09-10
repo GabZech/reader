@@ -3,9 +3,12 @@
 Before starting any task, read the full contents of each file listed below (e.g. via the Read tool) — do not rely on these references being expanded automatically.
 
 See:
-@.cursor/rules/commit-names.mdc
 @.cursor/rules/engagement.mdc
 @.cursor/rules/chats.mdc
+
+## Committing
+
+Before creating a git commit, read the full contents of `.cursor/rules/commit-names.mdc` and follow its subject-line format.
 
 ## Following skills
 
