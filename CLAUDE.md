@@ -1,21 +1,5 @@
-# Project Rules
+# Claude Code adapter
 
-Before starting any task, read the full contents of each file listed below (e.g. via the Read tool) — do not rely on these references being expanded automatically.
+@AGENTS.md
 
-See:
-@.cursor/rules/engagement.mdc
-@.cursor/rules/chats.mdc
-
-## Committing
-
-Before creating a git commit, read the full contents of `.cursor/rules/commits.mdc` and follow it.
-
-## Following skills
-
-`.cursor/skills/` holds this project's own skill files, written for a tool (Cursor) that auto-triggers them by description — Claude Code does not know about them and will not surface them on its own.
-
-Before starting any product change (feature, fix, UI tweak, chore), check `.cursor/skills/` for a matching workflow skill (e.g. `2-develop`) and follow it — do not rely on it surfacing automatically.
-
-## Editing skills
-
-Before creating, editing, or refactoring any file under `.cursor/skills/` (a `SKILL.md` or a linked reference doc), read `.cursor/skills/write-skills/SKILL.md` in full first and follow it.
+If the block above is not the actual contents of `AGENTS.md`, its `@` import did not expand: read `AGENTS.md` in full (e.g. via the Read tool) before any task, and do not rely on this import expanding automatically.
