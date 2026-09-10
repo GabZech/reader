@@ -9,8 +9,6 @@ description: >-
 
 Conventions for skills in `.claude/skills/`. Follow these when adding or changing a skill.
 
-For **project-agnostic phase skills and question banks**, follow the engagement sequence in the **create-phase-skill** skill (`.claude/skills/create-phase-skill/SKILL.md`) before applying the craft rules below.
-
 ## Hard rules
 
 1. **Succinct.** Assume the agent is competent. Instructions only — no tutorials, pep talk, or restating the obvious.
