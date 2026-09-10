@@ -16,7 +16,7 @@ Reader is a personal reading hub for one person. A single hosted web app holds t
 
 1. **Web app.** Serves Home, Lists, Sources, list views, and item reading. Copies the accepted dummy look.
 2. **SQLite file.** The library on the host. Copied off for backup and for a later move to another machine. A source can belong to several lists at once: membership lives in a `source_lists` table, which also carries the recency window for that source on that list. A single item can also belong to a list directly (`item_lists`), for Read later, regardless of its source; direct membership never expires by recency.
-3. **Ingest on sync.** On open (when online): poll RSS/Atom and public YouTube channel feeds; later, read new mail from the isolated newsletter mailbox. Incremental sync aims to stay under 5 seconds on a typical morning (10 second ceiling). First sync and a large backlog may take longer. Linked-article cleanup waits until an item is opened. Newsletter bodies come with the mail, once mail is wired.
+3. **Ingest on sync.** On open (when online): poll RSS/Atom and public YouTube channel feeds, and read new mail from the isolated newsletter mailbox. Incremental sync aims to stay under 5 seconds on a typical morning (10 second ceiling); not yet separately measured. First sync and a large backlog may take longer. Linked-article cleanup on open still waits (only captured Read later pages are cleaned today). Newsletter bodies come with the mail.
 4. **Device cache.** A PWA (installable site with an offline cache) keeps already fetched News and Read later pages on the phone or computer.
 5. **Vault files (later).** Markdown in a folder the Obsidian vault can open. Not a highlight-sync vendor. Not in the walking skeleton.
 
@@ -36,7 +36,7 @@ Data moves: browser opens the app → if online, the app syncs inbound sources i
 
 - **RSS/Atom:** HTTP GET of the feed URL. We poll; there is no third-party feed service.
 - **YouTube:** public channel feed for list items. Watching inside the app waits.
-- **Newsletters:** the reader signs up from a dedicated alias, then forwards that mail to a separate mailbox used only for this app. The app holds credentials for that isolated mailbox only, never the personal mailbox. Mechanism: IMAP on sync. Live credentials wait for Add a Source to a List. Without a domain, mail cannot land on a host we control.
+- **Newsletters:** the reader signs up from a dedicated alias, then forwards that mail to a separate mailbox used only for this app. The app holds credentials for that isolated mailbox only, never the personal mailbox. Mechanism: IMAP on sync. Without a domain, mail cannot land on a host we control.
 - **Obsidian:** markdown files, later. Manual, or when the vault is opened.
 
 Secrets stay out of the repo.
@@ -45,4 +45,4 @@ Secrets stay out of the repo.
 
 **Proved (this slice):** the shell (Home, Lists, Sources), SQLite, a public RSS fetch on sync that keeps only the latest five items from the demo feed, item reading, PWA cache registration, tests, local run, and the hosted path. The walking skeleton is live on Fly.io at [https://reader-skeleton.fly.dev/](https://reader-skeleton.fly.dev/): one always-on 256 MB machine in São Paulo (gru), 1 GB volume for the library file, HTTPS on the fly.dev URL. Online smoke: Home sync kept five demo items, News listed them, and an item page rendered. Phone smoke: the live URL opened, an already seen item still read with airplane mode on.
 
-**Still to stand up in the first feature and after:** isolated-mailbox IMAP; adding a source to a list; article cleanup on open for linked pages (the demo RSS often ships a teaser, not the full page); vault markdown; list edit, home edit, highlighting, and the rest of MVP behaviour. The lasting GitHub repo name, Fly URL, and home-screen logo wait until that MVP is about to go on the phone; until then the host stays `reader-skeleton` and the install icon stays the skeleton SVG.
+**Still to stand up:** article cleanup on open for linked pages (the demo RSS often ships a teaser, not the full page; only captured Read later pages are cleaned today); vault markdown; highlighting; the remaining MVP behaviour in `docs/roadmap.md`. The lasting GitHub repo name, Fly URL, and home-screen logo wait until that MVP is about to go on the phone; until then the host stays `reader-skeleton` and the install icon stays the skeleton SVG.
