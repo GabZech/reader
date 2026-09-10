@@ -234,6 +234,10 @@ body {
   letter-spacing: -0.01em;
 }
 
+.item.is-seen .title {
+  font-weight: 400;
+}
+
 .item .sub {
   display: flex;
   align-items: baseline;
@@ -241,7 +245,12 @@ body {
   gap: 0.75rem;
   margin-top: 0.2rem;
   font-size: 0.8125rem;
+  font-weight: 600;
   color: var(--text-muted);
+}
+
+.item.is-seen .sub {
+  font-weight: 400;
 }
 
 .item .byline {
@@ -546,11 +555,26 @@ body {
 button.item {
   width: 100%;
   margin: 0;
+  border: 0;
+  background: transparent;
   font: inherit;
   text-align: left;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
+}
+
+.item.item-action {
+  text-align: center;
+}
+
+.item.item-archive {
+  color: var(--text-muted);
+}
+
+.item.item-delete {
+  background: rgba(220, 38, 38, 0.12);
+  color: var(--notice);
 }
 
 .item-row {

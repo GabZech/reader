@@ -89,8 +89,21 @@ def init_db(conn: sqlite3.Connection) -> None:
             added_at TEXT NOT NULL,
             PRIMARY KEY (item_id, list_slug)
         );
+
+        CREATE TABLE IF NOT EXISTS item_read (
+            item_id INTEGER NOT NULL REFERENCES items(id),
+            list_slug TEXT NOT NULL REFERENCES lists(slug),
+            read_at TEXT NOT NULL,
+            PRIMARY KEY (item_id, list_slug)
+        );
         """
     )
+    item_lists_columns = {row["name"] for row in conn.execute("PRAGMA table_info(item_lists)")}
+    if "archived_at" not in item_lists_columns:
+        conn.execute("ALTER TABLE item_lists ADD COLUMN archived_at TEXT")
+    items_columns = {row["name"] for row in conn.execute("PRAGMA table_info(items)")}
+    if "seen_at" not in items_columns:
+        conn.execute("ALTER TABLE items ADD COLUMN seen_at TEXT")
     if not lists_table_existed:
         for slug, name, position in LISTS:
             conn.execute(
@@ -168,9 +181,13 @@ def all_lists(conn: sqlite3.Connection) -> list[dict]:
 
 
 def count_for_list(
-    conn: sqlite3.Connection, slug: str, now: datetime | None = None
+    conn: sqlite3.Connection,
+    slug: str,
+    now: datetime | None = None,
+    archived: bool = False,
+    read: bool = False,
 ) -> int:
-    return len(_visible_items(conn, slug, now))
+    return len(_visible_items(conn, slug, now, archived=archived, read=read))
 
 
 def items_for_list(
@@ -178,19 +195,31 @@ def items_for_list(
     slug: str,
     limit: int | None = None,
     now: datetime | None = None,
+    archived: bool = False,
+    read: bool = False,
 ) -> list[sqlite3.Row]:
-    rows = _visible_items(conn, slug, now)
+    rows = _visible_items(conn, slug, now, archived=archived, read=read)
     if limit is not None:
         return rows[:limit]
     return rows
 
 
 def _visible_items(
-    conn: sqlite3.Connection, slug: str, now: datetime | None = None
+    conn: sqlite3.Connection,
+    slug: str,
+    now: datetime | None = None,
+    archived: bool = False,
+    read: bool = False,
 ) -> list[sqlite3.Row]:
     now = now or datetime.now(timezone.utc)
+    archived_clause = (
+        "item_lists.archived_at IS NOT NULL"
+        if archived
+        else "item_lists.archived_at IS NULL"
+    )
+    read_clause = "item_read.read_at IS NOT NULL" if read else "item_read.read_at IS NULL"
     rows = conn.execute(
-        """
+        f"""
         SELECT items.*, sources.title AS source_title,
                MAX(source_lists.window) AS window,
                MAX(item_lists.list_slug IS NOT NULL) AS is_direct
@@ -200,11 +229,15 @@ def _visible_items(
             ON source_lists.source_id = items.source_id AND source_lists.list_slug = ?
         LEFT JOIN item_lists
             ON item_lists.item_id = items.id AND item_lists.list_slug = ?
-        WHERE source_lists.list_slug IS NOT NULL OR item_lists.list_slug IS NOT NULL
+        LEFT JOIN item_read
+            ON item_read.item_id = items.id AND item_read.list_slug = ?
+        WHERE (source_lists.list_slug IS NOT NULL OR item_lists.list_slug IS NOT NULL)
+            AND {archived_clause}
+            AND {read_clause}
         GROUP BY items.id
         ORDER BY datetime(items.published_at) DESC, items.id DESC
         """,
-        (slug, slug),
+        (slug, slug, slug),
     ).fetchall()
     return [
         row
@@ -325,6 +358,30 @@ def add_item_to_list(conn: sqlite3.Connection, item_id: int, list_slug: str) -> 
         VALUES (?, ?, ?)
         """,
         (item_id, list_slug, datetime.now(timezone.utc).isoformat()),
+    )
+
+
+def mark_item_seen(conn: sqlite3.Connection, item_id: int) -> None:
+    conn.execute(
+        "UPDATE items SET seen_at = COALESCE(seen_at, ?) WHERE id = ?",
+        (datetime.now(timezone.utc).isoformat(), item_id),
+    )
+
+
+def mark_item_read(conn: sqlite3.Connection, item_id: int, list_slug: str) -> None:
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO item_read (item_id, list_slug, read_at)
+        VALUES (?, ?, ?)
+        """,
+        (item_id, list_slug, datetime.now(timezone.utc).isoformat()),
+    )
+
+
+def archive_item_in_list(conn: sqlite3.Connection, item_id: int, list_slug: str) -> None:
+    conn.execute(
+        "UPDATE item_lists SET archived_at = ? WHERE item_id = ? AND list_slug = ?",
+        (datetime.now(timezone.utc).isoformat(), item_id, list_slug),
     )
 
 
