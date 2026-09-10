@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 {% block title %}{{ item.title }}{% endblock %}
 {% block body %}
-      <header class="top article-top">
+      <div class="article-top">
         <div class="actions">
           <a href="{{ back }}">Close</a>
         </div>
+      </div>
+      <header class="top">
         <h1>{{ item.title }}</h1>
       </header>
       <p class="lede">{{ item.author or item.source_title }}{% if item.published_at %} · {{ format_when(item.published_at) }}{% endif %}{% if item.word_count %} · {{ reading_length(item.word_count) }}{% endif %}</p>
