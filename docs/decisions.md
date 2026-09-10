@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**.
 
+## 2026-09-10: Archive the discovery-phase skills at a tag instead of a template repo
+
+**Decision:** Tag the last commit that had the retired discovery skills (Kickoff through Foundation, `create-phase-skill`, and their question banks) as `archive/discovery-skills-2026-09`, rather than copying them into `GabZech/template-spec-workflow` now.
+
+**Why:** The client expects to ask an agent to generate a template repo from `reader` itself at some point in the future; a tag on this repo is enough for that generation to pull the skills back out, without committing now to a separate template repo's shape or conventions.
+
+**Rejected:** Pushing them into `GabZech/template-spec-workflow` immediately: premature while the actual "generate a template from this repo" task, and its shape, has not been asked for yet. Keeping them live in `.claude/skills/` here: they are dormant now that Foundation is accepted, and leaving 900 lines of unused machinery in place was the original problem.
+
+**Revisit when:** The client asks for a template repo generated from `reader`. At that point the tag is the source, not this repo's live `.claude/skills/`.
+
 ## 2026-09-10: Collapse `docs/history/` into this file
 
 **Decision:** Retire `docs/history/` as a working folder. The one durable spec it held (the Obsidian export sample) moved under `docs/vision/`; the mockup pointer folded into `docs/mockup/README.md`; the rest is tagged (`archive/history-2026-09`) and deleted.
