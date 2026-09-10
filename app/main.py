@@ -941,12 +941,17 @@ async def source_window_submit(request: Request, source_id: str):
     return RedirectResponse(f"/sources/{source_id}?flash=Saved", status_code=303)
 
 
-def _item_context_query(from_source: str | None, from_list: str | None) -> str:
+def _item_context_query(
+    from_source: str | None, from_list: str | None, from_home: str | None = None
+) -> str:
+    params: dict[str, str] = {}
     if from_source:
-        return f"?{urlencode({'from_source': from_source})}"
-    if from_list:
-        return f"?{urlencode({'from_list': from_list})}"
-    return ""
+        params["from_source"] = from_source
+    elif from_list:
+        params["from_list"] = from_list
+    if from_home:
+        params["from_home"] = from_home
+    return f"?{urlencode(params)}" if params else ""
 
 
 @app.get("/items/{item_id}")
@@ -955,6 +960,7 @@ def item_page(
     item_id: int,
     from_source: str | None = None,
     from_list: str | None = None,
+    from_home: str | None = None,
 ):
     conn = connect()
     try:
@@ -970,11 +976,13 @@ def item_page(
         raise HTTPException(status_code=404)
     if from_source and item["source_id"] == from_source:
         back = f"/sources/{from_source}/items"
+    elif from_home:
+        back = "/"
     elif from_list:
         back = f"/lists/{from_list}"
     else:
         back = "/"
-    context_query = _item_context_query(from_source, from_list)
+    context_query = _item_context_query(from_source, from_list, from_home)
     return templates.TemplateResponse(
         request,
         "item.html",
@@ -1021,6 +1029,7 @@ def item_add_later(
     item_id: int,
     from_source: str | None = None,
     from_list: str | None = None,
+    from_home: str | None = None,
 ):
     conn = connect()
     try:
@@ -1033,7 +1042,7 @@ def item_add_later(
     finally:
         conn.close()
     return RedirectResponse(
-        f"/items/{item_id}{_item_context_query(from_source, from_list)}",
+        f"/items/{item_id}{_item_context_query(from_source, from_list, from_home)}",
         status_code=303,
     )
 

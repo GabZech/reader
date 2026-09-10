@@ -20,7 +20,7 @@
           <span class="count">{{ section.count }}</span>
         </a>
         {% for item in section['items'][:6] %}
-          {{ item_row(item, extra=(loop.index0 >= 3), list_slug=section.slug) }}
+          {{ item_row(item, extra=(loop.index0 >= 3), list_slug=section.slug, from_home=true) }}
         {% endfor %}
         {% if section['items']|length > 3 %}
         <button class="show-more" type="button">Show more</button>

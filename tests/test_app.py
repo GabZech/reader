@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -1050,6 +1051,19 @@ def test_mark_as_read_shown_only_when_opened_from_a_non_later_list(
         client.post(f"/items/{item_id}/later")
         from_later = client.get(f"/items/{item_id}?from_list=later")
         assert "Mark as read" not in from_later.text
+
+
+def test_close_from_home_returns_to_home_not_the_list(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+
+        home = client.get("/")
+        match = re.search(rf'href="(/items/{item_id}[^"]*)"', home.text)
+        assert match, "home should link to the item"
+
+        opened = client.get(match.group(1))
+        assert 'href="/">Close</a>' in opened.text
 
 
 def test_marking_read_moves_item_to_read_tab_and_off_home(monkeypatch, tmp_path):
