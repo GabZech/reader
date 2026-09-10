@@ -35,7 +35,7 @@ Product front door, not a second copy of the proposition or a feature inventory.
 
 1. **Title:** product or working name
 2. **Overview:** short prosaic pitch, problem and consequence first, then direction. Sentences, not a capability inventory
-3. **How we work:** why structure beats jumping to code, then the change loop's steps in running sentences with what each is for. Point to [GabZech/template-spec-workflow](https://github.com/GabZech/template-spec-workflow) for discovery and foundation detail
+3. **How we work:** why structure beats jumping to code, then the change loop's steps in running sentences with what each is for
 4. Optional short pointers into `docs/`
 
 The change loop's Ship step owns keeping this current; no standing refresh ask outside that.
