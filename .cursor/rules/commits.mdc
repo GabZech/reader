@@ -1,0 +1,30 @@
+---
+description: Commit practices - incremental commits, subject format, and git safety
+alwaysApply: false
+---
+
+# Commits
+
+## Incremental, not one big commit
+
+Commit each logical change on its own, as soon as it is done, rather than staging everything and committing it all at once at the end. One commit covers one thing: one feature slice, one fix, one doc update.
+
+Stage deliberately: `git add` the specific files for that change, not the whole working tree, so unrelated changes do not ride along.
+
+Each commit should leave the repo in a working state, not only the final one in a series.
+
+## Subject format
+
+`action scope: description`
+
+- **action:** a lowercase verb (`add`, `update`, `fix`, `accept`)
+- **scope:** what was touched (phase, skill, rule, doc), in ordinary words
+- **description:** after the colon, why, in a few words
+
+Do not title-case the action. Do not omit the colon.
+
+## Safety
+
+- Never force-push a shared branch. It can erase commits someone, or something like CI or a deploy, already has.
+- Never amend or rebase a commit that has already been pushed. Only rewrite commits that are still local.
+- Never skip commit or push hooks (`--no-verify`). If a hook fails, fix the underlying issue instead of bypassing it.

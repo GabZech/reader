@@ -8,7 +8,7 @@ See:
 
 ## Committing
 
-Before creating a git commit, read the full contents of `.cursor/rules/commit-names.mdc` and follow its subject-line format.
+Before creating a git commit, read the full contents of `.cursor/rules/commits.mdc` and follow it.
 
 ## Following skills
 
