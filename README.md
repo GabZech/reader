@@ -16,7 +16,7 @@ For discovery and foundation, see the [template workflow overview](https://githu
 
 ## Docs
 
-The `Docs/` folder is split by the kind of question you are asking. The list below is the front door; the [index](docs/README.md) has the rest.
+The `docs/` folder is split by the kind of question you are asking. The list below is the front door; the [index](docs/README.md) has the rest.
 
 - **[Roadmap](docs/roadmap.md):** Start here to see what is built, what is next grouped by epic, and what is still open.
 - **[Architecture](docs/architecture.md):** The shape of the running system, covering what we build, what we rent, how mail and feeds get in, and which tradeoffs we accepted so later work does not reopen the whole stack.
