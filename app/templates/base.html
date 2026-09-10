@@ -3,14 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#fafaf9" />
+    <meta name="theme-color" content="#1c1917" />
     <title>{% block title %}Reader{% endblock %}</title>
     <link rel="stylesheet" href="/static/styles.css" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
     <script>
       (() => {
-        if (localStorage.getItem("reader-theme") === "dark") {
+        if (localStorage.getItem("reader-theme") !== "light") {
           document.documentElement.dataset.theme = "dark";
         }
       })();

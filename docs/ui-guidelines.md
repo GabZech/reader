@@ -27,6 +27,10 @@ No icon set. No brand colour system. Controls are words.
 
 Colour is stone and ink only. Do not add a product accent.
 
+## Dark theme
+
+Dark is the default: a reader who has never touched the theme toggle in Settings gets dark, not light. Stone and ink invert to the same near-black/near-white pairing already defined as CSS custom properties (`--bg-page`, `--bg-card`, `--text`, and so on); no separate dark design pass, no new accent. The toggle in Settings still lets a reader choose light on purpose, which sticks from then on. The PWA install splash (`manifest.webmanifest`) is static and can't follow that per-reader choice, so it always matches the dark default.
+
 ## Surfaces
 
 - **Phone** is the primary reading surface (morning News, most of Read later).
