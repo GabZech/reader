@@ -6,10 +6,12 @@
 
 ## Why this file exists, and when it dies
 
-`AGENTS.md` non-negotiable 2 says "No plan files," and `docs/decisions.md` (2026-08-28) records that as deliberate. The client explicitly asked for this one, which is theirs to override. Two consequences follow, and both are plan items below:
+`AGENTS.md` non-negotiable 2 currently reads "No plan files. The chat is the plan; a separate document drifts from what was actually decided." The client has rejected the premise in that second clause: a chat session is not guaranteed to persist, so treating it as the durable record of what was decided is a bet against session loss, not an architecture. This file's own shape argues for that position rather than against it:
 
-- This file is a working file for this one change, not a living doc. It is deleted in the final commit of the change, so nothing survives to drift.
-- If the client wants plan files allowed generally, that is a reversal of a logged decision and needs its own `docs/decisions.md` entry. Not assumed here.
+- It is a committed working file, not chat-only. If this session had ended after the last commit, the plan would still exist; the equivalent chat-only plan would not.
+- It is deleted in the final commit of the change it describes, once that change has actually landed in durable artifacts (code, `docs/roadmap.md`, `docs/decisions.md`), not before. Nothing survives past that point to drift, and nothing before that point depended on chat surviving to get there.
+
+This reopens two things beyond this one file, tracked in section 13 rather than assumed silently: the wording of non-negotiable 2 itself, and the point in the change loop where a Shape decision currently lives only in chat until an agent chooses to write it down.
 
 ## Source material
 
@@ -34,7 +36,7 @@ Broad reading for artifacts genuinely absent here: adopt the template's name, lo
 | `evaluator-rubric.md` | none | Adopt as a new root file, near-verbatim |
 | `quality-document.md` | none | Adopt as a new root file, re-domained for this project |
 
-Net: four files rewritten, two added, one deleted at the end (this one), three templates deliberately not adopted, one adopted as structure rather than a file.
+Net: four files rewritten, two added, one deleted at the end (this one), three templates deliberately not adopted, one adopted as structure rather than a file. Section 13 covers a related but separate finding, outside the nine templates: how this repo records a decision between chat and commit.
 
 ---
 
@@ -242,6 +244,8 @@ The guide itself calls the file optional and aimed at long sessions with several
 
 **Adopt the Commands block only**, into `PROGRESS.md`'s Current verified state (section 4a).
 
+Section 13b strengthens this further: once Shape's output lands in `PROGRESS.md` at Shape time rather than only at Pause, there is even less a separate handoff file would capture that `PROGRESS.md` does not already hold, live, before any pause is even declared.
+
 ---
 
 ## 7. `clean-state-checklist.md`
@@ -369,6 +373,34 @@ Keep `HARNESS.md` describing what is actually true, not what this plan intends. 
 
 ---
 
+## 13. Beyond the nine templates: chat is not a durable record
+
+None of the nine walkinglabs templates raised this; it surfaced from reviewing why `PLAN.md` was being treated as an exception to non-negotiable 2 rather than an instance of the right pattern. The client's position, stated directly: a chat session is not guaranteed to persist, so nothing that must survive past this conversation should depend on chat being the record of what was decided. That reaches two places already live in this repo.
+
+### 13a. `AGENTS.md` non-negotiable 2
+
+**Current wording:** "No plan files. The chat is the plan; a separate document drifts from what was actually decided."
+
+**Problem:** the second clause names chat itself as the durable record for the period between Frame/Shape and the next commit. If the session ends before that commit lands (disconnect, crash, a context limit that drops the working turn), nothing survives, not because a plan file was missing, but because the one place the decision lived was never treated as something that could vanish.
+
+**Proposed rewording:** "No plan files that outlive the change they describe. Frame and Shape's decision is recorded in `PROGRESS.md`'s in-flight section as soon as it is made, not only at Pause; that is the durable record, not the chat. A working plan file is fine for a change the client asks to see planned in writing, deleted once the change ships (see `docs/decisions.md` 2026-08-28 and the entry section 13c adds)."
+
+This keeps what non-negotiable 2 was actually protecting against, a plan document that quietly drifts from what shipped, while dropping the part that assumed chat persistence.
+
+### 13b. `2-develop`'s Shape and Pause steps
+
+**Current mechanics:** Shape is "one message" in chat; nothing durable is written until either Pause (leaving mid-change) or Ship (on completion). A session that ends between Shape and either of those loses the Shape agreement entirely: what will change, what could break, how it will be verified, what it leaves alone.
+
+**Proposed change:** Shape's message is also written into `PROGRESS.md`'s in-flight section at the moment it is stated in chat, not deferred to Pause. Pause becomes a smaller step: it already has the Shape summary on file, and only adds the branch name, feedback rounds so far, and the next step.
+
+**Not decided here:** the exact `PROGRESS.md` template addition for this, a new "Shaped" subsection under "In flight," or folding it into the existing in-flight bullet list. That is a small follow-on edit to `2-develop/SKILL.md` and `PROGRESS.md`'s own header comment, scoped separately from the template-alignment work in sections 1 through 9, since it changes the change loop's mechanics rather than a static artifact's shape. It does not disturb the `awk` extraction `init.sh` runs against `PROGRESS.md` (section 4, Constraint to respect): the addition nests inside the existing `## In flight` heading rather than adding a new one.
+
+### 13c. A new decision, not an edit to the old one
+
+`docs/decisions.md` is append-only, newest first; the 2026-08-28 entry ("The change loop replaces the epic-based workflow") is not edited to match this. A new entry records the reversal instead, dated when 13a and 13b actually ship: title along the lines of "Chat is not treated as a durable record; Shape's output is written to `PROGRESS.md` at Shape time," with **Rejected** naming the 2026-08-28 wording it supersedes.
+
+---
+
 ## Commit sequence
 
 One logical change per commit, per the `commits` skill, format `action scope: description`, all on `claude/readme-folder-tree-review-5tacpb`.
@@ -382,9 +414,12 @@ One logical change per commit, per the `commits` skill, format `action scope: de
 7. `update roadmap: in-flight and blocked markers` plus the mirrored note in `writing-docs` (section 5)
 8. `update harness refs test: check progress, rubric, and quality document` (section 10)
 9. `update harness: record the review artifacts and the new startup surface` (section 11)
-10. `remove plan: the change is shipped` (this file)
+10. `update agents: non-negotiable 2 no longer names chat as the durable record` (section 13a)
+11. `update develop: write Shape's output to PROGRESS.md at Shape time` (section 13b)
+12. `add decision: chat is not the record, Shape writes to PROGRESS.md at Shape time` (section 13c)
+13. `remove plan: the change is shipped` (this file)
 
-Commits 1 to 9 each leave the repo working. Run `uv run ruff check` and `uv run pytest` before each.
+Commits 1 to 12 each leave the repo working. Run `uv run ruff check` and `uv run pytest` before each.
 
 ## Acceptance criteria
 
@@ -396,6 +431,8 @@ Commits 1 to 9 each leave the repo working. Run `uv run ruff check` and `uv run 
 - Every new backticked path and markdown link in the new and edited files resolves.
 - `HARNESS.md` describes the repo as it is after commits 1 to 8, with nothing aspirational.
 - No `feature_list.json`, no `session-handoff.md`, no `clean-state-checklist.md`, and `CLAUDE.md` unchanged.
+- `AGENTS.md` non-negotiable 2 no longer states or implies that chat is the durable record between Shape and the next commit.
+- `2-develop/SKILL.md`'s Shape step writes to `PROGRESS.md` at Shape time, not only at Pause.
 - `PLAN.md` deleted.
 
 ## Risks
@@ -409,4 +446,5 @@ Commits 1 to 9 each leave the repo working. Run `uv run ruff check` and `uv run 
 
 1. `clean-state-checklist.md`: keep it folded into `AGENTS.md` as planned, or make it a standalone file with `AGENTS.md` and Ship pointing at it? Section 7 has the tradeoff.
 2. Should the first grading pass on `quality-document.md` happen in this change, or as its own turn once the structure is in? Planned as a separate turn.
-3. Does "no plan files" stay a non-negotiable after this? If it is being relaxed generally, that is a `docs/decisions.md` entry rather than a silent exception.
+3. ~~Does "no plan files" stay a non-negotiable after this?~~ Answered: chat is not treated as a durable record. Section 13 now names the concrete rewording and the `PROGRESS.md` mechanics change; see question 4 for what is still open about it.
+4. Section 13b's `PROGRESS.md` format: a new "Shaped" subsection under "In flight," or folded into the existing bullet list? And should 13a/13b/13c ship in this same maintenance change, or as their own turn, since they change the change loop's mechanics rather than a static artifact?
