@@ -22,6 +22,8 @@ Where the rules an agent follows are written down.
 
 The discovery-phase skills (Kickoff through Foundation, and their question banks) are retired: Foundation has been accepted for weeks and feature work runs the change loop, so about 900 lines of dormant, phase-specific machinery were deleted rather than kept live. They are not lost: the git tag `archive/discovery-skills-2026-09` points at the last commit that had them, kept specifically so a future template repo can be generated from this one without re-writing them from scratch (see `docs/decisions.md` 2026-09-10).
 
+A review of this file's own artifacts against an external template set ([`walkinglabs/learn-harness-engineering`](https://github.com/walkinglabs/learn-harness-engineering)) is preserved the same way: at git tag `archive/harness-template-plan-2026-09` ([`PLAN.md` at that tag](https://github.com/GabZech/reader/blob/archive/harness-template-plan-2026-09/PLAN.md)), logged in `docs/decisions.md` 2026-09-11. It explains, artifact by artifact, why several of the rows in the table above are shaped the way they are, and which parts of the template set this repo deliberately did not adopt.
+
 ## State
 
 Where "what's true right now" and "what's still in progress" live.

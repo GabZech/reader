@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**.
 
+## 2026-09-11: Archive the harness template-alignment plan at a tag
+
+**Decision:** Tag the commit that added `PLAN.md` (a plan to rewrite this repo's harness artifacts against the templates in `walkinglabs/learn-harness-engineering`) as `archive/harness-template-plan-2026-09`, rather than moving the plan into a `docs/history/`-style folder. The plan itself stays in the working tree, unimplemented pending the client's answers to its open questions, and is deleted per its own commit sequence once the change it describes ships.
+
+**Why:** The reasoning behind several current harness artifacts only makes sense next to the template set that prompted this review; a durable pointer to that comparison is worth keeping without keeping the plan doc live once the change ships. A tag costs nothing to maintain and does not get read, or drift, day to day.
+
+**Rejected:** A `docs/history/`-style folder to hold the plan long-term: retired for exactly this purpose on 2026-09-10, on the record that it sat unconsulted and invited "update history to match code." Recreating it for one plan file would undo that decision without a new reason.
+
+**Revisit when:** Not expected to.
+
 ## 2026-09-10: Archive the discovery-phase skills at a tag instead of a template repo
 
 **Decision:** Tag the last commit that had the retired discovery skills (Kickoff through Foundation, `create-phase-skill`, and their question banks) as `archive/discovery-skills-2026-09`, rather than copying them into `GabZech/template-spec-workflow` now.
