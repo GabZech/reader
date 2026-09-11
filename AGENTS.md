@@ -26,7 +26,7 @@ One manual for any AI coding tool working in this repo, vendor-neutral. Read it 
 ## Non-negotiables
 
 1. **One change at a time.** Frame and Shape commit to a single change before code; stacking work hides what actually shipped.
-2. **No plan files.** The chat is the plan; a separate document drifts from what was actually decided.
+2. **Plan files support the chat; they don't replace it.** The chat remains the record of what was decided. Write a plan file when it helps: during deep-plan/think-it-through sessions, and for repo maintenance, where a plan lets the client review the motivation and reasoning behind changes before or alongside them. A plan file that isn't kept current is worse than none — update or discard it as the work moves, don't let it drift from what actually happened.
 3. **Sign-off gates merge, not commit.** Commit on the branch as checkpoints pass; only the client's live sign-off allows a merge to `main`.
 4. **Deploy only on the client's explicit go-ahead.** A screenshot or a walkthrough is not itself permission; one live host holds the real library.
 5. **A visual change needs a signed-off mockup screenshot before product code exists.** Iterating a screenshot is cheap; iterating built UI is not.
@@ -54,6 +54,7 @@ Code and tests are behaviour. Living docs under `docs/` are the current agreed p
 
 - When a message presents a set of items the reader must weigh together, structure it so the set reads clearly and stays visually distinct from surrounding prose.
 - A question is not a command: answer it, do not act on it unless asked.
+- Narrate progress as it happens: a short update roughly every 5-10 seconds of work (what you just found, what you're doing next), not silence until a task finishes.
 
 ## End of session
 
