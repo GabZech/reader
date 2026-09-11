@@ -56,7 +56,7 @@ Content, as labelled bullets:
 
 - `PROGRESS.md`: in-flight state and the standard paths. Read at start, updated at every checkpoint, cleared at Ship.
 - `docs/roadmap.md`: the feature list. "What's next" is what remains; a line is ticked only by the change that shipped it.
-- `docs/decisions.md`: choices expensive to undo.
+- `docs/decisions.md`: choices expensive to undo, including one dated entry for any plan file archived at a tag once its change ships (client-confirmed convention, 2026-09-11; see that entry, not this file, once `PLAN.md` itself is gone).
 - `init.sh`: the standard startup and verification path.
 - `HARNESS.md`: how the harness itself is put together. Revisited after any change to how agents work here.
 - `evaluator-rubric.md` and `quality-document.md`: post-change review and codebase health (new, see sections 8 and 9).
@@ -398,6 +398,10 @@ This keeps what non-negotiable 2 was actually protecting against, a plan documen
 ### 13c. A new decision, not an edit to the old one
 
 `docs/decisions.md` is append-only, newest first; the 2026-08-28 entry ("The change loop replaces the epic-based workflow") is not edited to match this. A new entry records the reversal instead, dated when 13a and 13b actually ship: title along the lines of "Chat is not treated as a durable record; Shape's output is written to `PROGRESS.md` at Shape time," with **Rejected** naming the 2026-08-28 wording it supersedes.
+
+### 13d. Archived plan files each get one dated entry, as a standing convention
+
+The client confirmed this beyond the one instance: every plan file that gets committed then deleted at ship, this one included, gets exactly one dated entry in `docs/decisions.md` naming the tag it was archived at, rather than a live folder of saved plans (the `docs/history/` shape retired 2026-09-10, for sitting unconsulted and drifting). This is now the standing mechanism non-negotiable 2's reworded text (13a) points to, not a one-off explained only in this plan; the `docs/decisions.md` bullet added to `AGENTS.md`'s Required Artifacts (section 1a) states it directly so a future session does not have to reconstruct the convention from two examples.
 
 ---
 
