@@ -13,7 +13,7 @@ from app.db import (
     item_in_window,
     items_for_list,
 )
-from app.ingest import capture_article, ingest_xml, parse_feed
+from app.ingest import capture_article, ingest_all_sources, ingest_xml, parse_feed
 
 FIXTURE = Path(__file__).parent / "fixtures" / "feed.xml"
 CAPTURE_FIXTURES = Path(__file__).parent / "fixtures" / "capture"
@@ -93,6 +93,42 @@ def test_ingest_xml_keeps_only_latest_five_when_limited(tmp_path):
         )
     ]
     assert titles == ["Item 7", "Item 6", "Item 5", "Item 4", "Item 3"]
+
+
+def test_ingest_all_sources_skips_a_source_that_fails_to_fetch(monkeypatch, tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    _source(conn)
+    insert_source(
+        conn,
+        source_id="broken-rss",
+        kind="rss",
+        title="Broken",
+        feed_url="https://broken.test/feed.xml",
+        backfill=None,
+    )
+    add_source_to_list(conn, "broken-rss", "news", "week")
+
+    def flaky_fetch_url(url: str, timeout: float = 8.0):
+        if url == "https://broken.test/feed.xml":
+            raise RuntimeError("feed host is down")
+        return url, FIXTURE.read_text(encoding="utf-8")
+
+    monkeypatch.setattr("app.ingest.fetch_url", flaky_fetch_url)
+
+    result = ingest_all_sources(conn)
+    conn.commit()
+
+    assert result["sources"] == 2
+    assert result["failed"] == 1
+    assert result["created"] == 2
+    titles = [
+        row["title"]
+        for row in items_for_list(
+            conn, "news", now=datetime(2026, 8, 20, 12, tzinfo=UTC)
+        )
+    ]
+    assert titles == ["First fixture item", "Second fixture item"]
 
 
 def test_item_in_window_day_and_week():
