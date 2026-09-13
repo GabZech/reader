@@ -481,14 +481,24 @@ def ingest_url(
 def ingest_all_sources(conn) -> dict:
     created = 0
     kept = 0
+    failed = 0
     sources = rss_sources(conn)
     for source in sources:
-        result = ingest_url(
-            conn, source["feed_url"], source["id"], limit=source["backfill"]
-        )
+        try:
+            result = ingest_url(
+                conn, source["feed_url"], source["id"], limit=source["backfill"]
+            )
+        except Exception:  # noqa: BLE001 - one dead feed must not stop the sync
+            failed += 1
+            continue
         created += result["created"]
         kept += result["kept"]
-    return {"created": created, "kept": kept, "sources": len(sources)}
+    return {
+        "created": created,
+        "kept": kept,
+        "sources": len(sources),
+        "failed": failed,
+    }
 
 
 @dataclass(frozen=True)
