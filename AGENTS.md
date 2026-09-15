@@ -8,6 +8,15 @@ One manual for any AI coding tool working in this repo, vendor-neutral. Read it 
 2. Read `PROGRESS.md`. If it names something in flight, resume that before starting anything new.
 3. Once per chat, before the first product change, read `docs/roadmap.md` "Where we are."
 
+## Required artifacts
+
+- **`PROGRESS.md`:** in-flight state and the standard paths. Read at start, updated at every checkpoint, cleared at Ship.
+- **`docs/roadmap.md`:** the feature list. "What's next" is what remains; a line is ticked only by the change that shipped it.
+- **`docs/decisions.md`:** choices expensive to undo, including one dated entry for any plan file archived at a tag once its change ships.
+- **`init.sh`:** the standard startup and verification path.
+- **`HARNESS.md`:** how the harness itself is put together. Revisited after any change to how agents work here.
+- **`evaluator-rubric.md` and `quality-document.md`:** a post-change scorecard and a standing snapshot of the codebase's health. Both optional; neither is a merge gate.
+
 ## Which kind of task
 
 - **Product change** (a feature, fix, UI tweak, or chore that changes behaviour or what the client sees): the change loop applies.
@@ -30,8 +39,8 @@ One manual for any AI coding tool working in this repo, vendor-neutral. Read it 
 3. **Sign-off gates merge, not commit.** Commit on the branch as checkpoints pass; only the client's live sign-off allows a merge to `main`.
 4. **Deploy only on the client's explicit go-ahead.** A screenshot or a walkthrough is not itself permission; one live host holds the real library.
 5. **A visual change needs a signed-off mockup screenshot before product code exists.** Iterating a screenshot is cheap; iterating built UI is not.
-6. **A behaviour or bug change needs a failing test first.** It proves the change does what it claims, and stays on as the regression guard.
-7. **Never skip, disable, or weaken a test to get green.** A suite that lies is worse than one that is honestly red.
+6. **A behaviour or bug change needs a failing test first.** It proves the change does what it claims, stays on as the regression guard, and the verification bar does not move mid-change: if what counts as proof turns out to be wrong, say so and re-Shape.
+7. **Never skip, disable, or weaken a test to get green.** A suite that lies is worse than one that is honestly red, and never start new work on a red baseline: say it was already red rather than silently fixing or working around it.
 8. **Commit incrementally, one logical change per commit.** A single end-of-session commit hides which step broke something; format in the `commits` skill.
 9. **Never force-push a shared branch, amend or rebase a pushed commit, or skip a hook.** Any of these can erase work someone, or CI, or a deploy, already has.
 10. **Ship updates whichever living doc the change made wrong, on the branch, before merge.** Docs drift the moment a change lands without this.
@@ -55,10 +64,20 @@ Code and tests are behaviour. Living docs under `docs/` are the current agreed p
 - When a message presents a set of items the reader must weigh together, structure it so the set reads clearly and stays visually distinct from surrounding prose.
 - A question is not a command: answer it, do not act on it unless asked.
 
+## Definition of done
+
+A change is done only when all of these hold:
+
+1. The behaviour is implemented and matches what Shape said it would be.
+2. The verification for every kind the change carries actually ran, per the change-kinds table in `.claude/skills/2-develop/SKILL.md`.
+3. Whichever living docs the change made wrong are updated on the branch, before the merge.
+4. The client tried it live and said it is good. Nothing else substitutes for this, including a green suite or a passing rubric score.
+5. The repo restarts clean from `bash init.sh` and the live host is back on `main`.
+
 ## End of session
 
-- Working tree clean or committed; nothing surprising left staged.
-- `PROGRESS.md` reflects reality: cleared if the turn shipped, updated if it paused mid-change.
-- `preview/` empty, port 8000 free.
-- If a product change shipped: the live host is back on `main` (`bash init.sh --quick` confirms it).
-- Recommend `/clear` for a fresh session, or `/compact` if context has grown but continuity still matters.
+- [ ] Working tree clean or committed; nothing surprising left staged.
+- [ ] `PROGRESS.md` reflects reality: cleared if the turn shipped, updated if it paused mid-change.
+- [ ] No half-finished step left undocumented: anything incomplete is in `PROGRESS.md` or committed on a branch, not only in the chat.
+- [ ] The next session can start from `bash init.sh` with no manual repair.
+- [ ] Recommend `/clear`, or `/compact` if context has grown but continuity still matters.
