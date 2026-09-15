@@ -11,7 +11,7 @@
 - It is a committed working file, not chat-only. If this session had ended after the last commit, the plan would still exist; the equivalent chat-only plan would not.
 - It is deleted in the final commit of the change it describes, once that change has actually landed in durable artifacts (code, `docs/roadmap.md`, `docs/decisions.md`), not before. Nothing survives past that point to drift, and nothing before that point depended on chat surviving to get there.
 
-This reopens two things beyond this one file, tracked in section 13 rather than assumed silently: the wording of non-negotiable 2 itself, and the point in the change loop where a Shape decision currently lives only in chat until an agent chooses to write it down.
+This reopens two things beyond this one file, tracked in section 13 rather than assumed silently: the wording of non-negotiable 2 itself, and the point in the change loop where a confirmed plan, Shape's for a small change, deep-plan's slice list for a not-small one, currently lives only in chat until an agent chooses to write it down.
 
 ## Source material
 
@@ -387,13 +387,21 @@ None of the nine walkinglabs templates raised this; it surfaced from reviewing w
 
 This keeps what non-negotiable 2 was actually protecting against, a plan document that quietly drifts from what shipped, while dropping the part that assumed chat persistence.
 
-### 13b. `2-develop`'s Shape and Pause steps
+### 13b. `2-develop`'s Shape, deep-plan, and Pause steps
 
-**Current mechanics:** Shape is "one message" in chat; nothing durable is written until either Pause (leaving mid-change) or Ship (on completion). A session that ends between Shape and either of those loses the Shape agreement entirely: what will change, what could break, how it will be verified, what it leaves alone.
+**Current mechanics:** for a small change, Shape is "one message" in chat. For a not-small change, `deep-plan.md` produces a confirmed slice list instead, explicitly written nowhere durable: "Write nothing to `docs/` for this: the confirmed summary is the plan." Either way, nothing survives until Pause (leaving mid-change) or Ship (on completion). A session that ends between that confirm and either of those loses the plan entirely: what will change, what could break, how it will be verified, what it leaves alone, or, for a not-small change, the whole slice breakdown.
 
-**Proposed change:** Shape's message is also written into `PROGRESS.md`'s in-flight section at the moment it is stated in chat, not deferred to Pause. Pause becomes a smaller step: it already has the Shape summary on file, and only adds the branch name, feedback rounds so far, and the next step.
+**Proposed change:** whichever of Shape or deep-plan produced the confirmed plan is written into `PROGRESS.md`'s in-flight section the moment it is confirmed in chat, not deferred to Pause. Pause becomes a smaller step either way: it already has the plan on file, and only adds the branch name, feedback rounds so far, and the next step.
 
-**Not decided here:** the exact `PROGRESS.md` template addition for this, a new "Shaped" subsection under "In flight," or folding it into the existing in-flight bullet list. That is a small follow-on edit to `2-develop/SKILL.md` and `PROGRESS.md`'s own header comment, scoped separately from the template-alignment work in sections 1 through 9, since it changes the change loop's mechanics rather than a static artifact's shape. It does not disturb the `awk` extraction `init.sh` runs against `PROGRESS.md` (section 4, Constraint to respect): the addition nests inside the existing `## In flight` heading rather than adding a new one.
+**Not decided here:** the exact `PROGRESS.md` template addition, a new "Shaped" or "Planned" subsection under "In flight," or folding it into the existing in-flight bullet list. That is a small follow-on edit to `2-develop/SKILL.md` and `PROGRESS.md`'s own header comment, scoped separately from the template-alignment work in sections 1 through 9, since it changes the change loop's mechanics rather than a static artifact's shape. It does not disturb the `awk` extraction `init.sh` runs against `PROGRESS.md` (section 4, Constraint to respect): the addition nests inside the existing `## In flight` heading rather than adding a new one.
+
+### 13e. Per-slice status for a not-small change
+
+**Problem 13b alone misses:** deep-plan's slices "run one at a time... each with its own Preview, Build, and Try." A session can die between slice 2 and slice 3 of a change that is otherwise mid-flight. Writing the slice list once, at confirm time, is not enough by itself: without also recording which slice is done and which is next, a resumed session has the plan but not its progress against it, and would have to infer position from the branch's commits and the live app instead of `PROGRESS.md`.
+
+**Proposed change:** the same in-flight entry that holds the confirmed slice list (13b) also carries a per-slice status line (done / in progress / not started), updated at each slice's own Try, alongside the per-change fields Pause already writes: branch, feedback rounds so far, next step.
+
+**Scope:** applies only to not-small changes. A small change's Shape has no slices to track; 13b alone covers it.
 
 ### 13c. A new decision, not an edit to the old one
 
@@ -419,8 +427,8 @@ One logical change per commit, per the `commits` skill, format `action scope: de
 8. `update harness refs test: check progress, rubric, and quality document` (section 10)
 9. `update harness: record the review artifacts and the new startup surface` (section 11)
 10. `update agents: non-negotiable 2 no longer names chat as the durable record` (section 13a)
-11. `update develop: write Shape's output to PROGRESS.md at Shape time` (section 13b)
-12. `add decision: chat is not the record, Shape writes to PROGRESS.md at Shape time` (section 13c)
+11. `update develop: write Shape's or deep-plan's confirmed plan, and per-slice status, to PROGRESS.md at confirm time` (sections 13b, 13e)
+12. `add decision: chat is not the record, the confirmed plan writes to PROGRESS.md at confirm time` (section 13c)
 13. `remove plan: the change is shipped` (this file)
 
 Commits 1 to 12 each leave the repo working. Run `uv run ruff check` and `uv run pytest` before each.
@@ -436,7 +444,8 @@ Commits 1 to 12 each leave the repo working. Run `uv run ruff check` and `uv run
 - `HARNESS.md` describes the repo as it is after commits 1 to 8, with nothing aspirational.
 - No `feature_list.json`, no `session-handoff.md`, no `clean-state-checklist.md`, and `CLAUDE.md` unchanged.
 - `AGENTS.md` non-negotiable 2 no longer states or implies that chat is the durable record between Shape and the next commit.
-- `2-develop/SKILL.md`'s Shape step writes to `PROGRESS.md` at Shape time, not only at Pause.
+- `2-develop/SKILL.md`'s Shape step, and `deep-plan.md`'s confirm step, both write their output to `PROGRESS.md` at confirm time, not only at Pause.
+- A not-small change's in-flight entry in `PROGRESS.md` shows per-slice status, updated at each slice's Try.
 - `PLAN.md` deleted.
 
 ## Risks
@@ -451,4 +460,4 @@ Commits 1 to 12 each leave the repo working. Run `uv run ruff check` and `uv run
 1. `clean-state-checklist.md`: keep it folded into `AGENTS.md` as planned, or make it a standalone file with `AGENTS.md` and Ship pointing at it? Section 7 has the tradeoff.
 2. Should the first grading pass on `quality-document.md` happen in this change, or as its own turn once the structure is in? Planned as a separate turn.
 3. ~~Does "no plan files" stay a non-negotiable after this?~~ Answered: chat is not treated as a durable record. Section 13 now names the concrete rewording and the `PROGRESS.md` mechanics change; see question 4 for what is still open about it.
-4. Section 13b's `PROGRESS.md` format: a new "Shaped" subsection under "In flight," or folded into the existing bullet list? And should 13a/13b/13c ship in this same maintenance change, or as their own turn, since they change the change loop's mechanics rather than a static artifact?
+4. Sections 13b/13e's `PROGRESS.md` format: a new "Shaped"/"Planned" subsection under "In flight" (with a per-slice status line for not-small changes), or folded into the existing bullet list? And should 13a/13b/13c/13e ship in this same maintenance change, or as their own turn, since they change the change loop's mechanics rather than a static artifact?
