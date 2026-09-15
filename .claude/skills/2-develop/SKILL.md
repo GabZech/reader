@@ -63,7 +63,11 @@ Leaving mid-change, before Ship: commit what is checked on the branch, update `P
 
 On the branch, once the client has signed off live: check the docs. Tick the roadmap line, update whichever living doc this change made wrong, and write a convention or a decision record if this change produced one. Run this check every time, even when nothing ends up changing; say so rather than skipping it silently. Commit doc changes with or before the last code commit on the branch, never after the merge.
 
-Merge to main, push, then redeploy from main. One live host holds the real library, so the turn is not closed until what is live is main again; the same redeploy clears an abandoned branch. Then the rest of the clean-state checklist: clear `PROGRESS.md` back to its empty template, empty `preview/`, free port 8000, and confirm live equals main with `bash init.sh --quick`.
+Merge to main, push, then redeploy from main. One live host holds the real library, so the turn is not closed until what is live is main again; the same redeploy clears an abandoned branch. Then the rest of the clean-state checklist, on top of `AGENTS.md`'s End of session:
+
+- [ ] `docs/roadmap.md` reflects what actually passed: no line ticked that the client has not signed off live, no stale `(in flight)` or `(blocked)` marker.
+- [ ] `preview/` empty, port 8000 free.
+- [ ] The live host is back on `main` (`bash init.sh --quick` confirms it).
 
 Recommend `/clear` (a fresh chat without leaving the terminal), or `/compact` if context has grown but continuity still matters.
 
