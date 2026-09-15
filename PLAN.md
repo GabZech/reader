@@ -274,7 +274,7 @@ Section 13b strengthens this further for not-small changes: once deep-plan's con
 
 One canonical copy of each half, each where the session that needs it will actually look.
 
-**Reversal note for the client:** if a standalone `clean-state-checklist.md` is wanted for recognisability against the template set instead of this split, the safe version is that file holding both halves (marked which applies when) with `AGENTS.md` and Ship both pointing at it rather than restating it. Say so and I will do it that way.
+**Confirmed 2026-09-15:** the split stands, no standalone `clean-state-checklist.md`.
 
 ---
 
@@ -399,7 +399,7 @@ This keeps what non-negotiable 2 was actually protecting against, a plan documen
 
 **Small changes are deliberately left out.** The client flagged that a mandatory `PROGRESS.md` edit on every Shape adds a real, recurring token cost for a benefit that only pays off in the rare case a session dies mid-change, and a small change is by definition cheap to re-Shape from chat memory if that happens. Not-small changes are the opposite: rarer, higher-stakes if the plan is lost, and the write lands next to work already happening (deep-plan's own confirm, plus a commit at each slice's Try per 13e) rather than as pure added overhead. So this section, and the non-negotiable 2 rewording in 13a, apply only where deep-plan already applies.
 
-**Not decided here:** the exact `PROGRESS.md` template addition, a new "Planned" subsection under "In flight," or folding it into the existing in-flight bullet list. That is a small follow-on edit to `2-develop/SKILL.md` and `PROGRESS.md`'s own header comment, scoped separately from the template-alignment work in sections 1 through 9, since it changes the change loop's mechanics rather than a static artifact's shape. It does not disturb the `awk` extraction `init.sh` runs against `PROGRESS.md` (section 4, Constraint to respect): the addition nests inside the existing `## In flight` heading rather than adding a new one.
+**Confirmed 2026-09-15:** a new "Planned" subsection under "In flight," holding the confirmed slice list plus, per 13e, each slice's status. Ships in this same maintenance change, not a separate turn. This is a small follow-on edit to `2-develop/SKILL.md` and `PROGRESS.md`'s own header comment, alongside the template-alignment work in sections 1 through 9, since both land in the same branch. It does not disturb the `awk` extraction `init.sh` runs against `PROGRESS.md` (section 4, Constraint to respect): "Planned" nests inside the existing `## In flight` heading rather than adding a new one.
 
 ### 13e. Per-slice status for a not-small change
 
@@ -463,7 +463,9 @@ Commits 1 to 12 each leave the repo working. Run `uv run ruff check` and `uv run
 
 ## Open questions for the client
 
-1. `clean-state-checklist.md`: keep it folded into `AGENTS.md` as planned, or make it a standalone file with `AGENTS.md` and Ship pointing at it? Section 7 has the tradeoff.
-2. ~~Should the first grading pass on `quality-document.md` happen in this change, or as its own turn?~~ Answered 2026-09-15: this change, per section 9.
-3. ~~Does "no plan files" stay a non-negotiable after this?~~ Answered: chat is not treated as a durable record. Section 13 now names the concrete rewording and the `PROGRESS.md` mechanics change; see question 4 for what is still open about it.
-4. Sections 13b/13e's `PROGRESS.md` format: a new "Shaped"/"Planned" subsection under "In flight" (with a per-slice status line for not-small changes), or folded into the existing bullet list? And should 13a/13b/13c/13e ship in this same maintenance change, or as their own turn, since they change the change loop's mechanics rather than a static artifact?
+All resolved as of 2026-09-15. Kept for the record rather than deleted, since each answer shaped a section above.
+
+1. ~~`clean-state-checklist.md`: fold into `AGENTS.md`, or a standalone file?~~ Split by audience instead (section 7): generic half in `AGENTS.md`, Ship-specific half in `2-develop`. No standalone file.
+2. ~~Should the first grading pass on `quality-document.md` happen in this change, or as its own turn?~~ This change, per section 9.
+3. ~~Does "no plan files" stay a non-negotiable after this?~~ No: chat is not treated as a durable record for a not-small change (section 13).
+4. ~~Sections 13b/13e's `PROGRESS.md` format, and whether 13a-13e ship now or separately?~~ A "Planned" subsection under "In flight," carrying deep-plan's confirmed slice list and per-slice status; ships in this same maintenance change.
