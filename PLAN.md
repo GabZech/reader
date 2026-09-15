@@ -11,7 +11,7 @@
 - It is a committed working file, not chat-only. If this session had ended after the last commit, the plan would still exist; the equivalent chat-only plan would not.
 - It is deleted in the final commit of the change it describes, once that change has actually landed in durable artifacts (code, `docs/roadmap.md`, `docs/decisions.md`), not before. Nothing survives past that point to drift, and nothing before that point depended on chat surviving to get there.
 
-This reopens two things beyond this one file, tracked in section 13 rather than assumed silently: the wording of non-negotiable 2 itself, and the point in the change loop where a confirmed plan, Shape's for a small change, deep-plan's slice list for a not-small one, currently lives only in chat until an agent chooses to write it down.
+This reopens two things beyond this one file, tracked in section 13 rather than assumed silently: the wording of non-negotiable 2 itself, and the point in the change loop where a not-small change's confirmed plan currently lives only in chat until an agent chooses to write it down. A small change's Shape is deliberately left chat-only (13b), on a token-cost tradeoff the client raised.
 
 ## Source material
 
@@ -244,7 +244,7 @@ The guide itself calls the file optional and aimed at long sessions with several
 
 **Adopt the Commands block only**, into `PROGRESS.md`'s Current verified state (section 4a).
 
-Section 13b strengthens this further: once Shape's output lands in `PROGRESS.md` at Shape time rather than only at Pause, there is even less a separate handoff file would capture that `PROGRESS.md` does not already hold, live, before any pause is even declared.
+Section 13b strengthens this further for not-small changes: once deep-plan's confirmed plan lands in `PROGRESS.md` at confirm time rather than only at Pause, there is even less a separate handoff file would capture that `PROGRESS.md` does not already hold, live, before any pause is even declared.
 
 ---
 
@@ -254,24 +254,27 @@ Section 13b strengthens this further: once Shape's output lands in `PROGRESS.md`
 
 **What we have:** the same content as prose, in two places: `AGENTS.md` "End of session" (5 bullets) and `2-develop`'s Ship step (clear `PROGRESS.md`, empty `preview/`, free port 8000, confirm live equals main).
 
-### Plan: adopt the format, not the file
+### Plan: adopt the format, split by who needs it, not one file
 
-**Deviation.** A third copy of end-of-session rules is the drift risk this repo keeps hitting. Instead:
+**Deviation.** A third copy of end-of-session rules is the drift risk this repo keeps hitting. The template's six items are not actually one kind of thing, though: some apply to every session regardless of task kind, some only apply once a product change ships. Splitting them by audience, rather than forcing them into one file, avoids both a third copy and a checklist that repo maintenance has no reason to open.
 
-**Make `AGENTS.md` "End of session" the canonical checklist**, as real checkboxes, merging in the three template items we lack:
+**`AGENTS.md` "End of session" becomes the generic checklist**, as real checkboxes, since every session, maintenance included, needs these and has no reason to consult `2-develop` (which gates on "any product change"):
 
 - [ ] Working tree clean or committed; nothing surprising left staged.
 - [ ] `PROGRESS.md` reflects reality: cleared if the turn shipped, updated if it paused mid-change.
-- [ ] `docs/roadmap.md` reflects what actually passed: no line ticked that the client has not signed off live, no stale `(in flight)` or `(blocked)` marker. *(new, from the template)*
 - [ ] No half-finished step left undocumented: anything incomplete is in `PROGRESS.md` or committed on a branch, not only in the chat. *(new, from the template)*
-- [ ] `preview/` empty, port 8000 free.
-- [ ] If a product change shipped: the live host is back on `main` (`bash init.sh --quick` confirms it).
 - [ ] The next session can start from `bash init.sh` with no manual repair. *(new, from the template)*
 - [ ] Recommend `/clear`, or `/compact` if context has grown but continuity still matters.
 
-**Then point Ship at it.** Edit `2-develop/SKILL.md` Ship so its clean-state sentence reads as a reference to `AGENTS.md`'s checklist plus the two items specific to shipping (merge to main, redeploy), rather than restating the list. One canonical copy, one pointer.
+**`2-develop`'s Ship step becomes the product-specific checklist**, turning its existing prose into real checkboxes rather than restating them a second time in `AGENTS.md`:
 
-**Reversal note for the client:** this is the deviation I would most readily reverse. If a standalone `clean-state-checklist.md` is wanted for recognisability against the template set, the safe version is that file being canonical and both `AGENTS.md` and Ship pointing at it. Say so and I will do it that way.
+- [ ] `docs/roadmap.md` reflects what actually passed: no line ticked that the client has not signed off live, no stale `(in flight)` or `(blocked)` marker. *(new, from the template)*
+- [ ] `preview/` empty, port 8000 free.
+- [ ] The live host is back on `main` (`bash init.sh --quick` confirms it).
+
+One canonical copy of each half, each where the session that needs it will actually look.
+
+**Reversal note for the client:** if a standalone `clean-state-checklist.md` is wanted for recognisability against the template set instead of this split, the safe version is that file holding both halves (marked which applies when) with `AGENTS.md` and Ship both pointing at it rather than restating it. Say so and I will do it that way.
 
 ---
 
@@ -330,7 +333,7 @@ The template's domains and layers are from an Electron document app (Main Proces
 | Config | `app/config.py` (43 lines) | Environment reads confined here |
 | Templates and static | `app/templates/` (22 templates), `app/static/` | Presentation only; PWA cache registration |
 
-**Do not grade the layers in this change.** Writing the file is harness maintenance; assigning A-to-D grades to code is a judgement the client should see and agree with, and `app/main.py` at 1343 lines is exactly the kind of finding that deserves a conversation rather than a letter quietly typed into a table. Populate the structure, the domain and layer rows, and the criteria; leave grades as `-` with a note that the first grading pass is a separate turn.
+**Grade the layers in this change.** The client authorized the first grading pass as part of this work (2026-09-15), rather than deferring it. Populate the structure, the domain and layer rows, and the criteria, then actually grade each one by reading the relevant code and the roadmap, not by guessing from file sizes alone: `app/main.py` at 1343 lines is a real signal for the Routes layer's grade, but the grade itself still has to name what specifically is or isn't a boundary problem, not just cite the line count.
 
 **Adopt the harness-simplification loop** from the guide, in the file:
 
@@ -383,17 +386,19 @@ None of the nine walkinglabs templates raised this; it surfaced from reviewing w
 
 **Problem:** the second clause names chat itself as the durable record for the period between Frame/Shape and the next commit. If the session ends before that commit lands (disconnect, crash, a context limit that drops the working turn), nothing survives, not because a plan file was missing, but because the one place the decision lived was never treated as something that could vanish.
 
-**Proposed rewording:** "No plan files that outlive the change they describe. Frame and Shape's decision is recorded in `PROGRESS.md`'s in-flight section as soon as it is made, not only at Pause; that is the durable record, not the chat. A working plan file is fine for a change the client asks to see planned in writing, deleted once the change ships (see `docs/decisions.md` 2026-08-28 and the entry section 13c adds)."
+**Proposed rewording:** "No plan files that outlive the change they describe. For a not-small change, `deep-plan.md`'s confirmed slice list is recorded in `PROGRESS.md`'s in-flight section as soon as it is confirmed, not only at Pause; that is the durable record, not the chat. A small change's Shape stays chat-only: cheap enough to re-Shape from scratch if a session is lost, not worth a mandatory write on every single one. A working plan file is fine for a change the client asks to see planned in writing, deleted once the change ships (see `docs/decisions.md` 2026-08-28 and the entry section 13c adds)."
 
-This keeps what non-negotiable 2 was actually protecting against, a plan document that quietly drifts from what shipped, while dropping the part that assumed chat persistence.
+This keeps what non-negotiable 2 was actually protecting against, a plan document that quietly drifts from what shipped, while dropping the part that assumed chat persistence, and without taxing every small change for a benefit that mostly applies to bigger ones (see 13b's client-flagged token-cost concern, 2026-09-15).
 
-### 13b. `2-develop`'s Shape, deep-plan, and Pause steps
+### 13b. `2-develop`'s deep-plan and Pause steps, not-small changes only
 
 **Current mechanics:** for a small change, Shape is "one message" in chat. For a not-small change, `deep-plan.md` produces a confirmed slice list instead, explicitly written nowhere durable: "Write nothing to `docs/` for this: the confirmed summary is the plan." Either way, nothing survives until Pause (leaving mid-change) or Ship (on completion). A session that ends between that confirm and either of those loses the plan entirely: what will change, what could break, how it will be verified, what it leaves alone, or, for a not-small change, the whole slice breakdown.
 
-**Proposed change:** whichever of Shape or deep-plan produced the confirmed plan is written into `PROGRESS.md`'s in-flight section the moment it is confirmed in chat, not deferred to Pause. Pause becomes a smaller step either way: it already has the plan on file, and only adds the branch name, feedback rounds so far, and the next step.
+**Proposed change, narrowed to not-small changes (client concern, 2026-09-15):** deep-plan's confirmed slice list is written into `PROGRESS.md`'s in-flight section the moment it is confirmed in chat, not deferred to Pause. Pause becomes a smaller step for these: it already has the plan on file, and only adds the branch name, feedback rounds so far, and the next step.
 
-**Not decided here:** the exact `PROGRESS.md` template addition, a new "Shaped" or "Planned" subsection under "In flight," or folding it into the existing in-flight bullet list. That is a small follow-on edit to `2-develop/SKILL.md` and `PROGRESS.md`'s own header comment, scoped separately from the template-alignment work in sections 1 through 9, since it changes the change loop's mechanics rather than a static artifact's shape. It does not disturb the `awk` extraction `init.sh` runs against `PROGRESS.md` (section 4, Constraint to respect): the addition nests inside the existing `## In flight` heading rather than adding a new one.
+**Small changes are deliberately left out.** The client flagged that a mandatory `PROGRESS.md` edit on every Shape adds a real, recurring token cost for a benefit that only pays off in the rare case a session dies mid-change, and a small change is by definition cheap to re-Shape from chat memory if that happens. Not-small changes are the opposite: rarer, higher-stakes if the plan is lost, and the write lands next to work already happening (deep-plan's own confirm, plus a commit at each slice's Try per 13e) rather than as pure added overhead. So this section, and the non-negotiable 2 rewording in 13a, apply only where deep-plan already applies.
+
+**Not decided here:** the exact `PROGRESS.md` template addition, a new "Planned" subsection under "In flight," or folding it into the existing in-flight bullet list. That is a small follow-on edit to `2-develop/SKILL.md` and `PROGRESS.md`'s own header comment, scoped separately from the template-alignment work in sections 1 through 9, since it changes the change loop's mechanics rather than a static artifact's shape. It does not disturb the `awk` extraction `init.sh` runs against `PROGRESS.md` (section 4, Constraint to respect): the addition nests inside the existing `## In flight` heading rather than adding a new one.
 
 ### 13e. Per-slice status for a not-small change
 
@@ -405,7 +410,7 @@ This keeps what non-negotiable 2 was actually protecting against, a plan documen
 
 ### 13c. A new decision, not an edit to the old one
 
-`docs/decisions.md` is append-only, newest first; the 2026-08-28 entry ("The change loop replaces the epic-based workflow") is not edited to match this. A new entry records the reversal instead, dated when 13a and 13b actually ship: title along the lines of "Chat is not treated as a durable record; Shape's output is written to `PROGRESS.md` at Shape time," with **Rejected** naming the 2026-08-28 wording it supersedes.
+`docs/decisions.md` is append-only, newest first; the 2026-08-28 entry ("The change loop replaces the epic-based workflow") is not edited to match this. A new entry records the reversal instead, dated when 13a and 13b actually ship: title along the lines of "Chat is not treated as a durable record for a not-small change; deep-plan's confirmed plan is written to `PROGRESS.md` at confirm time," with **Rejected** naming the 2026-08-28 wording it supersedes and naming the token-cost reasoning for why small changes stay chat-only.
 
 ### 13d. Archived plan files each get one dated entry, as a standing convention
 
@@ -427,8 +432,8 @@ One logical change per commit, per the `commits` skill, format `action scope: de
 8. `update harness refs test: check progress, rubric, and quality document` (section 10)
 9. `update harness: record the review artifacts and the new startup surface` (section 11)
 10. `update agents: non-negotiable 2 no longer names chat as the durable record` (section 13a)
-11. `update develop: write Shape's or deep-plan's confirmed plan, and per-slice status, to PROGRESS.md at confirm time` (sections 13b, 13e)
-12. `add decision: chat is not the record, the confirmed plan writes to PROGRESS.md at confirm time` (section 13c)
+11. `update develop: write deep-plan's confirmed plan, and per-slice status, to PROGRESS.md at confirm time for not-small changes` (sections 13b, 13e)
+12. `add decision: chat is not the record for a not-small change, deep-plan writes to PROGRESS.md at confirm time` (section 13c)
 13. `remove plan: the change is shipped` (this file)
 
 Commits 1 to 12 each leave the repo working. Run `uv run ruff check` and `uv run pytest` before each.
@@ -444,7 +449,7 @@ Commits 1 to 12 each leave the repo working. Run `uv run ruff check` and `uv run
 - `HARNESS.md` describes the repo as it is after commits 1 to 8, with nothing aspirational.
 - No `feature_list.json`, no `session-handoff.md`, no `clean-state-checklist.md`, and `CLAUDE.md` unchanged.
 - `AGENTS.md` non-negotiable 2 no longer states or implies that chat is the durable record between Shape and the next commit.
-- `2-develop/SKILL.md`'s Shape step, and `deep-plan.md`'s confirm step, both write their output to `PROGRESS.md` at confirm time, not only at Pause.
+- `deep-plan.md`'s confirm step writes its output to `PROGRESS.md` at confirm time, not only at Pause, for not-small changes. A small change's Shape stays chat-only, by deliberate choice, not oversight.
 - A not-small change's in-flight entry in `PROGRESS.md` shows per-slice status, updated at each slice's Try.
 - `PLAN.md` deleted.
 
@@ -458,6 +463,6 @@ Commits 1 to 12 each leave the repo working. Run `uv run ruff check` and `uv run
 ## Open questions for the client
 
 1. `clean-state-checklist.md`: keep it folded into `AGENTS.md` as planned, or make it a standalone file with `AGENTS.md` and Ship pointing at it? Section 7 has the tradeoff.
-2. Should the first grading pass on `quality-document.md` happen in this change, or as its own turn once the structure is in? Planned as a separate turn.
+2. ~~Should the first grading pass on `quality-document.md` happen in this change, or as its own turn?~~ Answered 2026-09-15: this change, per section 9.
 3. ~~Does "no plan files" stay a non-negotiable after this?~~ Answered: chat is not treated as a durable record. Section 13 now names the concrete rewording and the `PROGRESS.md` mechanics change; see question 4 for what is still open about it.
 4. Sections 13b/13e's `PROGRESS.md` format: a new "Shaped"/"Planned" subsection under "In flight" (with a per-slice status line for not-small changes), or folded into the existing bullet list? And should 13a/13b/13c/13e ship in this same maintenance change, or as their own turn, since they change the change loop's mechanics rather than a static artifact?
