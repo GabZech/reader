@@ -8,7 +8,15 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 
 CHECKED_FILES = (
-    [ROOT / "AGENTS.md", ROOT / "CLAUDE.md", ROOT / "README.md", ROOT / "HARNESS.md"]
+    [
+        ROOT / "AGENTS.md",
+        ROOT / "CLAUDE.md",
+        ROOT / "README.md",
+        ROOT / "HARNESS.md",
+        ROOT / "PROGRESS.md",
+        ROOT / "evaluator-rubric.md",
+        ROOT / "quality-document.md",
+    ]
     + sorted((ROOT / ".claude" / "skills").rglob("*.md"))
     + sorted((ROOT / "docs").rglob("*.md"))
 )
