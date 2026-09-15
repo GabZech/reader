@@ -16,7 +16,7 @@
 
 ## What's Next
 
-Grouped by [epic](vision/epics.md). An epic names a capability, not a work order: pick from any group, in any order. Each unticked line is one turn of the change loop.
+Grouped by [epic](vision/epics.md). An epic names a capability, not a work order: pick from any group, in any order. Each unticked line is one turn of the change loop. An unticked line may carry `(in flight)` while it's the one being worked (matching `PROGRESS.md`'s in-flight entry) or `(blocked: <reason>)` when it can't proceed; both are cleared by Ship.
 
 ### Manage Lists
 
