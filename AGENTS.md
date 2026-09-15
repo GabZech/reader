@@ -20,7 +20,7 @@ One manual for any AI coding tool working in this repo, vendor-neutral. Read it 
 ## Which kind of task
 
 - **Product change** (a feature, fix, UI tweak, or chore that changes behaviour or what the client sees): the change loop applies.
-- **Repo maintenance** (docs, skills, CI, this file): the change loop's gates (Preview, live sign-off, deploy) do not apply, but still commit incrementally and still route anything touched through the table below.
+- **Repo maintenance** (docs, skills, CI, this file): the change loop's gates (Preview, live sign-off, deploy) do not apply, but it still commits incrementally, still merges only through a PR (the client merges it, or explicitly tells the agent to), and still routes anything touched through the table below.
 
 ## Routing table
 
