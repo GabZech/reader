@@ -14,7 +14,7 @@ change's deep-plan output lives here instead, under In flight's
 - **Focused debug command:** `uv run pytest tests/test_app.py -k <name>`
 - **Run the app:** `RUN_START_COMMAND=1 bash init.sh` (without `--quick`), or see `docs/development.md`
 - **Highest-priority unfinished item:** none chosen yet. Epics in `docs/roadmap.md` do not impose an order; this names what was actually picked, not a computed priority
-- **Current blocker:** `maint/pr-gated-merge` is pushed and needs a PR opened; `gh` is unauthenticated in this environment (see Blocked)
+- **Current blocker:** none
 
 ## Live now
 
@@ -22,7 +22,7 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 ## In flight
 
-None.
+- **Repo maintenance: merge to main only through a gated PR, plus `dev/`/`maint/` branch-naming convention.** PR [#18](https://github.com/GabZech/reader/pull/18) (branch `maint/pr-gated-merge`) is open, tests and lint pass. GitHub branch protection on `main` is live (PR required; `enforce_admins` is off so the client can still push small increments to `main` directly, per their preference). Nothing is blocking it: waiting only on the client's merge decision — they merge it, or tell the agent to squash-merge.
 
 ## Stacked awaiting deploy
 
@@ -30,4 +30,4 @@ None.
 
 ## Blocked
 
-- **Repo maintenance: merge to main only through a gated PR, plus `dev/`/`maint/` branch-naming convention.** Branch `maint/pr-gated-merge` is pushed (commits through `fddae49`: AGENTS.md, HARNESS.md, docs/decisions.md, `.claude/settings.json`, `.claude/skills/2-develop/SKILL.md`), tests and lint pass. Blocked on: (1) opening the PR — `gh` is not authenticated in this environment (`gh auth login` needed), or open it by hand at https://github.com/GabZech/reader/pull/new/maint/pr-gated-merge; (2) GitHub branch protection on `main` (require PR before merge) — client asked for this too, not yet configured, also needs `gh` auth or the GitHub web UI. Once the PR exists, merge it yourself or tell the agent to (squash).
+None.
