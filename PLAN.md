@@ -361,14 +361,15 @@ This is worth capturing because the repo already reasons this way and has no wri
 
 ### 11. `HARNESS.md`
 
-Two new artifacts change what is true about the harness, so non-negotiable 10 requires updating it on the same branch. Specifically:
+Every section above changes what is true about the harness, so non-negotiable 10 requires updating it on the same branch, and the client asked directly that nothing from this change go unmentioned so `HARNESS.md` stays a complete map. Walking every subsystem in its existing table, not just the two new files:
 
-- The subsystem table gains a row, or the Verification row gains the rubric and the quality document. They are not the same subsystem as tests: one grades a session, one grades the codebase over time. Prefer a new row, **Review**, with both files named and their status marked as new and ungraded.
-- The Verification section notes that the optional-review question it records as "considered and left optional" now has a concrete artifact behind it, and that the position is unchanged: still optional, still not a gate.
-- The State section notes `PROGRESS.md`'s new Current verified state block.
-- The Session lifecycle section notes `init.sh`'s start-command support.
+- **Instructions:** the `AGENTS.md` description gains a line for its new Required Artifacts and Definition of Done sections (1a, 1b), and for non-negotiables 6 and 7 each gaining a clause (1c). Non-negotiable 2's reworded text (13a: no plan files that outlive the change; a not-small change's plan lives in `PROGRESS.md`, not chat) replaces the current "No plan files" description wherever `HARNESS.md` paraphrases it. The archived-plan convention (13d: one dated `docs/decisions.md` entry per archived plan, naming its tag) gets its own line next to the existing discovery-skills and template-plan tag examples, stated as the standing rule those two instances follow, not left implicit. `2-develop`'s description notes that deep-plan's confirmed plan now writes to `PROGRESS.md` at confirm time for a not-small change (13b), and that Pause is correspondingly smaller for those.
+- **State:** `PROGRESS.md`'s description gains its new Current verified state block (4a) and, for not-small changes, the deep-plan plan and per-slice status it now carries (13b, 13e). `docs/roadmap.md`'s description notes the `(in flight)` / `(blocked)` inline markers (section 5). `docs/decisions.md`'s description notes the archived-plan convention (13d) as a stated pattern, not only shown through examples.
+- **Verification:** a new **Review** row (or an expanded Verification row), naming `evaluator-rubric.md` and `quality-document.md`, their status as new and, per the client's 2026-09-15 direction, actually graded rather than left blank (section 9). Notes that the "considered and left optional" review question now has concrete artifacts behind it, position unchanged: still optional, still not a gate.
+- **Scope:** one line noting deep-plan's output is now durable (13b) rather than chat-only, since Scope already covers Frame/Shape/deep-plan.
+- **Session lifecycle:** Start gains `git log --oneline -5` (1d, 3d). Work notes deep-plan writing to `PROGRESS.md` at confirm time for not-small changes. End notes the checklist split (section 7): `AGENTS.md` holds the generic half, Ship's own steps hold the product-specific half, rather than one shared list. The subsystem table's own Status column is refreshed wherever an edit above changes what was true when it was last written (for example, State's "Both covered" note).
 
-Keep `HARNESS.md` describing what is actually true, not what this plan intends. Write this commit last, after the others land.
+Keep `HARNESS.md` describing what is actually true after the other commits land, not what this plan intends: write this commit last, and check it against the real state of each edited file rather than against this plan's wording.
 
 ### 12. Voice
 
