@@ -42,7 +42,7 @@ A change to what the client sees needs a screenshot of the intended look, signed
 
 ### 4. Build
 
-A branch per change. Behaviour: write the failing test first. Then the code, then `uv run pytest` and the local checks in `docs/development.md`. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
+A branch per change, named `dev/<kebab-slug>` (`AGENTS.md`'s Branch names). Behaviour: write the failing test first. Then the code, then `uv run pytest` and the local checks in `docs/development.md`. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
 
 ### 5. Try
 

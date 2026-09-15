@@ -22,6 +22,10 @@ One manual for any AI coding tool working in this repo, vendor-neutral. Read it 
 - **Product change** (a feature, fix, UI tweak, or chore that changes behaviour or what the client sees): the change loop applies.
 - **Repo maintenance** (docs, skills, CI, this file): the change loop's gates (Preview, live sign-off, deploy) do not apply, but it still commits incrementally, still merges only through a PR (the client merges it, or explicitly tells the agent to), and still routes anything touched through the table below.
 
+## Branch names
+
+Every branch is `<type>/<kebab-slug>`, `type` matching which kind of task it is: `dev/` for a product change, `maint/` for repo maintenance. E.g. `dev/highlight-export`, `maint/pr-gated-merge`.
+
 ## Routing table
 
 | Task | Skill |
