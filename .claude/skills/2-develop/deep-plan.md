@@ -21,7 +21,7 @@ Propose, do not quiz. The client confirms or adjusts; they should never have to 
 4. **Reversibility**, only where something is genuinely hard to undo: schema, external setup, deletes. Name the fallback while it is still cheap to think about. Skip the whole point where nothing qualifies.
 5. **Depth in proportion.** A three-slice change gets a few sentences per slice. Do not pad.
 
-Then summarise it in chat and ask for one confirm. Write nothing to `docs/` for this: the confirmed summary is the plan, and the tests plus the live app are the record.
+Then summarise it in chat and ask for one confirm. Once confirmed, write the slice list into `PROGRESS.md`'s In flight section under a `### Planned` heading, one line per slice marked not started: that is the durable record from here, since chat is not assumed to survive a lost session. Update each slice's line (not started / in progress / done) at that slice's own Try. No separate plan file, and nothing written to `docs/` for this.
 
 ## Then
 

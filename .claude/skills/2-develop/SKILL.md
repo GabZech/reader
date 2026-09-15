@@ -57,7 +57,7 @@ Once told to deploy: trigger the deploy per `docs/operations.md` (a local `flyct
 
 ### Pause
 
-Leaving mid-change, before Ship: commit what is checked on the branch, update `PROGRESS.md`'s in-flight section (the change, its kinds, the branch, what Shape agreed including what it leaves alone, feedback rounds so far, the next step), and say what is currently live. The next session resumes from that file instead of the conversation.
+Leaving mid-change, before Ship: commit what is checked on the branch, update `PROGRESS.md`'s in-flight section (the change, its kinds, the branch, what Shape agreed including what it leaves alone, feedback rounds so far, the next step), and say what is currently live. For a not-small change, `### Planned` is already there from deep-plan's confirm ([deep-plan.md](deep-plan.md)); make sure each slice's status is current rather than restating the plan. The next session resumes from that file instead of the conversation.
 
 ### 6. Ship
 
