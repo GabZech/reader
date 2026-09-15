@@ -42,7 +42,7 @@ A change to what the client sees needs a screenshot of the intended look, signed
 
 ### 4. Build
 
-A branch per change. Behaviour: write the failing test first. Then the code, then `uv run pytest` and the local checks in `docs/development.md`. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
+A branch per change, named `dev/<kebab-slug>` (`AGENTS.md`'s Branch names). Behaviour: write the failing test first. Then the code, then `uv run pytest` and the local checks in `docs/development.md`. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
 
 ### 5. Try
 
@@ -63,15 +63,17 @@ Leaving mid-change, before Ship: commit what is checked on the branch, update `P
 
 On the branch, once the client has signed off live: check the docs. Tick the roadmap line, update whichever living doc this change made wrong, and write a convention or a decision record if this change produced one. Run this check every time, even when nothing ends up changing; say so rather than skipping it silently. Commit doc changes with or before the last code commit on the branch, never after the merge.
 
-Merge to main, push, then redeploy from main. One live host holds the real library, so the turn is not closed until what is live is main again; the same redeploy clears an abandoned branch. Then the rest of the clean-state checklist, on top of `AGENTS.md`'s End of session:
+Push the branch and open a PR (`gh pr create` locally; the GitHub MCP server's PR tool in a cloud session, same substitution the branch-trial deploy in `docs/operations.md` already uses) summarizing what shipped. Never push `main` directly — a local hook refuses it, and branch protection refuses it on GitHub's side too. Merge only two ways: the client merges the PR themselves, or explicitly tells the agent to, in which case squash-merge it (`gh pr merge --squash`), a confirmation-gated action like `flyctl deploy`.
+
+Either way, the live host must be back on `main` before the turn closes: a merge (by either path) deploys automatically per `docs/operations.md`. If the PR is still unmerged when the turn ends, redeploy `main` directly the same way a Try trial deploy gets cleared — an open PR is a fine stopping point, live drifting from `main` is not. Then the rest of the clean-state checklist, on top of `AGENTS.md`'s End of session:
 
 - [ ] `docs/roadmap.md` reflects what actually passed: no line ticked that the client has not signed off live, no stale `(in flight)` or `(blocked)` marker.
 - [ ] `preview/` empty, port 8000 free.
-- [ ] The live host is back on `main` (`bash init.sh --quick` confirms it).
+- [ ] The live host is back on `main` (`bash init.sh --quick` confirms it), whether or not the PR has merged yet.
 
 Recommend `/clear` (a fresh chat without leaving the terminal), or `/compact` if context has grown but continuity still matters.
 
-If a shipped change breaks the live app: revert the merge, redeploy main.
+If a shipped change breaks the live app: open a revert PR and merge it the same gated way (explicit permission, squash), then redeploy — a revert is never a direct push to `main` either.
 
 ## Change kinds
 
@@ -89,7 +91,8 @@ Procedures for the middle four: [change-kinds.md](change-kinds.md).
 ## Do not
 
 - Write code before Shape, or product code for a visual change before its mockup is signed off
-- Merge before the client has signed off on the live app
+- Merge before the client has signed off on the live app, or merge a PR without the client's explicit permission
+- Push `main` directly, including for a revert
 - Deploy before the client's reply says to — showing the screenshot is not itself permission
 - Leave the live host on a branch once the turn is over
 - Skip, disable, or weaken a test to get green
