@@ -426,18 +426,18 @@ One logical change per commit, per the `commits` skill, format `action scope: de
 1. `update init.sh: name the commands, print cwd and recent log, add the start command` (section 3)
 2. `update progress: add the current verified state and commands block` (section 4)
 3. `update agents: required artifacts, definition of done, and a real end-of-session checklist` (sections 1a, 1b, 1c, 1e)
-4. `update develop: point Ship at the canonical clean-state checklist` (section 7)
+4. `update develop: split the clean-state checklist, Ship gets the product-specific half` (section 7)
 5. `add evaluator rubric: a post-change scorecard that is not a gate` (section 8)
-6. `add quality document: domain and layer health, ungraded first pass` (section 9)
+6. `add quality document: domain and layer health, first pass graded` (section 9)
 7. `update roadmap: in-flight and blocked markers` plus the mirrored note in `writing-docs` (section 5)
 8. `update harness refs test: check progress, rubric, and quality document` (section 10)
-9. `update harness: record the review artifacts and the new startup surface` (section 11)
-10. `update agents: non-negotiable 2 no longer names chat as the durable record` (section 13a)
-11. `update develop: write deep-plan's confirmed plan, and per-slice status, to PROGRESS.md at confirm time for not-small changes` (sections 13b, 13e)
-12. `add decision: chat is not the record for a not-small change, deep-plan writes to PROGRESS.md at confirm time` (section 13c)
+9. `update agents: non-negotiable 2 no longer names chat as the durable record` (section 13a)
+10. `update develop: write deep-plan's confirmed plan, and per-slice status, to PROGRESS.md at confirm time for not-small changes` (sections 13b, 13e)
+11. `add decision: chat is not the record for a not-small change, deep-plan writes to PROGRESS.md at confirm time` (section 13c)
+12. `update harness: record every change above, written last against the real state of each file` (section 11)
 13. `remove plan: the change is shipped` (this file)
 
-Commits 1 to 12 each leave the repo working. Run `uv run ruff check` and `uv run pytest` before each.
+Commits 1 to 12 each leave the repo working. Run `uv run ruff check` and `uv run pytest` before each. `HARNESS.md` (commit 12) comes after every content change, including 13a-13c, per section 11's own instruction to write it last.
 
 ## Acceptance criteria
 
@@ -447,7 +447,7 @@ Commits 1 to 12 each leave the repo working. Run `uv run ruff check` and `uv run
 - `uv run ruff check` clean.
 - `AGENTS.md` still has at most 15 non-negotiables.
 - Every new backticked path and markdown link in the new and edited files resolves.
-- `HARNESS.md` describes the repo as it is after commits 1 to 8, with nothing aspirational.
+- `HARNESS.md` describes the repo as it is after commits 1 to 11, with nothing aspirational.
 - No `feature_list.json`, no `session-handoff.md`, no `clean-state-checklist.md`, and `CLAUDE.md` unchanged.
 - `AGENTS.md` non-negotiable 2 no longer states or implies that chat is the durable record between Shape and the next commit.
 - `deep-plan.md`'s confirm step writes its output to `PROGRESS.md` at confirm time, not only at Pause, for not-small changes. A small change's Shape stays chat-only, by deliberate choice, not oversight.
