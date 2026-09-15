@@ -35,7 +35,7 @@ One manual for any AI coding tool working in this repo, vendor-neutral. Read it 
 ## Non-negotiables
 
 1. **One change at a time.** Frame and Shape commit to a single change before code; stacking work hides what actually shipped.
-2. **No plan files.** The chat is the plan; a separate document drifts from what was actually decided.
+2. **No plan files that outlive the change they describe.** For a not-small change, `deep-plan.md`'s confirmed plan is recorded in `PROGRESS.md`'s in-flight section as soon as it is confirmed, not only at Pause, since chat is not assumed to survive a lost session; a small change's Shape stays chat-only, cheap enough to re-Shape from scratch if it is. A working plan file is fine for a change the client asks to see planned in writing, and is deleted once the change ships.
 3. **Sign-off gates merge, not commit.** Commit on the branch as checkpoints pass; only the client's live sign-off allows a merge to `main`.
 4. **Deploy only on the client's explicit go-ahead.** A screenshot or a walkthrough is not itself permission; one live host holds the real library.
 5. **A visual change needs a signed-off mockup screenshot before product code exists.** Iterating a screenshot is cheap; iterating built UI is not.
