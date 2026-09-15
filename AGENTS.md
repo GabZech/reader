@@ -36,7 +36,7 @@ One manual for any AI coding tool working in this repo, vendor-neutral. Read it 
 
 1. **One change at a time.** Frame and Shape commit to a single change before code; stacking work hides what actually shipped.
 2. **No plan files that outlive the change they describe.** For a not-small change, `deep-plan.md`'s confirmed plan is recorded in `PROGRESS.md`'s in-flight section as soon as it is confirmed, not only at Pause, since chat is not assumed to survive a lost session; a small change's Shape stays chat-only, cheap enough to re-Shape from scratch if it is. A working plan file is fine for a change the client asks to see planned in writing, and is deleted once the change ships.
-3. **Sign-off gates merge, not commit.** Commit on the branch as checkpoints pass; only the client's live sign-off allows a merge to `main`.
+3. **Sign-off gates merge, not commit; merge always goes through a PR.** Commit on the branch as checkpoints pass. Once the client signs off live, Ship opens a PR instead of pushing to `main` directly; the client merges it, or explicitly tells the agent to.
 4. **Deploy only on the client's explicit go-ahead.** A screenshot or a walkthrough is not itself permission; one live host holds the real library.
 5. **A visual change needs a signed-off mockup screenshot before product code exists.** Iterating a screenshot is cheap; iterating built UI is not.
 6. **A behaviour or bug change needs a failing test first.** It proves the change does what it claims, stays on as the regression guard, and the verification bar does not move mid-change: if what counts as proof turns out to be wrong, say so and re-Shape.

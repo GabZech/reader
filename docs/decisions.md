@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**.
 
+## 2026-09-15: Merge to main always goes through a PR, gated separately from sign-off
+
+**Decision:** Ship no longer merges and pushes to `main` directly. It pushes the branch, opens a PR, and merges only when the client merges it themselves or explicitly tells the agent to (a squash-merge, confirmation-gated like `flyctl deploy`). A `PreToolUse` hook now refuses any direct push to `main` outright rather than only asking, and GitHub branch protection on `main` requires a PR before merge.
+
+**Why:** The client's live sign-off answers whether the change is good; it does not separately answer who is allowed to move `main`. Folding both into one gate meant an agent could merge immediately after sign-off with no distinct go-ahead and no review surface. Splitting them gives every merge a PR to point back to, and a hard technical backstop (the hook, plus branch protection) instead of relying on the agent remembering the rule.
+
+**Rejected:** Keeping direct local merge-and-push gated only by sign-off, as before: no PR, no audit trail, and the only thing stopping a stray direct push was a confirmation prompt rather than a refusal.
+
+**Revisit when:** Not expected to.
+
 ## 2026-09-15: Chat is not the durable record for a not-small change
 
 **Decision:** For a not-small change, `deep-plan.md`'s confirmed slice list is written into `PROGRESS.md`'s In flight section (under a `### Planned` heading) the moment it's confirmed, not deferred to Pause; each slice's status is kept current there too. `AGENTS.md` non-negotiable 2 is reworded to state this directly rather than naming chat as the plan. A small change's Shape stays chat-only.

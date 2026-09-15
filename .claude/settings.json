@@ -2,7 +2,8 @@
   "permissions": {
     "ask": [
       "Bash(flyctl deploy *)",
-      "Bash(gh workflow run *)"
+      "Bash(gh workflow run *)",
+      "Bash(gh pr merge *)"
     ]
   },
   "hooks": {
@@ -23,7 +24,7 @@
           {
             "type": "command",
             "if": "Bash(git push *)",
-            "command": "cmd=$(cat | jq -r '.tool_input.command'); branch=\"\"; if printf '%s' \"$cmd\" | grep -qE '(^|[^A-Za-z0-9_-])main(:main)?([^A-Za-z0-9_-]|$)'; then branch=main; else cur=$(git rev-parse --abbrev-ref HEAD 2>/dev/null); [ \"$cur\" = \"main\" ] && branch=main; fi; if [ \"$branch\" = \"main\" ]; then echo \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"PreToolUse\\\",\\\"permissionDecision\\\":\\\"ask\\\",\\\"permissionDecisionReason\\\":\\\"git push targets main directly\\\"}}\"; else echo \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"PreToolUse\\\",\\\"permissionDecision\\\":\\\"allow\\\",\\\"permissionDecisionReason\\\":\\\"git push to a non-main branch\\\"}}\"; fi"
+            "command": "cmd=$(cat | jq -r '.tool_input.command'); branch=\"\"; if printf '%s' \"$cmd\" | grep -qE '(^|[^A-Za-z0-9_-])main(:main)?([^A-Za-z0-9_-]|$)'; then branch=main; else cur=$(git rev-parse --abbrev-ref HEAD 2>/dev/null); [ \"$cur\" = \"main\" ] && branch=main; fi; if [ \"$branch\" = \"main\" ]; then echo \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"PreToolUse\\\",\\\"permissionDecision\\\":\\\"deny\\\",\\\"permissionDecisionReason\\\":\\\"git push targets main directly; merge via a PR instead (gh pr merge)\\\"}}\"; else echo \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"PreToolUse\\\",\\\"permissionDecision\\\":\\\"allow\\\",\\\"permissionDecisionReason\\\":\\\"git push to a non-main branch\\\"}}\"; fi"
           }
         ]
       }
