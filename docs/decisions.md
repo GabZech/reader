@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**.
 
+## 2026-09-15: Chat is not the durable record for a not-small change
+
+**Decision:** For a not-small change, `deep-plan.md`'s confirmed slice list is written into `PROGRESS.md`'s In flight section (under a `### Planned` heading) the moment it's confirmed, not deferred to Pause; each slice's status is kept current there too. `AGENTS.md` non-negotiable 2 is reworded to state this directly rather than naming chat as the plan. A small change's Shape stays chat-only.
+
+**Why:** The client rejected the premise behind the old wording ("the chat is the plan"): a session is not guaranteed to persist, so treating chat as the record of what was decided is a bet against session loss. That risk is worst for a not-small, multi-slice change: the one most likely to span sessions and costliest to reconstruct if the plan is lost. A small change is the opposite, cheap to re-Shape from scratch, so the client separately flagged that a mandatory `PROGRESS.md` write on every Shape would tax the common case for a benefit that rarely applies there.
+
+**Rejected:** Writing every Shape, small changes included, to `PROGRESS.md`: considered first, but the token cost of a write on every single change was judged not worth a benefit that mostly matters for not-small changes. Leaving the old wording as-is: it would keep asserting chat as durable after the client explicitly said not to rely on that.
+
+**Revisit when:** Not expected to.
+
 ## 2026-09-11: Archive the harness template-alignment plan at a tag
 
 **Decision:** Tag the commit that added `PLAN.md` (a plan to rewrite this repo's harness artifacts against the templates in `walkinglabs/learn-harness-engineering`) as `archive/harness-template-plan-2026-09`, rather than moving the plan into a `docs/history/`-style folder. The plan itself stays in the working tree, unimplemented pending the client's answers to its open questions, and is deleted per its own commit sequence once the change it describes ships.
