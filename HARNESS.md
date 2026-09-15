@@ -38,7 +38,7 @@ Where "what's true right now" and "what's still in progress" live.
 
 How an agent proves a change actually works, instead of just claiming it does.
 
-- **`uv run pytest`**: 134 tests, run locally before every change is shown and in CI ([test.yml](.github/workflows/test.yml)) on every push and pull request.
+- **`uv run pytest`**: 137 tests, run locally before every change is shown and in CI ([test.yml](.github/workflows/test.yml)) on every push and pull request.
 - **`uv run ruff check`**: runs in CI before the tests. `pytest` and `ruff` are dev-only dependencies (`[dependency-groups] dev`); the deployed image installs with `--no-dev`, so neither ships in production.
 - **[tests/test_harness_refs.py](tests/test_harness_refs.py)** asserts that markdown links and multi-segment backticked paths across `AGENTS.md`, `CLAUDE.md`, `README.md`, `HARNESS.md`, `PROGRESS.md`, `evaluator-rubric.md`, `quality-document.md`, `.claude/skills/`, and `docs/` all resolve. It runs with the rest of the suite and would have caught the two stale-path findings that motivated it, plus anything broken by this file's own links.
 - **[change-kinds.md](.claude/skills/2-develop/change-kinds.md)** spells out what "verified" means per kind of change.
