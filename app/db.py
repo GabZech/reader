@@ -349,6 +349,8 @@ def rename_list(conn: sqlite3.Connection, slug: str, name: str) -> None:
 
 
 def delete_list(conn: sqlite3.Connection, slug: str) -> None:
+    conn.execute("DELETE FROM item_read WHERE list_slug = ?", (slug,))
+    conn.execute("DELETE FROM item_lists WHERE list_slug = ?", (slug,))
     conn.execute("DELETE FROM source_lists WHERE list_slug = ?", (slug,))
     conn.execute("DELETE FROM lists WHERE slug = ?", (slug,))
 
@@ -584,6 +586,14 @@ def items_for_source(conn: sqlite3.Connection, source_id: str) -> list[sqlite3.R
 
 
 def delete_source(conn: sqlite3.Connection, source_id: str) -> None:
+    conn.execute(
+        "DELETE FROM item_read WHERE item_id IN (SELECT id FROM items WHERE source_id = ?)",
+        (source_id,),
+    )
+    conn.execute(
+        "DELETE FROM item_lists WHERE item_id IN (SELECT id FROM items WHERE source_id = ?)",
+        (source_id,),
+    )
     conn.execute("DELETE FROM source_lists WHERE source_id = ?", (source_id,))
     conn.execute("DELETE FROM items WHERE source_id = ?", (source_id,))
     conn.execute("DELETE FROM sources WHERE id = ?", (source_id,))

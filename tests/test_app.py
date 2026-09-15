@@ -507,6 +507,17 @@ def test_deleting_a_default_list_does_not_bring_it_back(monkeypatch, tmp_path):
         assert "Favourite channels" not in home.text
 
 
+def test_deleting_a_list_with_a_read_item_does_not_crash(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        read = client.post(f"/items/{item_id}/read?from_list=news")
+        assert read.status_code == 200
+
+        deleted = client.post("/lists/news/delete")
+        assert deleted.status_code == 200
+
+
 def _to_choose_list(client: TestClient, url: str = "https://example.test/feed.xml"):
     added = client.post("/sources/add", data={"url": url})
     assert added.status_code == 200
@@ -747,6 +758,20 @@ def test_delete_source_removes_it_and_items(monkeypatch, tmp_path):
         assert "Fixture news" not in sources.text
         news = client.get("/lists/news")
         assert "First fixture item" not in news.text
+        missing = client.get(f"/sources/{source_id}")
+        assert missing.status_code == 404
+
+
+def test_delete_source_with_a_read_item_does_not_crash(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        read = client.post(f"/items/{item_id}/read?from_list=news")
+        assert read.status_code == 200
+
+        gone = client.post(f"/sources/{source_id}/delete")
+        assert gone.status_code == 200
         missing = client.get(f"/sources/{source_id}")
         assert missing.status_code == 404
 
