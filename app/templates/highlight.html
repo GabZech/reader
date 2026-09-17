@@ -23,9 +23,7 @@
         </a>
       </section>
       <section class="list">
-        <form method="post" action="{{ delete_action }}">
-          <button type="submit" class="item item-action" id="copy-delete-highlight" data-copy-text="{{ highlight.text }}">Copy text and delete highlight</button>
-        </form>
+        <button type="button" class="item item-action" id="copy-highlight" data-copy-text="{{ highlight.text }}">Copy text</button>
       </section>
       <section class="list">
         <form method="post" action="{{ delete_action }}">

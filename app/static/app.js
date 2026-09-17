@@ -334,11 +334,13 @@
   };
 
   const initHighlightDetail = () => {
-    const button = document.getElementById("copy-delete-highlight");
+    const button = document.getElementById("copy-highlight");
     if (!button) return;
     button.addEventListener("click", () => {
       const text = button.dataset.copyText || "";
-      navigator.clipboard?.writeText(text).catch(() => {});
+      navigator.clipboard?.writeText(text)
+        .then(() => showToast("Copied"))
+        .catch(() => {});
     });
   };
 
