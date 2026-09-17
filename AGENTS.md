@@ -67,7 +67,7 @@ Code and tests are behaviour. Living docs under `docs/` are the current agreed p
 
 - When a message presents a set of items the reader must weigh together, structure it so the set reads clearly and stays visually distinct from surrounding prose.
 - A question is not a command: answer it, do not act on it unless asked.
-- Narrate progress as it happens: a short update roughly every 5-10 seconds of work (what you just found, what you're doing next), not silence until a task finishes.
+- Narrate progress as it happens: a short update roughly every 5-10 seconds of work (what you just found, what you're doing next), not silence until a task finishes. At the end, briefly summarise what you did and explain what's next.
 - Reach for visual structure over dense prose where it clarifies (e.g. tables for comparisons, Mermaid diagrams for workflows/processes/structures, headers and bold to make long answers scannable).
 
 ## Definition of done
