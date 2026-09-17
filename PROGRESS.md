@@ -24,16 +24,16 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 - **Repo maintenance: merge to main only through a gated PR, plus `dev/`/`maint/` branch-naming convention.** PR [#18](https://github.com/GabZech/reader/pull/18) (branch `maint/pr-gated-merge`) is open, tests and lint pass. GitHub branch protection on `main` is live (PR required; `enforce_admins` is off so the client can still push small increments to `main` directly, per their preference). Nothing is blocking it: waiting only on the client's merge decision — they merge it, or tell the agent to squash-merge.
 
-- **Highlight and Land in Obsidian.** Deep-planned and confirmed; starting slice 1 on branch `dev/highlight-on-first-open`.
+- **Highlight and Land in Obsidian.** Deep-planned and confirmed, building on branch `dev/highlight-on-first-open`. Client wants all 3 slices stacked, reviewed by screenshot as each lands, and tried live together only once all 3 are built — not deployed slice by slice.
 
   ### Planned
-  - Slice 1 — Highlight on first open: in progress
-  - Slice 2 — Sticky section titles, and deleting a highlight: not started
+  - Slice 1 — Highlight on first open: done (signed off from screenshots; not yet live)
+  - Slice 2 — Sticky section titles, and deleting a highlight: in progress
   - Slice 3 — The note lands in the vault: not started
 
 ## Stacked awaiting deploy
 
-None.
+- Slice 1 (Highlight on first open), committed on `dev/highlight-on-first-open`, held for the combined live try at the end of the Highlight epic.
 
 ## Blocked
 
