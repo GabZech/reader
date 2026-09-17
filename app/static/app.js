@@ -199,6 +199,116 @@
     }
   };
 
+  const initHighlights = () => {
+    const body = document.querySelector(".article-body[data-highlight-action]");
+    if (!body) return;
+    const blocks = Array.from(body.children);
+    if (blocks.length === 0) return;
+    const saveUrl = body.dataset.highlightAction;
+
+    const pointAtOffset = (block, offset) => {
+      const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+      let pos = 0;
+      let node = walker.nextNode();
+      let last = null;
+      while (node) {
+        const len = node.textContent.length;
+        if (pos + len >= offset) return { node, offset: offset - pos };
+        pos += len;
+        last = node;
+        node = walker.nextNode();
+      }
+      return last ? { node: last, offset: last.textContent.length } : null;
+    };
+
+    const wrapBlockRange = (block, from, to) => {
+      if (to <= from) return;
+      const start = pointAtOffset(block, from);
+      const end = pointAtOffset(block, to);
+      if (!start || !end) return;
+      const range = document.createRange();
+      range.setStart(start.node, start.offset);
+      range.setEnd(end.node, end.offset);
+      try {
+        const mark = document.createElement("mark");
+        mark.className = "hl";
+        mark.appendChild(range.extractContents());
+        range.insertNode(mark);
+      } catch {
+        /* leave the text unwrapped rather than corrupt the DOM */
+      }
+    };
+
+    const wrapHighlight = (startBlock, startOffset, endBlock, endOffset) => {
+      for (let b = startBlock; b <= endBlock; b++) {
+        const block = blocks[b];
+        if (!block) continue;
+        const from = b === startBlock ? startOffset : 0;
+        const to = b === endBlock ? endOffset : block.textContent.length;
+        wrapBlockRange(block, from, to);
+      }
+    };
+
+    const blockIndexOf = (node) => {
+      let el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+      while (el && el.parentElement !== body) el = el.parentElement;
+      return el ? blocks.indexOf(el) : -1;
+    };
+
+    const charOffsetWithinBlock = (block, container, offsetInContainer) => {
+      const range = document.createRange();
+      range.selectNodeContents(block);
+      range.setEnd(container, offsetInContainer);
+      return range.toString().length;
+    };
+
+    const dataEl = document.getElementById("highlights-data");
+    let saved = [];
+    try {
+      saved = dataEl ? JSON.parse(dataEl.textContent || "[]") : [];
+    } catch {
+      saved = [];
+    }
+    saved.forEach((h) => {
+      wrapHighlight(h.start_block, h.start_offset, h.end_block, h.end_offset);
+    });
+
+    body.addEventListener("mouseup", () => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed) return;
+      const range = selection.getRangeAt(0);
+      if (!body.contains(range.commonAncestorContainer)) return;
+      const text = range.toString();
+      if (!text.trim()) return;
+
+      const startBlock = blockIndexOf(range.startContainer);
+      const endBlock = blockIndexOf(range.endContainer);
+      if (startBlock < 0 || endBlock < 0) return;
+      const startOffset = charOffsetWithinBlock(
+        blocks[startBlock],
+        range.startContainer,
+        range.startOffset
+      );
+      const endOffset = charOffsetWithinBlock(
+        blocks[endBlock],
+        range.endContainer,
+        range.endOffset
+      );
+      selection.removeAllRanges();
+
+      wrapHighlight(startBlock, startOffset, endBlock, endOffset);
+
+      const data = new URLSearchParams({
+        start_block: String(startBlock),
+        start_offset: String(startOffset),
+        end_block: String(endBlock),
+        end_offset: String(endOffset),
+        text,
+      });
+      fetch(saveUrl, { method: "POST", body: data }).catch(() => {});
+    });
+  };
+
   const showToast = (text) => {
     const el = document.createElement("div");
     el.className = "toast";
@@ -224,6 +334,7 @@
   initThemeToggle();
   initSwipeToDelete();
   initReadingProgress();
+  initHighlights();
   registerWorker();
   syncHome();
 })();

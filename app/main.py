@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlencode
@@ -12,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import database_path, git_sha, mail_imap_config
 from app.db import (
+    add_highlight,
     add_item_to_list,
     add_source_to_list,
     all_lists,
@@ -30,6 +32,8 @@ from app.db import (
     get_list,
     get_source,
     has_pending_source_notice,
+    highlight_overlaps,
+    highlights_for_item,
     init_db,
     insert_list,
     insert_source,
@@ -969,10 +973,23 @@ def item_page(
             mark_item_seen(conn, item_id)
             conn.commit()
         in_read_later = item is not None and is_item_in_list(conn, item_id, "later")
+        highlights = highlights_for_item(conn, item_id) if item is not None else []
     finally:
         conn.close()
     if item is None:
         raise HTTPException(status_code=404)
+    highlights_json = json.dumps(
+        [
+            {
+                "id": h["id"],
+                "start_block": h["start_block"],
+                "start_offset": h["start_offset"],
+                "end_block": h["end_block"],
+                "end_offset": h["end_offset"],
+            }
+            for h in highlights
+        ]
+    )
     if from_source and item["source_id"] == from_source:
         back = f"/sources/{from_source}/items"
     elif from_home:
@@ -994,6 +1011,8 @@ def item_page(
             "archive_action": f"/items/{item_id}/archive{context_query}",
             "delete_action": f"/items/{item_id}/delete{context_query}",
             "progress_action": f"/items/{item_id}/progress",
+            "highlight_action": f"/items/{item_id}/highlights",
+            "highlights_json": highlights_json,
             "mark_read_action": (
                 f"/items/{item_id}/read{context_query}"
                 if from_list and from_list != "later"
@@ -1021,6 +1040,38 @@ async def item_save_progress(item_id: int, request: Request):
     finally:
         conn.close()
     return {"ok": True}
+
+
+@app.post("/items/{item_id}/highlights")
+async def item_add_highlight(item_id: int, request: Request):
+    form = await request.form()
+    try:
+        start_block = int(str(form.get("start_block") or ""))
+        start_offset = int(str(form.get("start_offset") or ""))
+        end_block = int(str(form.get("end_block") or ""))
+        end_offset = int(str(form.get("end_offset") or ""))
+    except ValueError:
+        raise HTTPException(status_code=400)
+    text = str(form.get("text") or "")
+    if not text or (end_block, end_offset) <= (start_block, start_offset):
+        raise HTTPException(status_code=400)
+    conn = connect()
+    try:
+        init_db(conn)
+        item = get_item(conn, item_id)
+        if item is None:
+            raise HTTPException(status_code=404)
+        if highlight_overlaps(
+            conn, item_id, start_block, start_offset, end_block, end_offset
+        ):
+            raise HTTPException(status_code=409)
+        highlight_id = add_highlight(
+            conn, item_id, start_block, start_offset, end_block, end_offset, text
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True, "id": highlight_id}
 
 
 @app.post("/items/{item_id}/later")

@@ -907,6 +907,26 @@ def test_delete_item_unknown_id_is_404(monkeypatch, tmp_path):
         assert missing.status_code == 404
 
 
+def test_deleting_an_item_with_a_highlight_does_not_crash(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlighted = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "5",
+                "text": "Hello",
+            },
+        )
+        assert highlighted.status_code == 200
+
+        gone = client.post(f"/items/{item_id}/delete?from_list=news")
+        assert gone.status_code == 200
+
+
 def test_delete_item_from_source_items_view_redirects_there(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
@@ -1192,3 +1212,117 @@ def test_item_page_has_no_progress_index_when_never_read(monkeypatch, tmp_path):
         item_id = _first_item_id(tmp_path)
         page = client.get(f"/items/{item_id}")
         assert "data-progress-index" not in page.text
+
+
+def test_saving_a_highlight_that_spans_two_blocks_persists_and_renders(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+
+        saved = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "5",
+                "end_block": "1",
+                "end_offset": "10",
+                "text": "spans two paragraphs",
+            },
+        )
+        assert saved.status_code == 200
+
+        page = client.get(f"/items/{item_id}")
+        assert page.status_code == 200
+        assert '"start_block": 0' in page.text
+        assert '"start_offset": 5' in page.text
+        assert '"end_block": 1' in page.text
+        assert '"end_offset": 10' in page.text
+
+
+def test_item_page_has_empty_highlights_when_none_saved(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        page = client.get(f"/items/{item_id}")
+        assert page.status_code == 200
+        assert 'id="highlights-data">[]</script>' in page.text
+
+
+def test_saving_highlight_on_unknown_item_is_404(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        missing = client.post(
+            "/items/999999/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "5",
+                "text": "nope",
+            },
+        )
+        assert missing.status_code == 404
+
+
+def test_saving_highlight_rejects_non_integer_offsets(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        bad = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "nope",
+                "end_block": "0",
+                "end_offset": "5",
+                "text": "x",
+            },
+        )
+        assert bad.status_code == 400
+
+
+def test_saving_highlight_rejects_end_not_after_start(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        bad = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "5",
+                "end_block": "0",
+                "end_offset": "5",
+                "text": "x",
+            },
+        )
+        assert bad.status_code == 400
+
+
+def test_saving_an_overlapping_highlight_is_rejected(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        first = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "10",
+                "text": "first ten chars",
+            },
+        )
+        assert first.status_code == 200
+
+        overlapping = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "5",
+                "end_block": "0",
+                "end_offset": "15",
+                "text": "overlaps the first",
+            },
+        )
+        assert overlapping.status_code == 409
