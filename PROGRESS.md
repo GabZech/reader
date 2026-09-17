@@ -29,11 +29,11 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
   ### Planned
   - Slice 1 — Highlight on first open: done (signed off from screenshots; not yet live)
   - Slice 2 — Sticky section titles, and deleting a highlight: done (signed off from screenshots; not yet live)
-  - Slice 3 — The note lands in the vault: in progress. New private repo `GabZech/news-highlights` created and probed live (GitHub's Contents API confirmed: create works directly, updating an existing file requires reading its current blob SHA first). Building the export code now against a fixture of that real response; the one live end-to-end run still needs the blocker below cleared first.
+  - Slice 3 — The note lands in the vault: code and tests done (`app/obsidian.py`, `tests/test_obsidian.py`, wired into every highlight-mutating route in `app/main.py`); no UI to screenshot, this one is invisible by design. No summary section for now, per client (deferred to a possible future LLM step, not guessed at). Not yet proven against the real production credential — blocked, see below.
 
 ## Stacked awaiting deploy
 
-- Slices 1 and 2 (Highlight and Land in Obsidian), committed on `dev/highlight-on-first-open`, held for the combined live try at the end of the epic.
+- Slices 1, 2, and 3 (Highlight and Land in Obsidian), committed on `dev/highlight-on-first-open`, held for the combined live try at the end of the epic.
 
 ## Blocked
 
