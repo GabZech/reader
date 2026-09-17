@@ -22,12 +22,14 @@ from app.db import (
     clear_source_notice,
     connect,
     count_for_list,
+    delete_highlight,
     delete_item,
     delete_list,
     delete_source,
     find_list_by_name,
     find_source_by_feed_url,
     format_when,
+    get_highlight,
     get_item,
     get_list,
     get_source,
@@ -50,6 +52,8 @@ from app.db import (
     remove_source_from_list,
     rename_list,
     rename_source,
+    set_highlight_section_title,
+    set_highlight_subsection_title,
     set_item_progress,
     set_list_on_home,
     source_byline,
@@ -1072,6 +1076,119 @@ async def item_add_highlight(item_id: int, request: Request):
     finally:
         conn.close()
     return {"ok": True, "id": highlight_id}
+
+
+@app.get("/items/{item_id}/highlights/{highlight_id}")
+def highlight_detail(request: Request, item_id: int, highlight_id: int):
+    conn = connect()
+    try:
+        init_db(conn)
+        highlight = get_highlight(conn, item_id, highlight_id)
+    finally:
+        conn.close()
+    if highlight is None:
+        raise HTTPException(status_code=404)
+    return templates.TemplateResponse(
+        request,
+        "highlight.html",
+        {
+            "nav": "home",
+            "highlight": highlight,
+            "back": f"/items/{item_id}",
+            "section_title_action": f"/items/{item_id}/highlights/{highlight_id}/section-title",
+            "subsection_title_action": (
+                f"/items/{item_id}/highlights/{highlight_id}/subsection-title"
+            ),
+            "delete_action": f"/items/{item_id}/highlights/{highlight_id}/delete",
+        },
+    )
+
+
+def _highlight_title_page(
+    request: Request, item_id: int, highlight_id: int, level: str
+):
+    conn = connect()
+    try:
+        init_db(conn)
+        highlight = get_highlight(conn, item_id, highlight_id)
+        if highlight is None:
+            raise HTTPException(status_code=404)
+        field = "section_title" if level == "section" else "subsection_title"
+        shown = highlight[field] or ""
+    finally:
+        conn.close()
+    return templates.TemplateResponse(
+        request,
+        "highlight_title.html",
+        {
+            "nav": "home",
+            "label": "Section title" if level == "section" else "Subsection title",
+            "text": highlight["text"],
+            "title": shown,
+            "back": f"/items/{item_id}/highlights/{highlight_id}",
+            "save_action": f"/items/{item_id}/highlights/{highlight_id}/{level}-title",
+        },
+    )
+
+
+async def _highlight_title_submit(
+    request: Request, item_id: int, highlight_id: int, level: str
+):
+    form = await request.form()
+    title = str(form.get("title") or "").strip() or None
+    conn = connect()
+    try:
+        init_db(conn)
+        highlight = get_highlight(conn, item_id, highlight_id)
+        if highlight is None:
+            raise HTTPException(status_code=404)
+        if level == "section":
+            set_highlight_section_title(conn, highlight_id, title)
+        else:
+            set_highlight_subsection_title(conn, highlight_id, title)
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(f"/items/{item_id}", status_code=303)
+
+
+@app.get("/items/{item_id}/highlights/{highlight_id}/section-title")
+def highlight_section_title(request: Request, item_id: int, highlight_id: int):
+    return _highlight_title_page(request, item_id, highlight_id, "section")
+
+
+@app.post("/items/{item_id}/highlights/{highlight_id}/section-title")
+async def highlight_section_title_submit(
+    request: Request, item_id: int, highlight_id: int
+):
+    return await _highlight_title_submit(request, item_id, highlight_id, "section")
+
+
+@app.get("/items/{item_id}/highlights/{highlight_id}/subsection-title")
+def highlight_subsection_title(request: Request, item_id: int, highlight_id: int):
+    return _highlight_title_page(request, item_id, highlight_id, "subsection")
+
+
+@app.post("/items/{item_id}/highlights/{highlight_id}/subsection-title")
+async def highlight_subsection_title_submit(
+    request: Request, item_id: int, highlight_id: int
+):
+    return await _highlight_title_submit(request, item_id, highlight_id, "subsection")
+
+
+@app.post("/items/{item_id}/highlights/{highlight_id}/delete")
+def highlight_delete(item_id: int, highlight_id: int):
+    conn = connect()
+    try:
+        init_db(conn)
+        highlight = get_highlight(conn, item_id, highlight_id)
+        if highlight is None:
+            raise HTTPException(status_code=404)
+        delete_highlight(conn, highlight_id)
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(f"/items/{item_id}", status_code=303)
 
 
 @app.post("/items/{item_id}/later")

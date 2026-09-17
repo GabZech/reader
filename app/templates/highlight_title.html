@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ label }}{% endblock %}
+{% block body %}
+      <div class="actions">
+        <a href="{{ back }}">Close</a>
+      </div>
+      <header class="top">
+        <h1>{{ label }}</h1>
+      </header>
+      <p class="lede">{{ text }}</p>
+      <div class="actions">
+        <form method="post" action="{{ save_action }}">
+          <input class="field" type="text" name="title" autocomplete="off" value="{{ title }}">
+          <button type="submit">Done</button>
+        </form>
+      </div>
+{% endblock %}

@@ -927,6 +927,116 @@ def test_deleting_an_item_with_a_highlight_does_not_crash(monkeypatch, tmp_path)
         assert gone.status_code == 200
 
 
+def _save_highlight(client, item_id, start_block=0, start_offset=0, end_block=0, end_offset=5, text="Hello"):
+    saved = client.post(
+        f"/items/{item_id}/highlights",
+        data={
+            "start_block": str(start_block),
+            "start_offset": str(start_offset),
+            "end_block": str(end_block),
+            "end_offset": str(end_offset),
+            "text": text,
+        },
+    )
+    assert saved.status_code == 200
+    return saved.json()["id"]
+
+
+def test_highlight_detail_page_shows_its_text(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id, text="Hello from the fixture")
+
+        page = client.get(f"/items/{item_id}/highlights/{highlight_id}")
+        assert page.status_code == 200
+        assert "Hello from the fixture" in page.text
+        assert "Add section title" in page.text
+        assert "Add subsection title" in page.text
+        assert "Delete highlight" in page.text
+
+
+def test_highlight_detail_unknown_id_is_404(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        missing = client.get(f"/items/{item_id}/highlights/999999")
+        assert missing.status_code == 404
+
+
+def test_setting_a_section_title_persists(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+
+        saved = client.post(
+            f"/items/{item_id}/highlights/{highlight_id}/section-title",
+            data={"title": "Money and markets"},
+        )
+        assert saved.status_code == 200
+
+        page = client.get(f"/items/{item_id}/highlights/{highlight_id}/section-title")
+        assert page.status_code == 200
+        assert 'value="Money and markets"' in page.text
+
+
+def test_setting_a_subsection_title_persists(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+
+        saved = client.post(
+            f"/items/{item_id}/highlights/{highlight_id}/subsection-title",
+            data={"title": "A closer look"},
+        )
+        assert saved.status_code == 200
+
+        page = client.get(f"/items/{item_id}/highlights/{highlight_id}/subsection-title")
+        assert page.status_code == 200
+        assert 'value="A closer look"' in page.text
+
+
+def test_deleting_a_highlight_removes_it(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+
+        gone = client.post(f"/items/{item_id}/highlights/{highlight_id}/delete")
+        assert gone.status_code == 200
+
+        missing = client.get(f"/items/{item_id}/highlights/{highlight_id}")
+        assert missing.status_code == 404
+
+        page = client.get(f"/items/{item_id}")
+        assert '"id": ' + str(highlight_id) not in page.text
+
+
+def test_deleting_one_highlight_leaves_anothers_title_untouched(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        first_id = _save_highlight(client, item_id, start_offset=0, end_offset=5)
+        second_id = _save_highlight(client, item_id, start_offset=10, end_offset=15)
+
+        client.post(
+            f"/items/{item_id}/highlights/{first_id}/section-title",
+            data={"title": "First section"},
+        )
+        client.post(
+            f"/items/{item_id}/highlights/{second_id}/section-title",
+            data={"title": "Second section"},
+        )
+
+        gone = client.post(f"/items/{item_id}/highlights/{first_id}/delete")
+        assert gone.status_code == 200
+
+        page = client.get(f"/items/{item_id}/highlights/{second_id}/section-title")
+        assert 'value="Second section"' in page.text
+
+
 def test_delete_item_from_source_items_view_redirects_there(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")

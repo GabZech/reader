@@ -222,10 +222,10 @@
     };
 
     const wrapBlockRange = (block, from, to) => {
-      if (to <= from) return;
+      if (to <= from) return null;
       const start = pointAtOffset(block, from);
       const end = pointAtOffset(block, to);
-      if (!start || !end) return;
+      if (!start || !end) return null;
       const range = document.createRange();
       range.setStart(start.node, start.offset);
       range.setEnd(end.node, end.offset);
@@ -234,19 +234,29 @@
         mark.className = "hl";
         mark.appendChild(range.extractContents());
         range.insertNode(mark);
+        return mark;
       } catch {
         /* leave the text unwrapped rather than corrupt the DOM */
+        return null;
       }
     };
 
-    const wrapHighlight = (startBlock, startOffset, endBlock, endOffset) => {
+    const wrapHighlight = (startBlock, startOffset, endBlock, endOffset, highlightId) => {
+      const marks = [];
       for (let b = startBlock; b <= endBlock; b++) {
         const block = blocks[b];
         if (!block) continue;
         const from = b === startBlock ? startOffset : 0;
         const to = b === endBlock ? endOffset : block.textContent.length;
-        wrapBlockRange(block, from, to);
+        const mark = wrapBlockRange(block, from, to);
+        if (mark) marks.push(mark);
       }
+      if (highlightId != null) {
+        marks.forEach((mark) => {
+          mark.dataset.highlightId = String(highlightId);
+        });
+      }
+      return marks;
     };
 
     const blockIndexOf = (node) => {
@@ -270,7 +280,13 @@
       saved = [];
     }
     saved.forEach((h) => {
-      wrapHighlight(h.start_block, h.start_offset, h.end_block, h.end_offset);
+      wrapHighlight(h.start_block, h.start_offset, h.end_block, h.end_offset, h.id);
+    });
+
+    body.addEventListener("click", (event) => {
+      const mark = event.target.closest("mark.hl");
+      if (!mark || !mark.dataset.highlightId) return;
+      location.href = `${location.pathname}/highlights/${mark.dataset.highlightId}`;
     });
 
     body.addEventListener("mouseup", () => {
@@ -296,7 +312,7 @@
       );
       selection.removeAllRanges();
 
-      wrapHighlight(startBlock, startOffset, endBlock, endOffset);
+      const marks = wrapHighlight(startBlock, startOffset, endBlock, endOffset);
 
       const data = new URLSearchParams({
         start_block: String(startBlock),
@@ -305,7 +321,24 @@
         end_offset: String(endOffset),
         text,
       });
-      fetch(saveUrl, { method: "POST", body: data }).catch(() => {});
+      fetch(saveUrl, { method: "POST", body: data })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((result) => {
+          if (!result) return;
+          marks.forEach((mark) => {
+            mark.dataset.highlightId = String(result.id);
+          });
+        })
+        .catch(() => {});
+    });
+  };
+
+  const initHighlightDetail = () => {
+    const button = document.getElementById("copy-delete-highlight");
+    if (!button) return;
+    button.addEventListener("click", () => {
+      const text = button.dataset.copyText || "";
+      navigator.clipboard?.writeText(text).catch(() => {});
     });
   };
 
@@ -335,6 +368,7 @@
   initSwipeToDelete();
   initReadingProgress();
   initHighlights();
+  initHighlightDetail();
   registerWorker();
   syncHome();
 })();

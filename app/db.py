@@ -105,6 +105,8 @@ def init_db(conn: sqlite3.Connection) -> None:
             end_block INTEGER NOT NULL,
             end_offset INTEGER NOT NULL,
             text TEXT NOT NULL,
+            section_title TEXT,
+            subsection_title TEXT,
             created_at TEXT NOT NULL
         );
         """
@@ -451,6 +453,37 @@ def add_highlight(
         ),
     )
     return cursor.lastrowid
+
+
+def get_highlight(
+    conn: sqlite3.Connection, item_id: int, highlight_id: int
+) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT * FROM highlights WHERE id = ? AND item_id = ?",
+        (highlight_id, item_id),
+    ).fetchone()
+
+
+def set_highlight_section_title(
+    conn: sqlite3.Connection, highlight_id: int, title: str | None
+) -> None:
+    conn.execute(
+        "UPDATE highlights SET section_title = ? WHERE id = ?",
+        (title, highlight_id),
+    )
+
+
+def set_highlight_subsection_title(
+    conn: sqlite3.Connection, highlight_id: int, title: str | None
+) -> None:
+    conn.execute(
+        "UPDATE highlights SET subsection_title = ? WHERE id = ?",
+        (title, highlight_id),
+    )
+
+
+def delete_highlight(conn: sqlite3.Connection, highlight_id: int) -> None:
+    conn.execute("DELETE FROM highlights WHERE id = ?", (highlight_id,))
 
 
 def mark_item_read(conn: sqlite3.Connection, item_id: int, list_slug: str) -> None:
