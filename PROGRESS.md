@@ -24,6 +24,13 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 - **Repo maintenance: merge to main only through a gated PR, plus `dev/`/`maint/` branch-naming convention.** PR [#18](https://github.com/GabZech/reader/pull/18) (branch `maint/pr-gated-merge`) is open, tests and lint pass. GitHub branch protection on `main` is live (PR required; `enforce_admins` is off so the client can still push small increments to `main` directly, per their preference). Nothing is blocking it: waiting only on the client's merge decision — they merge it, or tell the agent to squash-merge.
 
+- **Highlight and Land in Obsidian.** Deep-planned and confirmed; starting slice 1 on branch `dev/highlight-on-first-open`.
+
+  ### Planned
+  - Slice 1 — Highlight on first open: in progress
+  - Slice 2 — Sticky section titles, and deleting a highlight: not started
+  - Slice 3 — The note lands in the vault: not started
+
 ## Stacked awaiting deploy
 
 None.
