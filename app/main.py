@@ -69,6 +69,7 @@ from app.ingest import (
     source_kind_for,
 )
 from app.mail import ingest_mail
+from app.obsidian import export_note
 
 APP_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
@@ -1046,6 +1047,19 @@ async def item_save_progress(item_id: int, request: Request):
     return {"ok": True}
 
 
+def _export_item_highlights(item_id: int) -> None:
+    conn = connect()
+    try:
+        init_db(conn)
+        item = get_item(conn, item_id)
+        if item is None:
+            return
+        highlights = highlights_for_item(conn, item_id)
+    finally:
+        conn.close()
+    export_note(item, highlights)
+
+
 @app.post("/items/{item_id}/highlights")
 async def item_add_highlight(item_id: int, request: Request):
     form = await request.form()
@@ -1075,6 +1089,7 @@ async def item_add_highlight(item_id: int, request: Request):
         conn.commit()
     finally:
         conn.close()
+    _export_item_highlights(item_id)
     return {"ok": True, "id": highlight_id}
 
 
@@ -1149,6 +1164,7 @@ async def _highlight_title_submit(
         conn.commit()
     finally:
         conn.close()
+    _export_item_highlights(item_id)
     return RedirectResponse(f"/items/{item_id}", status_code=303)
 
 
@@ -1188,6 +1204,7 @@ def highlight_delete(item_id: int, highlight_id: int):
         conn.commit()
     finally:
         conn.close()
+    _export_item_highlights(item_id)
     return RedirectResponse(f"/items/{item_id}", status_code=303)
 
 
@@ -1274,6 +1291,7 @@ def item_delete(
         conn.commit()
     finally:
         conn.close()
+    export_note(item, [])
     if from_source:
         return RedirectResponse(
             f"/sources/{from_source}/items?flash=Deleted", status_code=303
