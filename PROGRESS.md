@@ -28,12 +28,12 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
   ### Planned
   - Slice 1 — Highlight on first open: done (signed off from screenshots; not yet live)
-  - Slice 2 — Sticky section titles, and deleting a highlight: in progress
+  - Slice 2 — Sticky section titles, and deleting a highlight: done (signed off from screenshots; not yet live)
   - Slice 3 — The note lands in the vault: not started
 
 ## Stacked awaiting deploy
 
-- Slice 1 (Highlight on first open), committed on `dev/highlight-on-first-open`, held for the combined live try at the end of the Highlight epic.
+- Slices 1 and 2 (Highlight and Land in Obsidian), committed on `dev/highlight-on-first-open`, held for the combined live try at the end of the epic.
 
 ## Blocked
 
