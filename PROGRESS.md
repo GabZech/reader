@@ -29,7 +29,7 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
   ### Planned
   - Slice 1 — Highlight on first open: done (signed off from screenshots; not yet live)
   - Slice 2 — Sticky section titles, and deleting a highlight: done (signed off from screenshots; not yet live)
-  - Slice 3 — The note lands in the vault: not started
+  - Slice 3 — The note lands in the vault: in progress. New private repo `GabZech/news-highlights` created and probed live (GitHub's Contents API confirmed: create works directly, updating an existing file requires reading its current blob SHA first). Building the export code now against a fixture of that real response; the one live end-to-end run still needs the blocker below cleared first.
 
 ## Stacked awaiting deploy
 
@@ -37,4 +37,4 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 ## Blocked
 
-None.
+- **Slice 3's live end-to-end proof and Ship** need `OBSIDIAN_GITHUB_TOKEN` set as a Fly secret on `reader-skeleton` (`flyctl secrets set OBSIDIAN_GITHUB_TOKEN=<token> -a reader-skeleton`; a fine-grained PAT scoped to only `GabZech/news-highlights`, Contents: Read and write). Client has the token, has not yet set it on Fly. Remind at the next check-in and before any live try or Ship of this epic.
