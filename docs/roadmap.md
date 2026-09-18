@@ -58,6 +58,7 @@ Not its own epic in [epics](vision/epics.md); tracked here since it is built. Ap
 - [ ] Highlight passages on first open
 - [ ] Section titles that stick to the highlights below them, and deleting a highlight
 - [ ] The note arriving in the vault in the agreed format
+- [ ] Make a highlight save safe against a rejected overlap: selecting text that overlaps an existing highlight is correctly refused server-side, but the client already wraps the selection in the DOM before that response comes back, so a phantom, unsaved mark (and a visually split original highlight) stays on screen with no error shown, until the next reload quietly fixes it. Fix by wrapping only after the server confirms the save.
 
 ### Improve UI
 
