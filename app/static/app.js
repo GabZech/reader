@@ -289,7 +289,7 @@
       location.href = `${location.pathname}/highlights/${mark.dataset.highlightId}`;
     });
 
-    body.addEventListener("mouseup", () => {
+    const handleFinishedSelection = () => {
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed) return;
       const range = selection.getRangeAt(0);
@@ -330,6 +330,18 @@
           });
         })
         .catch(() => {});
+    };
+
+    // mouseup covers a fresh press-and-drag selection. On a touch device,
+    // refining a selection with the system's drag handles never fires
+    // mouseup on the page at all, so selectionchange (debounced until the
+    // selection stops moving) is the only signal that works for both.
+    body.addEventListener("mouseup", handleFinishedSelection);
+
+    let selectionTimer = null;
+    document.addEventListener("selectionchange", () => {
+      clearTimeout(selectionTimer);
+      selectionTimer = setTimeout(handleFinishedSelection, 400);
     });
   };
 
