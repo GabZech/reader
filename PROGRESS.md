@@ -29,12 +29,12 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
   ### Planned
   - Slice 1 — Highlight on first open: done (signed off from screenshots; not yet live)
   - Slice 2 — Sticky section titles, and deleting a highlight: done (signed off from screenshots; not yet live)
-  - Slice 3 — The note lands in the vault: code and tests done (`app/obsidian.py`, `tests/test_obsidian.py`, wired into every highlight-mutating route in `app/main.py`); no UI to screenshot, this one is invisible by design. No summary section for now, per client (deferred to a possible future LLM step, not guessed at). Not yet proven against the real production credential — blocked, see below.
+  - Slice 3 — The note lands in the vault: code and tests done (`app/obsidian.py`, `tests/test_obsidian.py`, wired into every highlight-mutating route in `app/main.py`); no UI to screenshot, this one is invisible by design. No summary section for now, per client (deferred to a possible future LLM step, not guessed at). `OBSIDIAN_GITHUB_TOKEN` confirmed set (Deployed) on `reader-skeleton`; about to deploy this branch for the combined live try of all 3 slices.
 
 ## Stacked awaiting deploy
 
-- Slices 1, 2, and 3 (Highlight and Land in Obsidian), committed on `dev/highlight-on-first-open`, held for the combined live try at the end of the epic.
+- Slices 1, 2, and 3 (Highlight and Land in Obsidian), committed on `dev/highlight-on-first-open`, being deployed now for the combined live try.
 
 ## Blocked
 
-- **Slice 3's live end-to-end proof and Ship** need `OBSIDIAN_GITHUB_TOKEN` set as a Fly secret on `reader-skeleton` (`flyctl secrets set OBSIDIAN_GITHUB_TOKEN=<token> -a reader-skeleton`; a fine-grained PAT scoped to only `GabZech/news-highlights`, Contents: Read and write). Client has the token, has not yet set it on Fly. Remind at the next check-in and before any live try or Ship of this epic.
+None.
