@@ -24,16 +24,16 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 - **Repo maintenance: merge to main only through a gated PR, plus `dev/`/`maint/` branch-naming convention.** PR [#18](https://github.com/GabZech/reader/pull/18) (branch `maint/pr-gated-merge`) is open, tests and lint pass. GitHub branch protection on `main` is live (PR required; `enforce_admins` is off so the client can still push small increments to `main` directly, per their preference). Nothing is blocking it: waiting only on the client's merge decision — they merge it, or tell the agent to squash-merge.
 
-- **Highlight and Land in Obsidian.** Deep-planned and confirmed, building on branch `dev/highlight-on-first-open`. Client wants all 3 slices stacked, reviewed by screenshot as each lands, and tried live together only once all 3 are built — not deployed slice by slice.
+- **Highlight and Land in Obsidian.** Deep-planned and confirmed, building on branch `dev/highlight-on-first-open`, now deployed there (live SHA `ff237a9`) for the combined live try.
 
   ### Planned
-  - Slice 1 — Highlight on first open: done (signed off from screenshots; not yet live)
-  - Slice 2 — Sticky section titles, and deleting a highlight: done (signed off from screenshots; not yet live)
-  - Slice 3 — The note lands in the vault: code and tests done (`app/obsidian.py`, `tests/test_obsidian.py`, wired into every highlight-mutating route in `app/main.py`); no UI to screenshot, this one is invisible by design. No summary section for now, per client (deferred to a possible future LLM step, not guessed at). `OBSIDIAN_GITHUB_TOKEN` confirmed set (Deployed) on `reader-skeleton`; about to deploy this branch for the combined live try of all 3 slices.
+  - Slice 1 — Highlight on first open: done (signed off from screenshots; not yet tried live by the client)
+  - Slice 2 — Sticky section titles, and deleting a highlight: done (signed off from screenshots; not yet tried live by the client)
+  - Slice 3 — The note lands in the vault: done. Proven end to end against the real system while deployed: creating a highlight on a live test article produced a real commit in `GabZech/news-highlights` (`Highlights/<item_id>.md`); deleting the last highlight produced a real removal commit. Two real bugs found and fixed in the process (`sqlite3.Row` has no `.get()`; the export call wasn't isolated from the routes it rides on). Test data cleaned up from both the live library and the real repo afterward. Not yet tried live by the client.
 
 ## Stacked awaiting deploy
 
-- Slices 1, 2, and 3 (Highlight and Land in Obsidian), committed on `dev/highlight-on-first-open`, being deployed now for the combined live try.
+None — `dev/highlight-on-first-open` is the live host right now, holding all 3 slices, awaiting the client's live sign-off before Ship (PR, merge, redeploy `main`).
 
 ## Blocked
 
