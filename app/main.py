@@ -1047,6 +1047,13 @@ async def item_save_progress(item_id: int, request: Request):
     return {"ok": True}
 
 
+def _best_effort_export(item, highlights) -> None:
+    try:
+        export_note(item, highlights)
+    except Exception:  # noqa: BLE001, S110 - the vault export must never break the caller
+        pass
+
+
 def _export_item_highlights(item_id: int) -> None:
     conn = connect()
     try:
@@ -1057,7 +1064,7 @@ def _export_item_highlights(item_id: int) -> None:
         highlights = highlights_for_item(conn, item_id)
     finally:
         conn.close()
-    export_note(item, highlights)
+    _best_effort_export(item, highlights)
 
 
 @app.post("/items/{item_id}/highlights")
@@ -1291,7 +1298,7 @@ def item_delete(
         conn.commit()
     finally:
         conn.close()
-    export_note(item, [])
+    _best_effort_export(item, [])
     if from_source:
         return RedirectResponse(
             f"/sources/{from_source}/items?flash=Deleted", status_code=303

@@ -21,10 +21,10 @@ def note_path_for_item(item_id: int, title: str) -> str:
 
 def build_note_markdown(item, highlights) -> str:
     lines = ["---"]
-    lines.append(f"author: {item['author'] or item.get('source_title') or ''}")
-    if item.get("published_at"):
+    lines.append(f"author: {item['author'] or item['source_title'] or ''}")
+    if item["published_at"]:
         lines.append(f"published_date: {item['published_at'][:10]}")
-    if item.get("url"):
+    if item["url"]:
         lines.append(f"source: {item['url']}")
     lines.append("---")
     lines.append(f"# {item['title']}")

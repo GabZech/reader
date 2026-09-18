@@ -42,6 +42,7 @@ def _fetch(url: str, timeout: float = 8.0) -> tuple[str, str]:
 
 def _client(monkeypatch, tmp_path):
     monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "reader.db"))
+    monkeypatch.delenv("OBSIDIAN_GITHUB_TOKEN", raising=False)
     monkeypatch.setattr("app.ingest.fetch_url", _fetch)
     real_visible = dbmod._visible_items
     frozen = datetime(2026, 8, 20, 12, tzinfo=UTC)
