@@ -76,6 +76,8 @@ Last in the MVP: it needs a full built app to restyle.
 - Keep the GitHub repo name and the Fly URL `reader-skeleton.fly.dev` through feature work. Before the MVP is put on the phone as the lasting URL, rename the repo, stand up a new Fly app name (Fly cannot rename in place), and add a home-screen logo that shows when the site is installed
 - One Fly app serves both trying and living. During a change, the live app briefly runs an unmerged branch against the real library. Splitting into separate dev and prod Fly apps is the real fix; revisit once local testing is viable again
 - Once the MVP is up, back up the Fly volume's SQLite library regularly (roughly weekly); sources and articles live only on Fly and are never committed to the repo
+- The service worker only caches a GET after it succeeds once, and every write (highlight, mark read, archive, progress, sync) is fire-and-forget with no retry. On an unstable connection this reads as the app silently not saving. Revisit once the MVP is in daily use on real mobile networks, with two pieces: queue a failed write (in IndexedDB) and replay it when the connection returns, showing a visible "will sync" state instead of swallowing the error; and pre-cache an article's page as soon as it lands on Read later, not only after it has been opened once, so a saved article is readable offline even on a first attempt
+- No visible offline/connectivity state anywhere in the app; a failed action and a slow one currently look the same to the reader. A small persistent indicator (online/offline, syncing) would make the queued-write behaviour above legible instead of mysterious. Bundle with the note above rather than building alone
 
 ## Concluded
 
