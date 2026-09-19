@@ -785,6 +785,23 @@ def _first_item_id(tmp_path) -> int:
         conn.close()
 
 
+def _get_item_row(tmp_path, item_id):
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        return dbmod.get_item(conn, item_id)
+    finally:
+        conn.close()
+
+
+def _reject_any_export(monkeypatch, message):
+    monkeypatch.setenv("OBSIDIAN_GITHUB_TOKEN", "test-token")
+
+    def fail_if_called(method, url, **kwargs):
+        raise AssertionError(message)
+
+    monkeypatch.setattr("app.obsidian._request", fail_if_called)
+
+
 def test_item_page_has_read_later_button(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
@@ -997,6 +1014,59 @@ def test_setting_a_subsection_title_persists(monkeypatch, tmp_path):
         page = client.get(f"/items/{item_id}/highlights/{highlight_id}/subsection-title")
         assert page.status_code == 200
         assert 'value="A closer look"' in page.text
+
+
+def test_saving_a_highlight_marks_touched_but_does_not_export_immediately(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _reject_any_export(monkeypatch, "saving a highlight must not export immediately")
+
+        before = _get_item_row(tmp_path, item_id)
+        assert before["highlights_touched_at"] is None
+
+        _save_highlight(client, item_id)
+
+        after = _get_item_row(tmp_path, item_id)
+        assert after["highlights_touched_at"] is not None
+        assert after["highlights_exported_at"] is None
+
+
+def test_setting_a_title_marks_touched_but_does_not_export_immediately(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+        _reject_any_export(monkeypatch, "setting a title must not export immediately")
+
+        client.post(
+            f"/items/{item_id}/highlights/{highlight_id}/section-title",
+            data={"title": "Money and markets"},
+        )
+
+        after = _get_item_row(tmp_path, item_id)
+        assert after["highlights_touched_at"] is not None
+        assert after["highlights_exported_at"] is None
+
+
+def test_deleting_a_highlight_marks_touched_but_does_not_export_immediately(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+        _reject_any_export(monkeypatch, "deleting a highlight must not export immediately")
+
+        client.post(f"/items/{item_id}/highlights/{highlight_id}/delete")
+
+        after = _get_item_row(tmp_path, item_id)
+        assert after["highlights_touched_at"] is not None
+        assert after["highlights_exported_at"] is None
 
 
 def test_deleting_a_highlight_removes_it(monkeypatch, tmp_path):

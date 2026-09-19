@@ -119,6 +119,10 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE items ADD COLUMN seen_at TEXT")
     if "progress_index" not in items_columns:
         conn.execute("ALTER TABLE items ADD COLUMN progress_index INTEGER")
+    if "highlights_touched_at" not in items_columns:
+        conn.execute("ALTER TABLE items ADD COLUMN highlights_touched_at TEXT")
+    if "highlights_exported_at" not in items_columns:
+        conn.execute("ALTER TABLE items ADD COLUMN highlights_exported_at TEXT")
     if not lists_table_existed:
         for slug, name, position in LISTS:
             conn.execute(
@@ -484,6 +488,13 @@ def set_highlight_subsection_title(
 
 def delete_highlight(conn: sqlite3.Connection, highlight_id: int) -> None:
     conn.execute("DELETE FROM highlights WHERE id = ?", (highlight_id,))
+
+
+def touch_item_highlights(conn: sqlite3.Connection, item_id: int) -> None:
+    conn.execute(
+        "UPDATE items SET highlights_touched_at = ? WHERE id = ?",
+        (datetime.now(UTC).isoformat(), item_id),
+    )
 
 
 def mark_item_read(conn: sqlite3.Connection, item_id: int, list_slug: str) -> None:

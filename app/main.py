@@ -59,6 +59,7 @@ from app.db import (
     source_byline,
     source_id_for,
     source_memberships,
+    touch_item_highlights,
 )
 from app.ingest import (
     capture_article,
@@ -1093,10 +1094,10 @@ async def item_add_highlight(item_id: int, request: Request):
         highlight_id = add_highlight(
             conn, item_id, start_block, start_offset, end_block, end_offset, text
         )
+        touch_item_highlights(conn, item_id)
         conn.commit()
     finally:
         conn.close()
-    _export_item_highlights(item_id)
     return {"ok": True, "id": highlight_id}
 
 
@@ -1168,10 +1169,10 @@ async def _highlight_title_submit(
             set_highlight_section_title(conn, highlight_id, title)
         else:
             set_highlight_subsection_title(conn, highlight_id, title)
+        touch_item_highlights(conn, item_id)
         conn.commit()
     finally:
         conn.close()
-    _export_item_highlights(item_id)
     return RedirectResponse(f"/items/{item_id}", status_code=303)
 
 
@@ -1208,10 +1209,10 @@ def highlight_delete(item_id: int, highlight_id: int):
         if highlight is None:
             raise HTTPException(status_code=404)
         delete_highlight(conn, highlight_id)
+        touch_item_highlights(conn, item_id)
         conn.commit()
     finally:
         conn.close()
-    _export_item_highlights(item_id)
     return RedirectResponse(f"/items/{item_id}", status_code=303)
 
 
