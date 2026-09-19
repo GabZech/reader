@@ -33,9 +33,9 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
   ### Planned — export trigger rework (client wants at most ~1 commit per article, not one per action)
   - Slice A — Stop exporting on every action, track what's pending instead: not started. Add `items.highlights_touched_at` / `items.highlights_exported_at`; add/title/delete highlight actions update "touched" only, no more immediate export.
-  - Slice B — Archiving exports once; deleting never touches the vault: not started. Archive exports only if something changed since the last export. Delete: if anything is unexported, export once as a final catch-up, then remove local highlight rows — but deleting an item never again deletes its note from the vault (the vault is the durable copy, not the local DB).
-  - Slice C — The day-later safety net: not started. A background check, once a day (interval per client: daily is enough, not every 30 min), exports any item touched more than a day ago and not caught up since.
-  - Flagged and left as-is per client: Archive only exists on Read later (News/Favourite items rely on the day-later fallback only); local highlight rows are not kept as a permanent record once an item is deleted, only the exported vault file persists.
+  - Slice B — Archiving or marking as read exports once; deleting never touches the vault: not started. Archive (Read later) and Mark as read (every other list) both export only if something changed since the last export — same "finalize" signal, whichever one the list actually shows. Delete: if anything is unexported, export once as a final catch-up, then remove local highlight rows — but deleting an item never again deletes its note from the vault (the vault is the durable copy, not the local DB).
+  - Slice C — The day-later safety net: not started. A background check, once a day, exports any item touched more than a day ago and not caught up since.
+  - Flagged and left as-is per client: local highlight rows are not kept as a permanent record once an item is deleted, only the exported vault file persists.
 
 ## Stacked awaiting deploy
 
