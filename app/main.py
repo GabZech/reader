@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -40,6 +42,7 @@ from app.db import (
     insert_list,
     insert_source,
     is_item_in_list,
+    items_due_for_export,
     items_for_list,
     items_for_source,
     lists_for_home_edit,
@@ -95,6 +98,19 @@ TIMED_NOTE = "Timed list · only recent items"
 UNTIMED_NOTE = "Not timed"
 
 
+EXPORT_DUE_AFTER = timedelta(days=1)
+EXPORT_CHECK_INTERVAL_SECONDS = 24 * 60 * 60
+
+
+async def _daily_export_check_loop() -> None:
+    while True:
+        try:
+            _run_due_exports()
+        except Exception:  # noqa: BLE001, S110 - the background check must never crash the app
+            pass
+        await asyncio.sleep(EXPORT_CHECK_INTERVAL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     conn = connect()
@@ -103,7 +119,11 @@ async def lifespan(_app: FastAPI):
         conn.commit()
     finally:
         conn.close()
+    task = asyncio.create_task(_daily_export_check_loop())
     yield
+    task.cancel()
+    with suppress(asyncio.CancelledError):
+        await task
 
 
 app = FastAPI(title="Reader", lifespan=lifespan)
@@ -1083,6 +1103,18 @@ def _highlights_export_is_pending(item) -> bool:
 
 def _export_if_pending(item) -> None:
     if _highlights_export_is_pending(item):
+        _export_item_highlights(item["id"])
+
+
+def _run_due_exports() -> None:
+    cutoff = (datetime.now(UTC) - EXPORT_DUE_AFTER).isoformat()
+    conn = connect()
+    try:
+        init_db(conn)
+        due = items_due_for_export(conn, cutoff)
+    finally:
+        conn.close()
+    for item in due:
         _export_item_highlights(item["id"])
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -1330,6 +1330,73 @@ def test_deleting_an_item_with_nothing_pending_does_not_export(monkeypatch, tmp_
         deleted = client.post(f"/items/{item_id}/delete?from_list=news")
         assert deleted.status_code == 200
         assert calls == []
+
+
+def _backdate_touch(tmp_path, item_id, when):
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        conn.execute(
+            "UPDATE items SET highlights_touched_at = ? WHERE id = ?",
+            (when.isoformat(), item_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_items_due_for_export_needs_a_day_of_no_further_activity(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _save_highlight(client, item_id)
+
+        now = datetime.now(UTC)
+        cutoff = (now - timedelta(days=1)).isoformat()
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            _backdate_touch(tmp_path, item_id, now - timedelta(hours=25))
+            due_after_25h = dbmod.items_due_for_export(conn, cutoff)
+            assert [row["id"] for row in due_after_25h] == [item_id]
+
+            _backdate_touch(tmp_path, item_id, now - timedelta(hours=2))
+            due_after_2h = dbmod.items_due_for_export(conn, cutoff)
+            assert due_after_2h == []
+
+            _backdate_touch(tmp_path, item_id, now - timedelta(hours=25))
+            dbmod.mark_highlights_exported(conn, item_id)
+            conn.commit()
+            due_once_exported = dbmod.items_due_for_export(conn, cutoff)
+            assert due_once_exported == []
+        finally:
+            conn.close()
+
+
+def test_the_daily_export_check_exports_only_what_is_actually_due(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        old_item_id = _first_item_id(tmp_path)
+        _save_highlight(client, old_item_id)
+        _backdate_touch(tmp_path, old_item_id, datetime.now(UTC) - timedelta(hours=25))
+
+        captured = client.post(
+            "/capture",
+            data={
+                "url": "https://example.test/second-article",
+                "html": CAPTURE_BLOG_HTML,
+            },
+        )
+        recent_item_id = int(captured.json()["item_url"].removeprefix("/items/"))
+        _save_highlight(client, recent_item_id)
+
+        calls = _record_exports(monkeypatch)
+        from app.main import _run_due_exports
+
+        _run_due_exports()
+
+        assert [call[0] for call in calls] == [old_item_id]
+        after = _get_item_row(tmp_path, old_item_id)
+        assert after["highlights_exported_at"] is not None
 
 
 def test_delete_button_on_article_page_removes_it_for_good(monkeypatch, tmp_path):

@@ -504,6 +504,25 @@ def mark_highlights_exported(conn: sqlite3.Connection, item_id: int) -> None:
     )
 
 
+def items_due_for_export(
+    conn: sqlite3.Connection, touched_before: str
+) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT items.*, sources.title AS source_title
+        FROM items
+        JOIN sources ON sources.id = items.source_id
+        WHERE items.highlights_touched_at IS NOT NULL
+            AND items.highlights_touched_at <= ?
+            AND (
+                items.highlights_exported_at IS NULL
+                OR items.highlights_touched_at > items.highlights_exported_at
+            )
+        """,
+        (touched_before,),
+    ).fetchall()
+
+
 def mark_item_read(conn: sqlite3.Connection, item_id: int, list_slug: str) -> None:
     conn.execute(
         """
