@@ -497,6 +497,13 @@ def touch_item_highlights(conn: sqlite3.Connection, item_id: int) -> None:
     )
 
 
+def mark_highlights_exported(conn: sqlite3.Connection, item_id: int) -> None:
+    conn.execute(
+        "UPDATE items SET highlights_exported_at = ? WHERE id = ?",
+        (datetime.now(UTC).isoformat(), item_id),
+    )
+
+
 def mark_item_read(conn: sqlite3.Connection, item_id: int, list_slug: str) -> None:
     conn.execute(
         """

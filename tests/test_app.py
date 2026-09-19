@@ -802,6 +802,17 @@ def _reject_any_export(monkeypatch, message):
     monkeypatch.setattr("app.obsidian._request", fail_if_called)
 
 
+def _record_exports(monkeypatch):
+    calls = []
+
+    def fake_export_note(item, highlights):
+        calls.append((item["id"], list(highlights)))
+        return {"exported": True}
+
+    monkeypatch.setattr("app.main.export_note", fake_export_note)
+    return calls
+
+
 def test_item_page_has_read_later_button(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
@@ -1212,6 +1223,113 @@ def test_archive_on_missing_item_is_404(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         response = client.post("/items/999999/archive")
         assert response.status_code == 404
+
+
+def test_archiving_exports_once_when_a_highlight_is_pending(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        _save_highlight(client, item_id)
+        calls = _record_exports(monkeypatch)
+
+        archived = client.post(f"/items/{item_id}/archive")
+        assert archived.status_code == 200
+
+        assert len(calls) == 1
+        assert calls[0][0] == item_id
+        assert len(calls[0][1]) == 1
+        after = _get_item_row(tmp_path, item_id)
+        assert after["highlights_exported_at"] is not None
+
+
+def test_archiving_with_nothing_pending_does_not_export(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        calls = _record_exports(monkeypatch)
+
+        archived = client.post(f"/items/{item_id}/archive")
+        assert archived.status_code == 200
+        assert calls == []
+
+
+def test_archiving_again_after_export_does_not_export_a_second_time(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        _save_highlight(client, item_id)
+        calls = _record_exports(monkeypatch)
+
+        client.post(f"/items/{item_id}/archive")
+        assert len(calls) == 1
+
+        client.post(f"/items/{item_id}/archive")
+        assert len(calls) == 1
+
+
+def test_marking_as_read_exports_once_when_a_highlight_is_pending(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _save_highlight(client, item_id)
+        calls = _record_exports(monkeypatch)
+
+        read = client.post(f"/items/{item_id}/read?from_list=news")
+        assert read.status_code == 200
+
+        assert len(calls) == 1
+        after = _get_item_row(tmp_path, item_id)
+        assert after["highlights_exported_at"] is not None
+
+
+def test_marking_as_read_with_nothing_pending_does_not_export(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        calls = _record_exports(monkeypatch)
+
+        read = client.post(f"/items/{item_id}/read?from_list=news")
+        assert read.status_code == 200
+        assert calls == []
+
+
+def test_deleting_an_item_with_a_pending_highlight_exports_once_first(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _save_highlight(client, item_id)
+        calls = _record_exports(monkeypatch)
+
+        deleted = client.post(f"/items/{item_id}/delete?from_list=news")
+        assert deleted.status_code == 200
+
+        assert len(calls) == 1
+        assert calls[0][0] == item_id
+        assert len(calls[0][1]) == 1
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            assert dbmod.get_item(conn, item_id) is None
+            remaining = conn.execute(
+                "SELECT COUNT(*) AS n FROM highlights WHERE item_id = ?", (item_id,)
+            ).fetchone()["n"]
+        finally:
+            conn.close()
+        assert remaining == 0
+
+
+def test_deleting_an_item_with_nothing_pending_does_not_export(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        calls = _record_exports(monkeypatch)
+
+        deleted = client.post(f"/items/{item_id}/delete?from_list=news")
+        assert deleted.status_code == 200
+        assert calls == []
 
 
 def test_delete_button_on_article_page_removes_it_for_good(monkeypatch, tmp_path):

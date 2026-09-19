@@ -44,6 +44,7 @@ from app.db import (
     items_for_source,
     lists_for_home_edit,
     lists_with_items,
+    mark_highlights_exported,
     mark_item_read,
     mark_item_seen,
     membership_label,
@@ -1066,6 +1067,23 @@ def _export_item_highlights(item_id: int) -> None:
     finally:
         conn.close()
     _best_effort_export(item, highlights)
+    conn = connect()
+    try:
+        mark_highlights_exported(conn, item_id)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _highlights_export_is_pending(item) -> bool:
+    touched = item["highlights_touched_at"]
+    exported = item["highlights_exported_at"]
+    return touched is not None and (exported is None or touched > exported)
+
+
+def _export_if_pending(item) -> None:
+    if _highlights_export_is_pending(item):
+        _export_item_highlights(item["id"])
 
 
 @app.post("/items/{item_id}/highlights")
@@ -1255,6 +1273,7 @@ def item_archive(
         conn.commit()
     finally:
         conn.close()
+    _export_if_pending(item)
     if from_source:
         return RedirectResponse(
             f"/sources/{from_source}/items?flash=Archived", status_code=303
@@ -1280,6 +1299,7 @@ def item_mark_read(
         conn.commit()
     finally:
         conn.close()
+    _export_if_pending(item)
     return RedirectResponse(f"/lists/{from_list}?flash=Read", status_code=303)
 
 
@@ -1295,11 +1315,17 @@ def item_delete(
         item = get_item(conn, item_id)
         if item is None:
             raise HTTPException(status_code=404)
+        pending = _highlights_export_is_pending(item)
+        highlights = highlights_for_item(conn, item_id) if pending else []
         delete_item(conn, item_id)
         conn.commit()
     finally:
         conn.close()
-    _best_effort_export(item, [])
+    if pending:
+        # A final catch-up so nothing highlighted but not yet exported is
+        # lost. Deleting an item never removes its note from the vault
+        # otherwise: the vault is the durable copy, not the local database.
+        _best_effort_export(item, highlights)
     if from_source:
         return RedirectResponse(
             f"/sources/{from_source}/items?flash=Deleted", status_code=303
