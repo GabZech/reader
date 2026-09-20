@@ -5,7 +5,7 @@ One manual for any AI coding tool working in this repo, vendor-neutral. Read it 
 ## Start of session
 
 1. Run `bash init.sh --quick` (or let the SessionStart hook run it for you) for git state, the live version against `origin/main`, and anything in flight.
-2. Read `PROGRESS.md`, then check GitHub for open PRs — that list is the record, not a note here, so it can't go stale. If `PROGRESS.md` names anything else in flight, resume that before starting anything new.
+2. Read `PROGRESS.md`. If it names something in flight, resume that before starting anything new.
 3. Once per chat, before the first product change, read `docs/roadmap.md` "Where we are."
 
 ## Required artifacts
