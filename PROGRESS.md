@@ -37,6 +37,10 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
   - Slice C — The day-later safety net: done. A background asyncio task (in `app.main`'s lifespan) runs once at startup and then every 24h, exporting any item touched more than a day ago and not caught up since. `items_due_for_export` in `db.py` is the pure, directly-tested query; 2 new tests cover the query logic and the check picking up only what's actually due. Full suite (169) and lint pass. All 3 slices for this rework are now built; not yet deployed or tried live.
   - Flagged and left as-is per client: local highlight rows are not kept as a permanent record once an item is deleted, only the exported vault file persists.
 
+  ### Planned — merge overlapping highlights (was: reject with 409 and leave a phantom DOM mark)
+  - Slice 1 — Server-side merge: not started. Save endpoint accepts which existing highlight ids the new selection overlaps, validates each actually belongs to the item and actually overlaps, validates nothing else is still overlapped, then deletes the old rows and inserts one merged highlight. Section/subsection title carried forward from the earliest merged highlight that had one.
+  - Slice 2 — Client-side detection: not started. On a finished selection, check it against the article's known highlights; anything overlapping is sent as a merge, with the combined text read from one DOM range spanning the full union. The overlap-rejection DOM bug noted earlier in `docs/roadmap.md` is superseded by this (overlap merges instead of being rejected), so that roadmap line should be removed once this ships.
+
 ## Stacked awaiting deploy
 
 None — `dev/highlight-on-first-open` is the live host right now, holding all 3 slices, awaiting the client's live sign-off before Ship (PR, merge, redeploy `main`).
