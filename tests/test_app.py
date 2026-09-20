@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -42,6 +42,7 @@ def _fetch(url: str, timeout: float = 8.0) -> tuple[str, str]:
 
 def _client(monkeypatch, tmp_path):
     monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "reader.db"))
+    monkeypatch.delenv("OBSIDIAN_GITHUB_TOKEN", raising=False)
     monkeypatch.setattr("app.ingest.fetch_url", _fetch)
     real_visible = dbmod._visible_items
     frozen = datetime(2026, 8, 20, 12, tzinfo=UTC)
@@ -784,6 +785,34 @@ def _first_item_id(tmp_path) -> int:
         conn.close()
 
 
+def _get_item_row(tmp_path, item_id):
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        return dbmod.get_item(conn, item_id)
+    finally:
+        conn.close()
+
+
+def _reject_any_export(monkeypatch, message):
+    monkeypatch.setenv("OBSIDIAN_GITHUB_TOKEN", "test-token")
+
+    def fail_if_called(method, url, **kwargs):
+        raise AssertionError(message)
+
+    monkeypatch.setattr("app.obsidian._request", fail_if_called)
+
+
+def _record_exports(monkeypatch):
+    calls = []
+
+    def fake_export_note(item, highlights, previous_path=None):
+        calls.append((item["id"], list(highlights)))
+        return {"exported": True, "path": f"Highlights/{item['id']}.md"}
+
+    monkeypatch.setattr("app.main.export_note", fake_export_note)
+    return calls
+
+
 def test_item_page_has_read_later_button(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
@@ -907,6 +936,189 @@ def test_delete_item_unknown_id_is_404(monkeypatch, tmp_path):
         assert missing.status_code == 404
 
 
+def test_deleting_an_item_with_a_highlight_does_not_crash(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlighted = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "5",
+                "text": "Hello",
+            },
+        )
+        assert highlighted.status_code == 200
+
+        gone = client.post(f"/items/{item_id}/delete?from_list=news")
+        assert gone.status_code == 200
+
+
+def _save_highlight(client, item_id, start_block=0, start_offset=0, end_block=0, end_offset=5, text="Hello"):
+    saved = client.post(
+        f"/items/{item_id}/highlights",
+        data={
+            "start_block": str(start_block),
+            "start_offset": str(start_offset),
+            "end_block": str(end_block),
+            "end_offset": str(end_offset),
+            "text": text,
+        },
+    )
+    assert saved.status_code == 200
+    return saved.json()["id"]
+
+
+def test_highlight_detail_page_shows_its_text(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id, text="Hello from the fixture")
+
+        page = client.get(f"/items/{item_id}/highlights/{highlight_id}")
+        assert page.status_code == 200
+        assert "Hello from the fixture" in page.text
+        assert "Add section title" in page.text
+        assert "Add subsection title" in page.text
+        assert "Delete highlight" in page.text
+
+
+def test_highlight_detail_unknown_id_is_404(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        missing = client.get(f"/items/{item_id}/highlights/999999")
+        assert missing.status_code == 404
+
+
+def test_setting_a_section_title_persists(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+
+        saved = client.post(
+            f"/items/{item_id}/highlights/{highlight_id}/section-title",
+            data={"title": "Money and markets"},
+        )
+        assert saved.status_code == 200
+
+        page = client.get(f"/items/{item_id}/highlights/{highlight_id}/section-title")
+        assert page.status_code == 200
+        assert 'value="Money and markets"' in page.text
+
+
+def test_setting_a_subsection_title_persists(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+
+        saved = client.post(
+            f"/items/{item_id}/highlights/{highlight_id}/subsection-title",
+            data={"title": "A closer look"},
+        )
+        assert saved.status_code == 200
+
+        page = client.get(f"/items/{item_id}/highlights/{highlight_id}/subsection-title")
+        assert page.status_code == 200
+        assert 'value="A closer look"' in page.text
+
+
+def test_saving_a_highlight_marks_touched_but_does_not_export_immediately(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _reject_any_export(monkeypatch, "saving a highlight must not export immediately")
+
+        before = _get_item_row(tmp_path, item_id)
+        assert before["highlights_touched_at"] is None
+
+        _save_highlight(client, item_id)
+
+        after = _get_item_row(tmp_path, item_id)
+        assert after["highlights_touched_at"] is not None
+        assert after["highlights_exported_at"] is None
+
+
+def test_setting_a_title_marks_touched_but_does_not_export_immediately(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+        _reject_any_export(monkeypatch, "setting a title must not export immediately")
+
+        client.post(
+            f"/items/{item_id}/highlights/{highlight_id}/section-title",
+            data={"title": "Money and markets"},
+        )
+
+        after = _get_item_row(tmp_path, item_id)
+        assert after["highlights_touched_at"] is not None
+        assert after["highlights_exported_at"] is None
+
+
+def test_deleting_a_highlight_marks_touched_but_does_not_export_immediately(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+        _reject_any_export(monkeypatch, "deleting a highlight must not export immediately")
+
+        client.post(f"/items/{item_id}/highlights/{highlight_id}/delete")
+
+        after = _get_item_row(tmp_path, item_id)
+        assert after["highlights_touched_at"] is not None
+        assert after["highlights_exported_at"] is None
+
+
+def test_deleting_a_highlight_removes_it(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+
+        gone = client.post(f"/items/{item_id}/highlights/{highlight_id}/delete")
+        assert gone.status_code == 200
+
+        missing = client.get(f"/items/{item_id}/highlights/{highlight_id}")
+        assert missing.status_code == 404
+
+        page = client.get(f"/items/{item_id}")
+        assert '"id": ' + str(highlight_id) not in page.text
+
+
+def test_deleting_one_highlight_leaves_anothers_title_untouched(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        first_id = _save_highlight(client, item_id, start_offset=0, end_offset=5)
+        second_id = _save_highlight(client, item_id, start_offset=10, end_offset=15)
+
+        client.post(
+            f"/items/{item_id}/highlights/{first_id}/section-title",
+            data={"title": "First section"},
+        )
+        client.post(
+            f"/items/{item_id}/highlights/{second_id}/section-title",
+            data={"title": "Second section"},
+        )
+
+        gone = client.post(f"/items/{item_id}/highlights/{first_id}/delete")
+        assert gone.status_code == 200
+
+        page = client.get(f"/items/{item_id}/highlights/{second_id}/section-title")
+        assert 'value="Second section"' in page.text
+
+
 def test_delete_item_from_source_items_view_redirects_there(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
@@ -1011,6 +1223,180 @@ def test_archive_on_missing_item_is_404(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         response = client.post("/items/999999/archive")
         assert response.status_code == 404
+
+
+def test_archiving_exports_once_when_a_highlight_is_pending(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        _save_highlight(client, item_id)
+        calls = _record_exports(monkeypatch)
+
+        archived = client.post(f"/items/{item_id}/archive")
+        assert archived.status_code == 200
+
+        assert len(calls) == 1
+        assert calls[0][0] == item_id
+        assert len(calls[0][1]) == 1
+        after = _get_item_row(tmp_path, item_id)
+        assert after["highlights_exported_at"] is not None
+
+
+def test_archiving_with_nothing_pending_does_not_export(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        calls = _record_exports(monkeypatch)
+
+        archived = client.post(f"/items/{item_id}/archive")
+        assert archived.status_code == 200
+        assert calls == []
+
+
+def test_archiving_again_after_export_does_not_export_a_second_time(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        _save_highlight(client, item_id)
+        calls = _record_exports(monkeypatch)
+
+        client.post(f"/items/{item_id}/archive")
+        assert len(calls) == 1
+
+        client.post(f"/items/{item_id}/archive")
+        assert len(calls) == 1
+
+
+def test_marking_as_read_exports_once_when_a_highlight_is_pending(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _save_highlight(client, item_id)
+        calls = _record_exports(monkeypatch)
+
+        read = client.post(f"/items/{item_id}/read?from_list=news")
+        assert read.status_code == 200
+
+        assert len(calls) == 1
+        after = _get_item_row(tmp_path, item_id)
+        assert after["highlights_exported_at"] is not None
+
+
+def test_marking_as_read_with_nothing_pending_does_not_export(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        calls = _record_exports(monkeypatch)
+
+        read = client.post(f"/items/{item_id}/read?from_list=news")
+        assert read.status_code == 200
+        assert calls == []
+
+
+def test_deleting_an_item_with_a_pending_highlight_exports_once_first(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _save_highlight(client, item_id)
+        calls = _record_exports(monkeypatch)
+
+        deleted = client.post(f"/items/{item_id}/delete?from_list=news")
+        assert deleted.status_code == 200
+
+        assert len(calls) == 1
+        assert calls[0][0] == item_id
+        assert len(calls[0][1]) == 1
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            assert dbmod.get_item(conn, item_id) is None
+            remaining = conn.execute(
+                "SELECT COUNT(*) AS n FROM highlights WHERE item_id = ?", (item_id,)
+            ).fetchone()["n"]
+        finally:
+            conn.close()
+        assert remaining == 0
+
+
+def test_deleting_an_item_with_nothing_pending_does_not_export(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        calls = _record_exports(monkeypatch)
+
+        deleted = client.post(f"/items/{item_id}/delete?from_list=news")
+        assert deleted.status_code == 200
+        assert calls == []
+
+
+def _backdate_touch(tmp_path, item_id, when):
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        conn.execute(
+            "UPDATE items SET highlights_touched_at = ? WHERE id = ?",
+            (when.isoformat(), item_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_items_due_for_export_needs_a_day_of_no_further_activity(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _save_highlight(client, item_id)
+
+        now = datetime.now(UTC)
+        cutoff = (now - timedelta(days=1)).isoformat()
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            _backdate_touch(tmp_path, item_id, now - timedelta(hours=25))
+            due_after_25h = dbmod.items_due_for_export(conn, cutoff)
+            assert [row["id"] for row in due_after_25h] == [item_id]
+
+            _backdate_touch(tmp_path, item_id, now - timedelta(hours=2))
+            due_after_2h = dbmod.items_due_for_export(conn, cutoff)
+            assert due_after_2h == []
+
+            _backdate_touch(tmp_path, item_id, now - timedelta(hours=25))
+            dbmod.mark_highlights_exported(conn, item_id)
+            conn.commit()
+            due_once_exported = dbmod.items_due_for_export(conn, cutoff)
+            assert due_once_exported == []
+        finally:
+            conn.close()
+
+
+def test_the_daily_export_check_exports_only_what_is_actually_due(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        old_item_id = _first_item_id(tmp_path)
+        _save_highlight(client, old_item_id)
+        _backdate_touch(tmp_path, old_item_id, datetime.now(UTC) - timedelta(hours=25))
+
+        captured = client.post(
+            "/capture",
+            data={
+                "url": "https://example.test/second-article",
+                "html": CAPTURE_BLOG_HTML,
+            },
+        )
+        recent_item_id = int(captured.json()["item_url"].removeprefix("/items/"))
+        _save_highlight(client, recent_item_id)
+
+        calls = _record_exports(monkeypatch)
+        from app.main import _run_due_exports
+
+        _run_due_exports()
+
+        assert [call[0] for call in calls] == [old_item_id]
+        after = _get_item_row(tmp_path, old_item_id)
+        assert after["highlights_exported_at"] is not None
 
 
 def test_delete_button_on_article_page_removes_it_for_good(monkeypatch, tmp_path):
@@ -1192,3 +1578,258 @@ def test_item_page_has_no_progress_index_when_never_read(monkeypatch, tmp_path):
         item_id = _first_item_id(tmp_path)
         page = client.get(f"/items/{item_id}")
         assert "data-progress-index" not in page.text
+
+
+def test_saving_a_highlight_that_spans_two_blocks_persists_and_renders(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+
+        saved = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "5",
+                "end_block": "1",
+                "end_offset": "10",
+                "text": "spans two paragraphs",
+            },
+        )
+        assert saved.status_code == 200
+
+        page = client.get(f"/items/{item_id}")
+        assert page.status_code == 200
+        assert '"start_block": 0' in page.text
+        assert '"start_offset": 5' in page.text
+        assert '"end_block": 1' in page.text
+        assert '"end_offset": 10' in page.text
+
+
+def test_item_page_has_empty_highlights_when_none_saved(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        page = client.get(f"/items/{item_id}")
+        assert page.status_code == 200
+        assert 'id="highlights-data">[]</script>' in page.text
+
+
+def test_saving_highlight_on_unknown_item_is_404(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        missing = client.post(
+            "/items/999999/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "5",
+                "text": "nope",
+            },
+        )
+        assert missing.status_code == 404
+
+
+def test_saving_highlight_rejects_non_integer_offsets(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        bad = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "nope",
+                "end_block": "0",
+                "end_offset": "5",
+                "text": "x",
+            },
+        )
+        assert bad.status_code == 400
+
+
+def test_saving_highlight_rejects_end_not_after_start(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        bad = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "5",
+                "end_block": "0",
+                "end_offset": "5",
+                "text": "x",
+            },
+        )
+        assert bad.status_code == 400
+
+
+def test_saving_an_overlapping_highlight_is_rejected(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        first = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "10",
+                "text": "first ten chars",
+            },
+        )
+        assert first.status_code == 200
+
+        overlapping = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "5",
+                "end_block": "0",
+                "end_offset": "15",
+                "text": "overlaps the first",
+            },
+        )
+        assert overlapping.status_code == 409
+
+
+def test_merging_an_overlapping_highlight_replaces_it_with_the_union(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        first_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+
+        merged = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "20",
+                "text": "the union span",
+                "merge_id": str(first_id),
+            },
+        )
+        assert merged.status_code == 200
+        merged_id = merged.json()["id"]
+        assert merged_id != first_id
+
+        missing = client.get(f"/items/{item_id}/highlights/{first_id}")
+        assert missing.status_code == 404
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            highlights = dbmod.highlights_for_item(conn, item_id)
+        finally:
+            conn.close()
+        assert len(highlights) == 1
+        assert highlights[0]["start_offset"] == 0
+        assert highlights[0]["end_offset"] == 20
+
+
+def test_merge_that_shrinks_an_existing_highlight_is_rejected(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        first_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+
+        shrinking = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "5",
+                "end_block": "0",
+                "end_offset": "20",
+                "text": "overlaps but does not cover the start",
+                "merge_id": str(first_id),
+            },
+        )
+        assert shrinking.status_code == 400
+
+        still_there = client.get(f"/items/{item_id}/highlights/{first_id}")
+        assert still_there.status_code == 200
+
+
+def test_merging_two_highlights_keeps_the_earlier_ones_title(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        early_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+        client.post(
+            f"/items/{item_id}/highlights/{early_id}/section-title",
+            data={"title": "Money and markets"},
+        )
+        later_id = _save_highlight(client, item_id, start_offset=20, end_offset=30)
+        client.post(
+            f"/items/{item_id}/highlights/{later_id}/section-title",
+            data={"title": "Later title"},
+        )
+
+        merged = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "30",
+                "text": "bridges both",
+                "merge_id": [str(early_id), str(later_id)],
+            },
+        )
+        assert merged.status_code == 200
+        merged_id = merged.json()["id"]
+
+        page = client.get(f"/items/{item_id}/highlights/{merged_id}/section-title")
+        assert 'value="Money and markets"' in page.text
+
+
+def test_merge_claim_that_does_not_actually_overlap_is_rejected(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        first_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+
+        bogus = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "50",
+                "end_block": "0",
+                "end_offset": "60",
+                "text": "does not actually overlap",
+                "merge_id": str(first_id),
+            },
+        )
+        assert bogus.status_code == 400
+
+        still_there = client.get(f"/items/{item_id}/highlights/{first_id}")
+        assert still_there.status_code == 200
+
+
+def test_merge_that_omits_a_second_overlapping_highlight_is_rejected(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        first_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+        second_id = _save_highlight(client, item_id, start_offset=20, end_offset=30)
+
+        merged = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "5",
+                "end_block": "0",
+                "end_offset": "25",
+                "text": "bridges both but only names one",
+                "merge_id": str(first_id),
+            },
+        )
+        assert merged.status_code == 409
+
+        assert client.get(f"/items/{item_id}/highlights/{first_id}").status_code == 200
+        assert client.get(f"/items/{item_id}/highlights/{second_id}").status_code == 200

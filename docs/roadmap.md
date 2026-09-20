@@ -9,6 +9,7 @@
 - Discovery and Foundation are accepted, and feature work runs the change loop (`.claude/skills/2-develop/`): one change at a time from any epic, previewed when visual, tried on the live app, then merged and shipped
 - Manage Lists, Manage Sources, and Read Later's core line (send in, library/archive, resume, delete) are fully built; every list carries Unread/Read with automatic seen tracking
 - Newsletters land from the isolated mailbox and RSS, blog, and YouTube sources all work end to end on the live host
+- Highlight and Land in Obsidian is built and live: highlighting (including merging an overlapping selection into one highlight), sticky section titles, and the note landing in a dedicated private vault repo, kept to roughly one commit per article via an archive/mark-as-read trigger with a day-later fallback
 
 **⚠️ Open:**
 
@@ -55,9 +56,9 @@ Not its own epic in [epics](vision/epics.md); tracked here since it is built. Ap
 
 ### Highlight and Land in Obsidian
 
-- [ ] Highlight passages on first open
-- [ ] Section titles that stick to the highlights below them, and deleting a highlight
-- [ ] The note arriving in the vault in the agreed format
+- [x] Highlight passages on first open
+- [x] Section titles that stick to the highlights below them, and deleting a highlight
+- [x] The note arriving in the vault in the agreed format
 
 ### Improve UI
 
@@ -75,6 +76,8 @@ Last in the MVP: it needs a full built app to restyle.
 - Keep the GitHub repo name and the Fly URL `reader-skeleton.fly.dev` through feature work. Before the MVP is put on the phone as the lasting URL, rename the repo, stand up a new Fly app name (Fly cannot rename in place), and add a home-screen logo that shows when the site is installed
 - One Fly app serves both trying and living. During a change, the live app briefly runs an unmerged branch against the real library. Splitting into separate dev and prod Fly apps is the real fix; revisit once local testing is viable again
 - Once the MVP is up, back up the Fly volume's SQLite library regularly (roughly weekly); sources and articles live only on Fly and are never committed to the repo
+- The service worker only caches a GET after it succeeds once, and every write (highlight, mark read, archive, progress, sync) is fire-and-forget with no retry. On an unstable connection this reads as the app silently not saving. Revisit once the MVP is in daily use on real mobile networks, with two pieces: queue a failed write (in IndexedDB) and replay it when the connection returns, showing a visible "will sync" state instead of swallowing the error; and pre-cache an article's page as soon as it lands on Read later, not only after it has been opened once, so a saved article is readable offline even on a first attempt
+- No visible offline/connectivity state anywhere in the app; a failed action and a slow one currently look the same to the reader. A small persistent indicator (online/offline, syncing) would make the queued-write behaviour above legible instead of mysterious. Bundle with the note above rather than building alone
 
 ## Concluded
 

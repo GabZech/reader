@@ -4,9 +4,29 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**.
 
+## 2026-09-20: Vault export filenames are date + title, not the item id
+
+**Decision:** A highlight note's filename in `news-highlights` is `Highlights/YY-MM-DD Article title.md` (date from published date, falling back to when the article was added, then to today; title sanitized for filesystem-unsafe characters, falling back to the item id only if sanitizing leaves nothing). `items.exported_note_path` tracks the last-written path so a later export whose computed name differs deletes the old file first, instead of leaving a stale duplicate. Two articles with the same title on the same day silently overwrite each other's note; this is accepted, not guarded against.
+
+**Why:** The client wants filenames readable and sortable in the vault itself, not opaque ids. The original id-based naming was chosen specifically for stability (the filename could never change), which this deliberately gives up: a title or date correction can now change the filename. Guarding the collision case would mean departing from the exact pattern asked for, for a personal single-user library where it should be rare.
+
+**Rejected:** Appending a disambiguator (id or hash) to guarantee uniqueness: rejected because it breaks the exact pattern requested and the client accepted the collision risk explicitly.
+
+**Revisit when:** A real collision actually happens, or the vault stops being a single person's personal library.
+
+## 2026-09-20: Vault export fires on archive/mark-as-read or a day later, not on every highlight action
+
+**Decision:** Saving a highlight, setting a title, or deleting a highlight no longer exports to the vault immediately; it just records that the article's highlights were touched. Archiving (Read later) or marking as read (every other list) exports once, only if something changed since the last export. A background check once a day exports anything touched more than a day ago and never caught up otherwise. Deleting an article never deletes its note from the vault: any still-unexported highlights export once as a final catch-up first, then local highlight rows are removed — the vault file is the durable copy, not the local database.
+
+**Why:** The old design exported on every single highlight-related click, producing one commit per action in `news-highlights` (a session of highlighting could be seven commits for one article). The client wants roughly one commit per article. Archiving/marking as read is the natural "I'm done with this one" signal already in the app; the day-later fallback exists specifically for breaking off a reading session before reaching that signal.
+
+**Rejected:** Keeping per-action export and only reducing frequency (e.g. batching within a short window): rejected because it does not address the client's actual goal of a article getting materially fewer commits across a whole reading session, only within a single burst of edits.
+
+**Revisit when:** Not expected to, short of a different vault delivery mechanism replacing per-file GitHub commits entirely.
+
 ## 2026-09-20: A PR just awaiting merge is never written into `PROGRESS.md`
 
-**Decision:** `PROGRESS.md` never records "PR #N open, awaiting merge" as text, not even briefly. `AGENTS.md`'s start-of-session step 2 checks GitHub's own open-PR list fresh every session instead. `PROGRESS.md`'s in-flight entry for a shipped change is cleared outright in the same commit that precedes opening its PR (already 2-develop's Ship step, from an earlier fix); this decision closes the gap that let an agent satisfy "cleared" by writing a "PR open" note back in, which is exactly what happened.
+**Decision:** `PROGRESS.md` never records "PR #N open, awaiting merge" as text, not even briefly. `PROGRESS.md`'s in-flight entry for a shipped change is cleared outright in the same commit that precedes opening its PR (already 2-develop's Ship step, from an earlier fix); this decision closes the gap that let an agent satisfy "cleared" by writing a "PR open" note back in, which is exactly what happened. No corresponding check was added at session start: the client just checks GitHub, or asks, when a PR's status actually matters to them.
 
 **Why:** PR #18 merged on 2026-09-15. `PROGRESS.md` kept calling it open for 5 days across an unknown number of sessions, because `init.sh` is plain bash with no GitHub access — it can only echo the file, never catch that it's now wrong — and nothing else ever re-checked. Any text stored about a PR's status is frozen the moment it's committed and is guaranteed to go stale the instant the PR merges after that, no matter how it's worded ("open", "awaiting merge", a PR number). The number is also not known until after the PR exists, so a "last commit before the PR" literally cannot name it. The only way this stops going stale is to never store it: GitHub's PR list is the record, and it can't lie, since a merged PR simply stops appearing in it.
 

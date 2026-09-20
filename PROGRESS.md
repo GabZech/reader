@@ -22,7 +22,7 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 ## In flight
 
-None.
+- **Client to do manually:** force-push `news-highlights` to a clean slate (their own call, once this shipped) — not yet done as of this note.
 
 ## Stacked awaiting deploy
 

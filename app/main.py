@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
+import asyncio
+import json
+from contextlib import asynccontextmanager, suppress
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -12,6 +15,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import database_path, git_sha, mail_imap_config
 from app.db import (
+    add_highlight,
     add_item_to_list,
     add_source_to_list,
     all_lists,
@@ -20,37 +24,49 @@ from app.db import (
     clear_source_notice,
     connect,
     count_for_list,
+    delete_highlight,
+    delete_highlights,
     delete_item,
     delete_list,
     delete_source,
     find_list_by_name,
     find_source_by_feed_url,
     format_when,
+    get_highlight,
+    get_highlights_by_ids,
     get_item,
     get_list,
     get_source,
     has_pending_source_notice,
+    highlights_for_item,
     init_db,
     insert_list,
     insert_source,
     is_item_in_list,
+    items_due_for_export,
     items_for_list,
     items_for_source,
     lists_for_home_edit,
     lists_with_items,
+    mark_highlights_exported,
     mark_item_read,
     mark_item_seen,
     membership_label,
     move_list,
+    overlapping_highlights,
     reading_length,
     remove_source_from_list,
     rename_list,
     rename_source,
+    set_highlight_section_title,
+    set_highlight_subsection_title,
+    set_item_exported_note_path,
     set_item_progress,
     set_list_on_home,
     source_byline,
     source_id_for,
     source_memberships,
+    touch_item_highlights,
 )
 from app.ingest import (
     capture_article,
@@ -61,6 +77,7 @@ from app.ingest import (
     source_kind_for,
 )
 from app.mail import ingest_mail
+from app.obsidian import export_note
 
 APP_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
@@ -84,6 +101,19 @@ TIMED_NOTE = "Timed list · only recent items"
 UNTIMED_NOTE = "Not timed"
 
 
+EXPORT_DUE_AFTER = timedelta(days=1)
+EXPORT_CHECK_INTERVAL_SECONDS = 24 * 60 * 60
+
+
+async def _daily_export_check_loop() -> None:
+    while True:
+        try:
+            _run_due_exports()
+        except Exception:  # noqa: BLE001, S110 - the background check must never crash the app
+            pass
+        await asyncio.sleep(EXPORT_CHECK_INTERVAL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     conn = connect()
@@ -92,7 +122,11 @@ async def lifespan(_app: FastAPI):
         conn.commit()
     finally:
         conn.close()
+    task = asyncio.create_task(_daily_export_check_loop())
     yield
+    task.cancel()
+    with suppress(asyncio.CancelledError):
+        await task
 
 
 app = FastAPI(title="Reader", lifespan=lifespan)
@@ -969,10 +1003,23 @@ def item_page(
             mark_item_seen(conn, item_id)
             conn.commit()
         in_read_later = item is not None and is_item_in_list(conn, item_id, "later")
+        highlights = highlights_for_item(conn, item_id) if item is not None else []
     finally:
         conn.close()
     if item is None:
         raise HTTPException(status_code=404)
+    highlights_json = json.dumps(
+        [
+            {
+                "id": h["id"],
+                "start_block": h["start_block"],
+                "start_offset": h["start_offset"],
+                "end_block": h["end_block"],
+                "end_offset": h["end_offset"],
+            }
+            for h in highlights
+        ]
+    )
     if from_source and item["source_id"] == from_source:
         back = f"/sources/{from_source}/items"
     elif from_home:
@@ -994,6 +1041,8 @@ def item_page(
             "archive_action": f"/items/{item_id}/archive{context_query}",
             "delete_action": f"/items/{item_id}/delete{context_query}",
             "progress_action": f"/items/{item_id}/progress",
+            "highlight_action": f"/items/{item_id}/highlights",
+            "highlights_json": highlights_json,
             "mark_read_action": (
                 f"/items/{item_id}/read{context_query}"
                 if from_list and from_list != "later"
@@ -1021,6 +1070,248 @@ async def item_save_progress(item_id: int, request: Request):
     finally:
         conn.close()
     return {"ok": True}
+
+
+def _best_effort_export(item, highlights) -> None:
+    try:
+        return export_note(item, highlights, previous_path=item["exported_note_path"])
+    except Exception:  # noqa: BLE001 - the vault export must never break the caller
+        return None
+
+
+def _export_item_highlights(item_id: int) -> None:
+    conn = connect()
+    try:
+        init_db(conn)
+        item = get_item(conn, item_id)
+        if item is None:
+            return
+        highlights = highlights_for_item(conn, item_id)
+    finally:
+        conn.close()
+    result = _best_effort_export(item, highlights)
+    conn = connect()
+    try:
+        mark_highlights_exported(conn, item_id)
+        if result is not None:
+            set_item_exported_note_path(conn, item_id, result.get("path"))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _highlights_export_is_pending(item) -> bool:
+    touched = item["highlights_touched_at"]
+    exported = item["highlights_exported_at"]
+    return touched is not None and (exported is None or touched > exported)
+
+
+def _export_if_pending(item) -> None:
+    if _highlights_export_is_pending(item):
+        _export_item_highlights(item["id"])
+
+
+def _run_due_exports() -> None:
+    cutoff = (datetime.now(UTC) - EXPORT_DUE_AFTER).isoformat()
+    conn = connect()
+    try:
+        init_db(conn)
+        due = items_due_for_export(conn, cutoff)
+    finally:
+        conn.close()
+    for item in due:
+        _export_item_highlights(item["id"])
+
+
+@app.post("/items/{item_id}/highlights")
+async def item_add_highlight(item_id: int, request: Request):
+    form = await request.form()
+    try:
+        start_block = int(str(form.get("start_block") or ""))
+        start_offset = int(str(form.get("start_offset") or ""))
+        end_block = int(str(form.get("end_block") or ""))
+        end_offset = int(str(form.get("end_offset") or ""))
+    except ValueError:
+        raise HTTPException(status_code=400)
+    text = str(form.get("text") or "")
+    if not text or (end_block, end_offset) <= (start_block, start_offset):
+        raise HTTPException(status_code=400)
+    try:
+        merge_ids = [int(v) for v in form.getlist("merge_id")]
+    except ValueError:
+        raise HTTPException(status_code=400)
+    conn = connect()
+    try:
+        init_db(conn)
+        item = get_item(conn, item_id)
+        if item is None:
+            raise HTTPException(status_code=404)
+
+        # One query: everything the new range actually overlaps, regardless
+        # of what the client claims. A claimed merge_id that isn't in this
+        # set is fabricated or stale (never trust the client to say what it
+        # may delete without checking); anything in this set that wasn't
+        # claimed is an undeclared overlap and blocks the save, same as
+        # before merging existed.
+        overlapping = overlapping_highlights(
+            conn, item_id, start_block, start_offset, end_block, end_offset
+        )
+        overlapping_ids = {row["id"] for row in overlapping}
+        merge_id_set = set(merge_ids)
+        if not merge_id_set <= overlapping_ids:
+            raise HTTPException(status_code=400)
+        if overlapping_ids - merge_id_set:
+            raise HTTPException(status_code=409)
+
+        merging = get_highlights_by_ids(conn, item_id, merge_ids)
+        for row in merging:
+            # Overlapping isn't enough: the submitted range must fully cover
+            # each highlight it's replacing, or the merge would silently
+            # shrink it instead of extending it.
+            if (start_block, start_offset) > (row["start_block"], row["start_offset"]) or (
+                end_block,
+                end_offset,
+            ) < (row["end_block"], row["end_offset"]):
+                raise HTTPException(status_code=400)
+
+        section_title = None
+        subsection_title = None
+        for row in merging:  # already ordered earliest-first
+            if section_title is None and row["section_title"]:
+                section_title = row["section_title"]
+            if subsection_title is None and row["subsection_title"]:
+                subsection_title = row["subsection_title"]
+
+        if merging:
+            delete_highlights(conn, [row["id"] for row in merging])
+
+        highlight_id = add_highlight(
+            conn, item_id, start_block, start_offset, end_block, end_offset, text
+        )
+        if section_title:
+            set_highlight_section_title(conn, highlight_id, section_title)
+        if subsection_title:
+            set_highlight_subsection_title(conn, highlight_id, subsection_title)
+        touch_item_highlights(conn, item_id)
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True, "id": highlight_id}
+
+
+@app.get("/items/{item_id}/highlights/{highlight_id}")
+def highlight_detail(request: Request, item_id: int, highlight_id: int):
+    conn = connect()
+    try:
+        init_db(conn)
+        highlight = get_highlight(conn, item_id, highlight_id)
+    finally:
+        conn.close()
+    if highlight is None:
+        raise HTTPException(status_code=404)
+    return templates.TemplateResponse(
+        request,
+        "highlight.html",
+        {
+            "nav": "home",
+            "highlight": highlight,
+            "back": f"/items/{item_id}",
+            "section_title_action": f"/items/{item_id}/highlights/{highlight_id}/section-title",
+            "subsection_title_action": (
+                f"/items/{item_id}/highlights/{highlight_id}/subsection-title"
+            ),
+            "delete_action": f"/items/{item_id}/highlights/{highlight_id}/delete",
+        },
+    )
+
+
+def _highlight_title_page(
+    request: Request, item_id: int, highlight_id: int, level: str
+):
+    conn = connect()
+    try:
+        init_db(conn)
+        highlight = get_highlight(conn, item_id, highlight_id)
+        if highlight is None:
+            raise HTTPException(status_code=404)
+        field = "section_title" if level == "section" else "subsection_title"
+        shown = highlight[field] or ""
+    finally:
+        conn.close()
+    return templates.TemplateResponse(
+        request,
+        "highlight_title.html",
+        {
+            "nav": "home",
+            "label": "Section title" if level == "section" else "Subsection title",
+            "text": highlight["text"],
+            "title": shown,
+            "back": f"/items/{item_id}/highlights/{highlight_id}",
+            "save_action": f"/items/{item_id}/highlights/{highlight_id}/{level}-title",
+        },
+    )
+
+
+async def _highlight_title_submit(
+    request: Request, item_id: int, highlight_id: int, level: str
+):
+    form = await request.form()
+    title = str(form.get("title") or "").strip() or None
+    conn = connect()
+    try:
+        init_db(conn)
+        highlight = get_highlight(conn, item_id, highlight_id)
+        if highlight is None:
+            raise HTTPException(status_code=404)
+        if level == "section":
+            set_highlight_section_title(conn, highlight_id, title)
+        else:
+            set_highlight_subsection_title(conn, highlight_id, title)
+        touch_item_highlights(conn, item_id)
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(f"/items/{item_id}", status_code=303)
+
+
+@app.get("/items/{item_id}/highlights/{highlight_id}/section-title")
+def highlight_section_title(request: Request, item_id: int, highlight_id: int):
+    return _highlight_title_page(request, item_id, highlight_id, "section")
+
+
+@app.post("/items/{item_id}/highlights/{highlight_id}/section-title")
+async def highlight_section_title_submit(
+    request: Request, item_id: int, highlight_id: int
+):
+    return await _highlight_title_submit(request, item_id, highlight_id, "section")
+
+
+@app.get("/items/{item_id}/highlights/{highlight_id}/subsection-title")
+def highlight_subsection_title(request: Request, item_id: int, highlight_id: int):
+    return _highlight_title_page(request, item_id, highlight_id, "subsection")
+
+
+@app.post("/items/{item_id}/highlights/{highlight_id}/subsection-title")
+async def highlight_subsection_title_submit(
+    request: Request, item_id: int, highlight_id: int
+):
+    return await _highlight_title_submit(request, item_id, highlight_id, "subsection")
+
+
+@app.post("/items/{item_id}/highlights/{highlight_id}/delete")
+def highlight_delete(item_id: int, highlight_id: int):
+    conn = connect()
+    try:
+        init_db(conn)
+        highlight = get_highlight(conn, item_id, highlight_id)
+        if highlight is None:
+            raise HTTPException(status_code=404)
+        delete_highlight(conn, highlight_id)
+        touch_item_highlights(conn, item_id)
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(f"/items/{item_id}", status_code=303)
 
 
 @app.post("/items/{item_id}/later")
@@ -1062,6 +1353,7 @@ def item_archive(
         conn.commit()
     finally:
         conn.close()
+    _export_if_pending(item)
     if from_source:
         return RedirectResponse(
             f"/sources/{from_source}/items?flash=Archived", status_code=303
@@ -1087,6 +1379,7 @@ def item_mark_read(
         conn.commit()
     finally:
         conn.close()
+    _export_if_pending(item)
     return RedirectResponse(f"/lists/{from_list}?flash=Read", status_code=303)
 
 
@@ -1102,10 +1395,17 @@ def item_delete(
         item = get_item(conn, item_id)
         if item is None:
             raise HTTPException(status_code=404)
+        pending = _highlights_export_is_pending(item)
+        highlights = highlights_for_item(conn, item_id) if pending else []
         delete_item(conn, item_id)
         conn.commit()
     finally:
         conn.close()
+    if pending:
+        # A final catch-up so nothing highlighted but not yet exported is
+        # lost. Deleting an item never removes its note from the vault
+        # otherwise: the vault is the durable copy, not the local database.
+        _best_effort_export(item, highlights)
     if from_source:
         return RedirectResponse(
             f"/sources/{from_source}/items?flash=Deleted", status_code=303

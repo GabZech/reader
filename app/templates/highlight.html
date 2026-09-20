@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Highlight{% endblock %}
+{% block body %}
+      <div class="actions">
+        <a href="{{ back }}">Close</a>
+      </div>
+      <header class="top">
+        <h1>Highlight</h1>
+      </header>
+      <p class="lede">{{ highlight.text }}</p>
+      <section class="list">
+        <a class="item" href="{{ section_title_action }}">
+          <span class="title">Add section title</span>
+          <span class="sub">
+            <span class="byline">This highlight and those that follow, until the next title</span>
+          </span>
+        </a>
+        <a class="item" href="{{ subsection_title_action }}">
+          <span class="title">Add subsection title</span>
+          <span class="sub">
+            <span class="byline">Same rule, one level under a section title</span>
+          </span>
+        </a>
+      </section>
+      <section class="list">
+        <button type="button" class="item item-action" id="copy-highlight" data-copy-text="{{ highlight.text }}">Copy text</button>
+      </section>
+      <section class="list">
+        <form method="post" action="{{ delete_action }}">
+          <button type="submit" class="item item-action item-delete">Delete highlight</button>
+        </form>
+      </section>
+{% endblock %}

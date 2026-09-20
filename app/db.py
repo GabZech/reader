@@ -96,6 +96,19 @@ def init_db(conn: sqlite3.Connection) -> None:
             read_at TEXT NOT NULL,
             PRIMARY KEY (item_id, list_slug)
         );
+
+        CREATE TABLE IF NOT EXISTS highlights (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER NOT NULL REFERENCES items(id),
+            start_block INTEGER NOT NULL,
+            start_offset INTEGER NOT NULL,
+            end_block INTEGER NOT NULL,
+            end_offset INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            section_title TEXT,
+            subsection_title TEXT,
+            created_at TEXT NOT NULL
+        );
         """
     )
     item_lists_columns = {row["name"] for row in conn.execute("PRAGMA table_info(item_lists)")}
@@ -106,6 +119,12 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE items ADD COLUMN seen_at TEXT")
     if "progress_index" not in items_columns:
         conn.execute("ALTER TABLE items ADD COLUMN progress_index INTEGER")
+    if "highlights_touched_at" not in items_columns:
+        conn.execute("ALTER TABLE items ADD COLUMN highlights_touched_at TEXT")
+    if "highlights_exported_at" not in items_columns:
+        conn.execute("ALTER TABLE items ADD COLUMN highlights_exported_at TEXT")
+    if "exported_note_path" not in items_columns:
+        conn.execute("ALTER TABLE items ADD COLUMN exported_note_path TEXT")
     if not lists_table_existed:
         for slug, name, position in LISTS:
             conn.execute(
@@ -379,6 +398,167 @@ def set_item_progress(conn: sqlite3.Connection, item_id: int, progress_index: in
     )
 
 
+def highlights_for_item(conn: sqlite3.Connection, item_id: int) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT * FROM highlights
+        WHERE item_id = ?
+        ORDER BY start_block, start_offset
+        """,
+        (item_id,),
+    ).fetchall()
+
+
+def overlapping_highlights(
+    conn: sqlite3.Connection,
+    item_id: int,
+    start_block: int,
+    start_offset: int,
+    end_block: int,
+    end_offset: int,
+    exclude_ids: tuple[int, ...] = (),
+) -> list[sqlite3.Row]:
+    new_start = (start_block, start_offset)
+    new_end = (end_block, end_offset)
+    excluded = set(exclude_ids)
+    rows = conn.execute(
+        "SELECT * FROM highlights WHERE item_id = ?", (item_id,)
+    ).fetchall()
+    overlapping = []
+    for row in rows:
+        if row["id"] in excluded:
+            continue
+        existing_start = (row["start_block"], row["start_offset"])
+        existing_end = (row["end_block"], row["end_offset"])
+        if new_start < existing_end and existing_start < new_end:
+            overlapping.append(row)
+    return overlapping
+
+
+def add_highlight(
+    conn: sqlite3.Connection,
+    item_id: int,
+    start_block: int,
+    start_offset: int,
+    end_block: int,
+    end_offset: int,
+    text: str,
+) -> int:
+    cursor = conn.execute(
+        """
+        INSERT INTO highlights
+            (item_id, start_block, start_offset, end_block, end_offset, text, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            item_id,
+            start_block,
+            start_offset,
+            end_block,
+            end_offset,
+            text,
+            datetime.now(UTC).isoformat(),
+        ),
+    )
+    return cursor.lastrowid
+
+
+def get_highlight(
+    conn: sqlite3.Connection, item_id: int, highlight_id: int
+) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT * FROM highlights WHERE id = ? AND item_id = ?",
+        (highlight_id, item_id),
+    ).fetchone()
+
+
+def get_highlights_by_ids(
+    conn: sqlite3.Connection, item_id: int, ids: list[int]
+) -> list[sqlite3.Row]:
+    if not ids:
+        return []
+    placeholders = ",".join("?" * len(ids))
+    return conn.execute(
+        f"""
+        SELECT * FROM highlights
+        WHERE item_id = ? AND id IN ({placeholders})
+        ORDER BY start_block, start_offset
+        """,
+        (item_id, *ids),
+    ).fetchall()
+
+
+def set_highlight_section_title(
+    conn: sqlite3.Connection, highlight_id: int, title: str | None
+) -> None:
+    conn.execute(
+        "UPDATE highlights SET section_title = ? WHERE id = ?",
+        (title, highlight_id),
+    )
+
+
+def set_highlight_subsection_title(
+    conn: sqlite3.Connection, highlight_id: int, title: str | None
+) -> None:
+    conn.execute(
+        "UPDATE highlights SET subsection_title = ? WHERE id = ?",
+        (title, highlight_id),
+    )
+
+
+def delete_highlight(conn: sqlite3.Connection, highlight_id: int) -> None:
+    conn.execute("DELETE FROM highlights WHERE id = ?", (highlight_id,))
+
+
+def delete_highlights(conn: sqlite3.Connection, ids: list[int]) -> None:
+    if not ids:
+        return
+    placeholders = ",".join("?" * len(ids))
+    conn.execute(f"DELETE FROM highlights WHERE id IN ({placeholders})", ids)
+
+
+def touch_item_highlights(conn: sqlite3.Connection, item_id: int) -> None:
+    conn.execute(
+        "UPDATE items SET highlights_touched_at = ? WHERE id = ?",
+        (datetime.now(UTC).isoformat(), item_id),
+    )
+
+
+def mark_highlights_exported(conn: sqlite3.Connection, item_id: int) -> None:
+    conn.execute(
+        "UPDATE items SET highlights_exported_at = ? WHERE id = ?",
+        (datetime.now(UTC).isoformat(), item_id),
+    )
+
+
+def set_item_exported_note_path(
+    conn: sqlite3.Connection, item_id: int, path: str | None
+) -> None:
+    conn.execute(
+        "UPDATE items SET exported_note_path = ? WHERE id = ?",
+        (path, item_id),
+    )
+
+
+def items_due_for_export(
+    conn: sqlite3.Connection, touched_before: str
+) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT items.*, sources.title AS source_title
+        FROM items
+        JOIN sources ON sources.id = items.source_id
+        WHERE items.highlights_touched_at IS NOT NULL
+            AND items.highlights_touched_at <= ?
+            AND (
+                items.highlights_exported_at IS NULL
+                OR items.highlights_touched_at > items.highlights_exported_at
+            )
+        """,
+        (touched_before,),
+    ).fetchall()
+
+
 def mark_item_read(conn: sqlite3.Connection, item_id: int, list_slug: str) -> None:
     conn.execute(
         """
@@ -406,6 +586,7 @@ def is_item_in_list(conn: sqlite3.Connection, item_id: int, list_slug: str) -> b
 
 def delete_item(conn: sqlite3.Connection, item_id: int) -> None:
     conn.execute("DELETE FROM item_lists WHERE item_id = ?", (item_id,))
+    conn.execute("DELETE FROM highlights WHERE item_id = ?", (item_id,))
     conn.execute("DELETE FROM items WHERE id = ?", (item_id,))
 
 

@@ -41,3 +41,7 @@ def mail_imap_config() -> tuple[str, str, str] | None:
     if not host or not user or not password:
         return None
     return host, user, password
+
+
+def obsidian_github_token() -> str | None:
+    return os.environ.get("OBSIDIAN_GITHUB_TOKEN")

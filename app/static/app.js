@@ -199,6 +199,251 @@
     }
   };
 
+  const initHighlights = () => {
+    const body = document.querySelector(".article-body[data-highlight-action]");
+    if (!body) return;
+    const blocks = Array.from(body.children);
+    if (blocks.length === 0) return;
+    const saveUrl = body.dataset.highlightAction;
+
+    const pointAtOffset = (block, offset) => {
+      const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+      let pos = 0;
+      let node = walker.nextNode();
+      let last = null;
+      while (node) {
+        const len = node.textContent.length;
+        if (pos + len >= offset) return { node, offset: offset - pos };
+        pos += len;
+        last = node;
+        node = walker.nextNode();
+      }
+      return last ? { node: last, offset: last.textContent.length } : null;
+    };
+
+    const wrapBlockRange = (block, from, to) => {
+      if (to <= from) return null;
+      const start = pointAtOffset(block, from);
+      const end = pointAtOffset(block, to);
+      if (!start || !end) return null;
+      const range = document.createRange();
+      range.setStart(start.node, start.offset);
+      range.setEnd(end.node, end.offset);
+      try {
+        const mark = document.createElement("mark");
+        mark.className = "hl";
+        mark.appendChild(range.extractContents());
+        range.insertNode(mark);
+        return mark;
+      } catch {
+        /* leave the text unwrapped rather than corrupt the DOM */
+        return null;
+      }
+    };
+
+    const wrapHighlight = (startBlock, startOffset, endBlock, endOffset, highlightId) => {
+      const marks = [];
+      for (let b = startBlock; b <= endBlock; b++) {
+        const block = blocks[b];
+        if (!block) continue;
+        const from = b === startBlock ? startOffset : 0;
+        const to = b === endBlock ? endOffset : block.textContent.length;
+        const mark = wrapBlockRange(block, from, to);
+        if (mark) marks.push(mark);
+      }
+      if (highlightId != null) {
+        marks.forEach((mark) => {
+          mark.dataset.highlightId = String(highlightId);
+        });
+      }
+      return marks;
+    };
+
+    const blockIndexOf = (node) => {
+      let el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+      while (el && el.parentElement !== body) el = el.parentElement;
+      return el ? blocks.indexOf(el) : -1;
+    };
+
+    const charOffsetWithinBlock = (block, container, offsetInContainer) => {
+      const range = document.createRange();
+      range.selectNodeContents(block);
+      range.setEnd(container, offsetInContainer);
+      return range.toString().length;
+    };
+
+    const dataEl = document.getElementById("highlights-data");
+    let saved = [];
+    try {
+      saved = dataEl ? JSON.parse(dataEl.textContent || "[]") : [];
+    } catch {
+      saved = [];
+    }
+    saved.forEach((h) => {
+      wrapHighlight(h.start_block, h.start_offset, h.end_block, h.end_offset, h.id);
+    });
+    // Live record of what's on the page, kept in sync as saves/merges
+    // happen so a second overlapping selection in the same visit (before
+    // any reload) still detects correctly.
+    const known = saved.map((h) => ({ ...h }));
+
+    // Tuple-less-than for [block, offset] points, matching the server's
+    // own (block, offset) comparisons.
+    const pointBefore = (a, b) => a[0] < b[0] || (a[0] === b[0] && a[1] < b[1]);
+
+    const textForSpan = (startBlock, startOffset, endBlock, endOffset) => {
+      const start = pointAtOffset(blocks[startBlock], startOffset);
+      const end = pointAtOffset(blocks[endBlock], endOffset);
+      if (!start || !end) return "";
+      const range = document.createRange();
+      range.setStart(start.node, start.offset);
+      range.setEnd(end.node, end.offset);
+      return range.toString();
+    };
+
+    const unwrapHighlight = (highlightId) => {
+      body.querySelectorAll(`mark.hl[data-highlight-id="${highlightId}"]`).forEach((mark) => {
+        const parent = mark.parentNode;
+        while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+        parent.removeChild(mark);
+        parent.normalize();
+      });
+    };
+
+    body.addEventListener("click", (event) => {
+      const mark = event.target.closest("mark.hl");
+      if (!mark || !mark.dataset.highlightId) return;
+      location.href = `${location.pathname}/highlights/${mark.dataset.highlightId}`;
+    });
+
+    const handleFinishedSelection = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed) return;
+      const range = selection.getRangeAt(0);
+      if (!body.contains(range.commonAncestorContainer)) return;
+      const text = range.toString();
+      if (!text.trim()) return;
+
+      const startBlock = blockIndexOf(range.startContainer);
+      const endBlock = blockIndexOf(range.endContainer);
+      if (startBlock < 0 || endBlock < 0) return;
+      const startOffset = charOffsetWithinBlock(
+        blocks[startBlock],
+        range.startContainer,
+        range.startOffset
+      );
+      const endOffset = charOffsetWithinBlock(
+        blocks[endBlock],
+        range.endContainer,
+        range.endOffset
+      );
+      selection.removeAllRanges();
+
+      const newStart = [startBlock, startOffset];
+      const newEnd = [endBlock, endOffset];
+      const overlapping = known.filter(
+        (h) =>
+          pointBefore(newStart, [h.end_block, h.end_offset]) &&
+          pointBefore([h.start_block, h.start_offset], newEnd)
+      );
+
+      let unionStart = newStart;
+      let unionEnd = newEnd;
+      overlapping.forEach((h) => {
+        const hStart = [h.start_block, h.start_offset];
+        const hEnd = [h.end_block, h.end_offset];
+        if (pointBefore(hStart, unionStart)) unionStart = hStart;
+        if (pointBefore(unionEnd, hEnd)) unionEnd = hEnd;
+      });
+
+      const finalText = overlapping.length
+        ? textForSpan(unionStart[0], unionStart[1], unionEnd[0], unionEnd[1])
+        : text;
+      if (!finalText.trim()) return;
+
+      const data = new URLSearchParams({
+        start_block: String(unionStart[0]),
+        start_offset: String(unionStart[1]),
+        end_block: String(unionEnd[0]),
+        end_offset: String(unionEnd[1]),
+        text: finalText,
+      });
+      overlapping.forEach((h) => data.append("merge_id", String(h.id)));
+
+      // The DOM is only touched once the server confirms the save: no
+      // optimistic mark, so a rejected or failed save leaves the page
+      // exactly as it was instead of showing a phantom, unsaved highlight.
+      fetch(saveUrl, { method: "POST", body: data })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((result) => {
+          if (!result) return;
+          overlapping.forEach((h) => unwrapHighlight(h.id));
+          wrapHighlight(unionStart[0], unionStart[1], unionEnd[0], unionEnd[1], result.id);
+          const mergedIds = new Set(overlapping.map((h) => h.id));
+          for (let i = known.length - 1; i >= 0; i--) {
+            if (mergedIds.has(known[i].id)) known.splice(i, 1);
+          }
+          known.push({
+            id: result.id,
+            start_block: unionStart[0],
+            start_offset: unionStart[1],
+            end_block: unionEnd[0],
+            end_offset: unionEnd[1],
+          });
+        })
+        .catch(() => {});
+    };
+
+    // mouseup covers a fresh press-and-drag selection. On a touch device,
+    // refining a selection with the system's drag handles never fires
+    // mouseup on the page at all, so selectionchange (debounced until the
+    // selection stops moving) is the only signal that works for both.
+    body.addEventListener("mouseup", handleFinishedSelection);
+
+    // Dragging a native selection handle slowly (aiming precisely, pausing
+    // to reposition a finger) can easily pause longer than the debounce
+    // below, which would finalize and mutate the DOM mid-drag — visibly
+    // disrupting the OS's own handle UI and leaving only a partial
+    // highlight. Tracking whether a touch is actually still down and
+    // holding off until it lifts avoids finalizing while the gesture is
+    // still in progress, regardless of how long a mid-drag pause lasts.
+    let touchActive = false;
+    let selectionTimer = null;
+    document.addEventListener(
+      "touchstart",
+      () => {
+        touchActive = true;
+      },
+      { passive: true }
+    );
+    const onTouchEnd = () => {
+      touchActive = false;
+      clearTimeout(selectionTimer);
+      handleFinishedSelection();
+    };
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
+    document.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
+    document.addEventListener("selectionchange", () => {
+      clearTimeout(selectionTimer);
+      selectionTimer = setTimeout(() => {
+        if (touchActive) return; // still dragging; touchend will finalize
+        handleFinishedSelection();
+      }, 400);
+    });
+  };
+
+  const initHighlightDetail = () => {
+    const button = document.getElementById("copy-highlight");
+    if (!button) return;
+    button.addEventListener("click", () => {
+      const text = button.dataset.copyText || "";
+      navigator.clipboard?.writeText(text)
+        .then(() => showToast("Copied"))
+        .catch(() => {});
+    });
+  };
+
   const showToast = (text) => {
     const el = document.createElement("div");
     el.className = "toast";
@@ -224,6 +469,8 @@
   initThemeToggle();
   initSwipeToDelete();
   initReadingProgress();
+  initHighlights();
+  initHighlightDetail();
   registerWorker();
   syncHome();
 })();
