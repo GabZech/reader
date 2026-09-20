@@ -1142,7 +1142,10 @@ async def capture(request: Request):
             "capture_result.html",
             {"nav": "home", "title": title, "item_url": item_url},
         )
-    return {"item_id": item_id, "title": title, "item_url": item_url}
+    response = {"item_id": item_id, "title": title, "item_url": item_url}
+    if request.query_params.get("debug") == "1":
+        response["html_received_length"] = len(html) if html else 0
+    return response
 
 
 @app.post("/sync")
