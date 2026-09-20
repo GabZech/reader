@@ -24,6 +24,16 @@ Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit 
 
 **Revisit when:** Not expected to, short of a different vault delivery mechanism replacing per-file GitHub commits entirely.
 
+## 2026-09-20: A PR just awaiting merge is never written into `PROGRESS.md`
+
+**Decision:** `PROGRESS.md` never records "PR #N open, awaiting merge" as text, not even briefly. `PROGRESS.md`'s in-flight entry for a shipped change is cleared outright in the same commit that precedes opening its PR (already 2-develop's Ship step, from an earlier fix); this decision closes the gap that let an agent satisfy "cleared" by writing a "PR open" note back in, which is exactly what happened. No corresponding check was added at session start: the client just checks GitHub, or asks, when a PR's status actually matters to them.
+
+**Why:** PR #18 merged on 2026-09-15. `PROGRESS.md` kept calling it open for 5 days across an unknown number of sessions, because `init.sh` is plain bash with no GitHub access — it can only echo the file, never catch that it's now wrong — and nothing else ever re-checked. Any text stored about a PR's status is frozen the moment it's committed and is guaranteed to go stale the instant the PR merges after that, no matter how it's worded ("open", "awaiting merge", a PR number). The number is also not known until after the PR exists, so a "last commit before the PR" literally cannot name it. The only way this stops going stale is to never store it: GitHub's PR list is the record, and it can't lie, since a merged PR simply stops appearing in it.
+
+**Rejected:** Checking whether a named PR has merged before trusting it (this decision's own first draft): still requires storing the PR's identity as text, and still leaves a session that skips the check exposed. Wording the in-flight line more carefully: no wording self-updates. Automating a post-merge commit back to `main` to clear it: would need a bot writing to `main` outside the PR-gated flow this repo deliberately requires for every other change.
+
+**Revisit when:** A PR develops real unresolved work beyond waiting on the merge click (reviewer feedback, a known blocker) — that's worth a `PROGRESS.md` line again, since GitHub's PR list won't hand over that context for free.
+
 ## 2026-09-15: Merge to main always goes through a PR, gated separately from sign-off
 
 **Decision:** Ship no longer merges and pushes to `main` directly. It pushes the branch, opens a PR, and merges only when the client merges it themselves or explicitly tells the agent to (a squash-merge, confirmation-gated like `flyctl deploy`). A `PreToolUse` hook now refuses any direct push to `main` outright rather than only asking, and GitHub branch protection on `main` requires a PR before merge.

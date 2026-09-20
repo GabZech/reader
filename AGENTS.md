@@ -10,7 +10,7 @@ One manual for any AI coding tool working in this repo, vendor-neutral. Read it 
 
 ## Required artifacts
 
-- **`PROGRESS.md`:** in-flight state and the standard paths. Read at start, updated at every checkpoint, cleared at Ship.
+- **`PROGRESS.md`:** in-flight state and the standard paths. Read at start, updated at every checkpoint, cleared at Ship — never with a note that a PR awaits merge; GitHub's own list is that record.
 - **`docs/roadmap.md`:** the feature list. "What's next" is what remains; a line is ticked only by the change that shipped it.
 - **`docs/decisions.md`:** choices expensive to undo, including one dated entry for any plan file archived at a tag once its change ships.
 - **`init.sh`:** the standard startup and verification path.
@@ -65,9 +65,16 @@ Code and tests are behaviour. Living docs under `docs/` are the current agreed p
 
 ## Chat conduct
 
+- Just before a message that asks for human input (a question, a sign-off ask, a choice to make), mark it with a Markdown horizontal rule (`---` on its own line) followed by a short label in block capitals chosen for that message, so it renders as a real rule rather than wrapping as text on narrow screens:
+
+  ```
+  ---
+
+  **SUMMARY**
+  ```
 - When a message presents a set of items the reader must weigh together, structure it so the set reads clearly and stays visually distinct from surrounding prose.
 - A question is not a command: answer it, do not act on it unless asked.
-- Narrate progress as it happens: a short update roughly every 5-10 seconds of work (what you just found, what you're doing next), not silence until a task finishes.
+- Narrate progress as it happens: a short update roughly every 5-10 seconds of work (what you just found, what you're doing next), not silence until a task finishes. At the end, briefly summarise what you did and explain what's next.
 - Reach for visual structure over dense prose where it clarifies (e.g. tables for comparisons, Mermaid diagrams for workflows/processes/structures, headers and bold to make long answers scannable).
 
 ## Definition of done
