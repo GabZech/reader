@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**.
 
+## 2026-09-20: A PR named in `PROGRESS.md` is verified against GitHub, not trusted
+
+**Decision:** `AGENTS.md`'s start-of-session step 2 now requires checking GitHub before trusting any "PR open" line in `PROGRESS.md`; a merged PR's line is cleared immediately as part of resuming, not left for a later session to notice.
+
+**Why:** PR #18 merged on 2026-09-15. `PROGRESS.md` kept calling it open for 5 days across an unknown number of sessions, because `init.sh` is plain bash with no GitHub access — it can only echo the file, never catch that it's now wrong — and nothing else ever re-checked. Writing a better sentence into the file at Ship time does not fix this: the file is committed once and then sits untouched by definition until a PR actually merges, so whatever it says about that PR's status is guaranteed to go stale the moment the merge happens. Only a check at the next read can catch that.
+
+**Rejected:** Wording the in-flight line more carefully (e.g. "open, awaiting merge"): does not solve the actual problem, since no wording self-updates when the PR merges. Automating a post-merge commit back to `main` to clear it: would need a bot writing to `main` outside the PR-gated flow this repo deliberately requires for every other change.
+
+**Revisit when:** `init.sh` or an equivalent gains real GitHub access and can check PR state itself; then this becomes automatic instead of an agent instruction.
+
 ## 2026-09-15: Merge to main always goes through a PR, gated separately from sign-off
 
 **Decision:** Ship no longer merges and pushes to `main` directly. It pushes the branch, opens a PR, and merges only when the client merges it themselves or explicitly tells the agent to (a squash-merge, confirmation-gated like `flyctl deploy`). A `PreToolUse` hook now refuses any direct push to `main` outright rather than only asking, and GitHub branch protection on `main` requires a PR before merge.
