@@ -5,12 +5,12 @@ One manual for any AI coding tool working in this repo, vendor-neutral. Read it 
 ## Start of session
 
 1. Run `bash init.sh --quick` (or let the SessionStart hook run it for you) for git state, the live version against `origin/main`, and anything in flight.
-2. Read `PROGRESS.md`, then check GitHub for open PRs. A PR simply waiting on the client's merge decision is never written into `PROGRESS.md`: the PR list itself is the record, checked fresh every session, so nothing there can go stale the way a merged PR once sat marked "open" for days after the fact. If `PROGRESS.md` names something else in flight (a mid-build change, or a PR with real unresolved work like feedback still to address), resume that before starting anything new.
+2. Read `PROGRESS.md`, then check GitHub for open PRs — that list is the record, not a note here, so it can't go stale. If `PROGRESS.md` names anything else in flight, resume that before starting anything new.
 3. Once per chat, before the first product change, read `docs/roadmap.md` "Where we are."
 
 ## Required artifacts
 
-- **`PROGRESS.md`:** in-flight state and the standard paths. Read at start, updated at every checkpoint, cleared at Ship — including any PR it names: a PR just waiting on a merge decision is never written here at all, since GitHub's own open-PR list is that record and it can only go stale as text.
+- **`PROGRESS.md`:** in-flight state and the standard paths. Read at start, updated at every checkpoint, cleared at Ship — never with a note that a PR awaits merge; GitHub's own list is that record.
 - **`docs/roadmap.md`:** the feature list. "What's next" is what remains; a line is ticked only by the change that shipped it.
 - **`docs/decisions.md`:** choices expensive to undo, including one dated entry for any plan file archived at a tag once its change ships.
 - **`init.sh`:** the standard startup and verification path.
