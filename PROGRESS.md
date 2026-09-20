@@ -24,9 +24,9 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 - **Repo maintenance: merge to main only through a gated PR, plus `dev/`/`maint/` branch-naming convention.** PR [#18](https://github.com/GabZech/reader/pull/18) (branch `maint/pr-gated-merge`) is open, tests and lint pass. GitHub branch protection on `main` is live (PR required; `enforce_admins` is off so the client can still push small increments to `main` directly, per their preference). Nothing is blocking it: waiting only on the client's merge decision — they merge it, or tell the agent to squash-merge.
 
-Client signed off live on `dev/highlight-on-first-open` ("Works great, thanks!"): highlighting (with merging an overlapping selection into one), sticky section titles and delete, the note landing in the vault at `Highlights/YY-MM-DD Article title.md`, export triggers reworked to archive/mark-as-read plus a day-later fallback instead of per action, and the touch-drag finalization fix. Roadmap ticked and decisions recorded; PR opened next, then `main` redeployed regardless of whether it's merged yet.
+- **Highlight and Land in Obsidian.** PR [#23](https://github.com/GabZech/reader/pull/23) (branch `dev/highlight-on-first-open`) is open, signed off live by the client, tests and lint pass. Waiting only on the client's merge decision. Once merged, redeploy `main`.
 
-**Reminder for the client:** force-push `news-highlights` to a clean slate now that this is shipping, per their own earlier call to do it manually once everything was done.
+- **Client to do manually:** force-push `news-highlights` to a clean slate (their own call, once this shipped) — not yet done as of this note.
 
 ## Stacked awaiting deploy
 
