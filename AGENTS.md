@@ -10,7 +10,7 @@ One manual for any AI coding tool working in this repo, vendor-neutral. Read it 
 
 ## Required artifacts
 
-- **`PROGRESS.md`:** in-flight state and the standard paths. Read at start, updated at every checkpoint, cleared at Ship.
+- **`PROGRESS.md`:** in-flight state and the standard paths. Read at start, updated at every checkpoint, cleared at Ship — never with a note that a PR awaits merge; GitHub's own list is that record.
 - **`docs/roadmap.md`:** the feature list. "What's next" is what remains; a line is ticked only by the change that shipped it.
 - **`docs/decisions.md`:** choices expensive to undo, including one dated entry for any plan file archived at a tag once its change ships.
 - **`init.sh`:** the standard startup and verification path.
