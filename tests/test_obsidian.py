@@ -12,6 +12,7 @@ def _item(**overrides):
         "author": "Josh Rosen",
         "source_title": "X",
         "published_at": "2026-08-13T00:00:00+00:00",
+        "seen_at": None,
         "url": "https://x.com/JoshARosen/status/2087944178558791874",
     }
     base.update(overrides)
@@ -26,10 +27,25 @@ def _highlight(text, section_title=None, subsection_title=None):
     }
 
 
-def test_note_path_is_stable_per_item():
-    path = note_path_for_item(42, "Subagents on Subagents: How Many Layers?")
-    assert path == "Highlights/42.md"
-    assert note_path_for_item(42, "A totally different title") == path
+def test_note_path_uses_published_date_and_title():
+    path = note_path_for_item(_item())
+    assert path == "Highlights/26-08-13 Subagents on Subagents.md"
+
+
+def test_note_path_falls_back_to_seen_at_when_no_published_date():
+    item = _item(published_at=None, seen_at="2026-09-01T00:00:00+00:00")
+    assert note_path_for_item(item) == "Highlights/26-09-01 Subagents on Subagents.md"
+
+
+def test_note_path_strips_filesystem_unsafe_characters_from_the_title():
+    item = _item(title='Ask: "What now?" / How <this> works | really?')
+    path = note_path_for_item(item)
+    assert path == "Highlights/26-08-13 Ask What now How this works really.md"
+
+
+def test_note_path_falls_back_to_item_id_when_title_sanitizes_to_nothing():
+    item = _item(title='///:::***')
+    assert note_path_for_item(item) == "Highlights/26-08-13 42.md"
 
 
 def test_build_note_markdown_includes_frontmatter_and_title():
@@ -75,8 +91,9 @@ def test_export_note_creates_when_no_existing_file(monkeypatch):
     monkeypatch.setenv("OBSIDIAN_GITHUB_TOKEN", "test-token")
     monkeypatch.setattr("app.obsidian._request", fake_request)
 
-    result = export_note(_item(), [_highlight("Some text.")])
-    assert result == {"exported": True}
+    item = _item()
+    result = export_note(item, [_highlight("Some text.")])
+    assert result == {"exported": True, "path": note_path_for_item(item)}
 
     methods = [call[0] for call in calls]
     assert methods == ["GET", "PUT"]
@@ -100,8 +117,9 @@ def test_export_note_updates_with_existing_sha(monkeypatch):
     monkeypatch.setenv("OBSIDIAN_GITHUB_TOKEN", "test-token")
     monkeypatch.setattr("app.obsidian._request", fake_request)
 
-    result = export_note(_item(), [_highlight("Some text.")])
-    assert result == {"exported": True}
+    item = _item()
+    result = export_note(item, [_highlight("Some text.")])
+    assert result == {"exported": True, "path": note_path_for_item(item)}
     assert calls[1][2]["json"]["sha"] == "existing-sha"
 
 
@@ -120,7 +138,7 @@ def test_export_note_deletes_when_no_highlights_left(monkeypatch):
     monkeypatch.setattr("app.obsidian._request", fake_request)
 
     result = export_note(_item(), [])
-    assert result == {"exported": False, "reason": "no_highlights"}
+    assert result == {"exported": False, "reason": "no_highlights", "path": None}
     methods = [call[0] for call in calls]
     assert methods == ["GET", "DELETE"]
 
@@ -134,7 +152,62 @@ def test_export_note_without_a_token_does_not_call_out(monkeypatch):
     monkeypatch.setattr("app.obsidian._request", fake_request)
 
     result = export_note(_item(), [_highlight("Some text.")])
-    assert result == {"exported": False, "reason": "not_configured"}
+    assert result == {"exported": False, "reason": "not_configured", "path": None}
+
+
+def test_export_note_deletes_the_old_file_when_the_path_changed(monkeypatch):
+    calls = []
+
+    def fake_request(method, url, **kwargs):
+        calls.append((method, url, kwargs))
+        if method == "GET" and "old-name.md" in url:
+            return _FakeResponse(200, {"sha": "old-sha"})
+        if method == "DELETE" and "old-name.md" in url:
+            return _FakeResponse(200, {})
+        if method == "GET":
+            return _FakeResponse(404, {})
+        if method == "PUT":
+            return _FakeResponse(201, {"content": {"sha": "new-sha"}})
+        raise AssertionError(f"unexpected {method} {url}")
+
+    monkeypatch.setenv("OBSIDIAN_GITHUB_TOKEN", "test-token")
+    monkeypatch.setattr("app.obsidian._request", fake_request)
+
+    item = _item()
+    result = export_note(
+        item, [_highlight("Some text.")], previous_path="Highlights/old-name.md"
+    )
+    assert result == {"exported": True, "path": note_path_for_item(item)}
+
+    deletes = [(m, u) for m, u, _ in calls if m == "DELETE"]
+    assert len(deletes) == 1
+    assert "old-name.md" in deletes[0][1]
+    puts = [(m, u) for m, u, _ in calls if m == "PUT"]
+    assert len(puts) == 1
+    assert "old-name.md" not in puts[0][1]
+
+
+def test_export_note_does_not_delete_when_the_path_is_unchanged(monkeypatch):
+    calls = []
+
+    def fake_request(method, url, **kwargs):
+        calls.append((method, url, kwargs))
+        if method == "GET":
+            return _FakeResponse(404, {})
+        if method == "PUT":
+            return _FakeResponse(201, {"content": {"sha": "new-sha"}})
+        raise AssertionError(f"unexpected {method} {url}")
+
+    monkeypatch.setenv("OBSIDIAN_GITHUB_TOKEN", "test-token")
+    monkeypatch.setattr("app.obsidian._request", fake_request)
+
+    item = _item()
+    result = export_note(
+        item, [_highlight("Some text.")], previous_path=note_path_for_item(item)
+    )
+    assert result == {"exported": True, "path": note_path_for_item(item)}
+    methods = [call[0] for call in calls]
+    assert "DELETE" not in methods
 
 
 class _FakeResponse:

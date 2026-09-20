@@ -123,6 +123,8 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE items ADD COLUMN highlights_touched_at TEXT")
     if "highlights_exported_at" not in items_columns:
         conn.execute("ALTER TABLE items ADD COLUMN highlights_exported_at TEXT")
+    if "exported_note_path" not in items_columns:
+        conn.execute("ALTER TABLE items ADD COLUMN exported_note_path TEXT")
     if not lists_table_existed:
         for slug, name, position in LISTS:
             conn.execute(
@@ -526,6 +528,15 @@ def mark_highlights_exported(conn: sqlite3.Connection, item_id: int) -> None:
     conn.execute(
         "UPDATE items SET highlights_exported_at = ? WHERE id = ?",
         (datetime.now(UTC).isoformat(), item_id),
+    )
+
+
+def set_item_exported_note_path(
+    conn: sqlite3.Connection, item_id: int, path: str | None
+) -> None:
+    conn.execute(
+        "UPDATE items SET exported_note_path = ? WHERE id = ?",
+        (path, item_id),
     )
 
 

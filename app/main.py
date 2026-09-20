@@ -60,6 +60,7 @@ from app.db import (
     rename_source,
     set_highlight_section_title,
     set_highlight_subsection_title,
+    set_item_exported_note_path,
     set_item_progress,
     set_list_on_home,
     source_byline,
@@ -1073,9 +1074,9 @@ async def item_save_progress(item_id: int, request: Request):
 
 def _best_effort_export(item, highlights) -> None:
     try:
-        export_note(item, highlights)
-    except Exception:  # noqa: BLE001, S110 - the vault export must never break the caller
-        pass
+        return export_note(item, highlights, previous_path=item["exported_note_path"])
+    except Exception:  # noqa: BLE001 - the vault export must never break the caller
+        return None
 
 
 def _export_item_highlights(item_id: int) -> None:
@@ -1088,10 +1089,12 @@ def _export_item_highlights(item_id: int) -> None:
         highlights = highlights_for_item(conn, item_id)
     finally:
         conn.close()
-    _best_effort_export(item, highlights)
+    result = _best_effort_export(item, highlights)
     conn = connect()
     try:
         mark_highlights_exported(conn, item_id)
+        if result is not None:
+            set_item_exported_note_path(conn, item_id, result.get("path"))
         conn.commit()
     finally:
         conn.close()

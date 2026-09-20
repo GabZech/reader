@@ -805,9 +805,9 @@ def _reject_any_export(monkeypatch, message):
 def _record_exports(monkeypatch):
     calls = []
 
-    def fake_export_note(item, highlights):
+    def fake_export_note(item, highlights, previous_path=None):
         calls.append((item["id"], list(highlights)))
-        return {"exported": True}
+        return {"exported": True, "path": f"Highlights/{item['id']}.md"}
 
     monkeypatch.setattr("app.main.export_note", fake_export_note)
     return calls
