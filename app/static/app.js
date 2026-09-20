@@ -400,10 +400,36 @@
     // selection stops moving) is the only signal that works for both.
     body.addEventListener("mouseup", handleFinishedSelection);
 
+    // Dragging a native selection handle slowly (aiming precisely, pausing
+    // to reposition a finger) can easily pause longer than the debounce
+    // below, which would finalize and mutate the DOM mid-drag — visibly
+    // disrupting the OS's own handle UI and leaving only a partial
+    // highlight. Tracking whether a touch is actually still down and
+    // holding off until it lifts avoids finalizing while the gesture is
+    // still in progress, regardless of how long a mid-drag pause lasts.
+    let touchActive = false;
     let selectionTimer = null;
+    document.addEventListener(
+      "touchstart",
+      () => {
+        touchActive = true;
+      },
+      { passive: true }
+    );
+    const onTouchEnd = () => {
+      touchActive = false;
+      clearTimeout(selectionTimer);
+      handleFinishedSelection();
+    };
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
+    document.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
     document.addEventListener("selectionchange", () => {
       clearTimeout(selectionTimer);
-      selectionTimer = setTimeout(handleFinishedSelection, 400);
+      selectionTimer = setTimeout(() => {
+        if (touchActive) return; // still dragging; touchend will finalize
+        handleFinishedSelection();
+      }, 400);
     });
   };
 
