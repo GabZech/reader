@@ -60,25 +60,7 @@ Sending a link to Read later from outside the app (any site, not just a subscrib
 - **Desktop:** a bookmarklet, listed in Settings. Drag it to the bookmarks bar once; clicking it on any page sends that page.
 - **iPhone:** a Shortcut, set up once in the Shortcuts app so it then appears in the Share Sheet:
   1. Create a new shortcut. Set "Accepts" (under the shortcut's Share Sheet settings) to Safari web pages.
-  2. Add **Run JavaScript on Webpage**, with a script that waits for the page's own content to render before grabbing it, not just for the page to load. Many sites (Nexo Jornal among them) render the article body client-side after load, so grabbing `outerHTML` immediately captures an empty shell and the article saves with a title but no body:
-     ```js
-     var done = false;
-     function finish() {
-       if (done) return;
-       done = true;
-       completion(document.documentElement.outerHTML);
-     }
-     function ready() {
-       if (document.body.innerText.length > 500) {
-         finish();
-       } else {
-         setTimeout(ready, 300);
-       }
-     }
-     setTimeout(finish, 5000);
-     ready();
-     ```
-     The 5-second `setTimeout` is a hard ceiling so a thin or slow page still completes instead of hanging the Shortcut, rather than a second condition racing `ready()`'s own call; the `done` guard keeps `completion` from firing twice.
+  2. Add **Run JavaScript on Webpage**, script `completion(document.documentElement.outerHTML);`. Make sure the action's page field (labeled "Web Page" in the action header) is bound to the incoming page, not a fixed one picked while building the shortcut - if it points at whatever page was open at setup time instead of the shared page, every capture silently sends that same stale page's HTML (or none) regardless of what you actually share, which looks identical to a site simply failing to capture.
   3. Add **Get Contents of URL**: URL `https://reader-skeleton.fly.dev/capture`, Method POST, Request Body Form, with fields `url` (Shortcut Input) and `html` (the previous action's result). No headers needed; `/capture` returns JSON by default and only serves the confirmation page when called with `?format=html` (what the bookmarklet uses).
   4. Parse the response as a dictionary and read its `title` and `item_url` fields.
   5. Show an alert with the title and two options, Done and Read now; Read now opens `https://reader-skeleton.fly.dev` + the returned `item_url`.
