@@ -65,12 +65,12 @@ Code and tests are behaviour. Living docs under `docs/` are the current agreed p
 
 ## Chat conduct
 
-- Just before a message that asks for human input (a question, a sign-off ask, a choice to make), mark it with a short label in block capitals chosen for that message, followed by a Markdown horizontal rule (`---` on its own line) so it renders as a real rule rather than wrapping as text on narrow screens:
+- Just before a message that asks for human input (a question, a sign-off ask, a choice to make), mark it with a Markdown horizontal rule (`---` on its own line) followed by a short label in block capitals chosen for that message, so it renders as a real rule rather than wrapping as text on narrow screens:
 
   ```
-  **SUMMARY**
-
   ---
+
+  **SUMMARY**
   ```
 - When a message presents a set of items the reader must weigh together, structure it so the set reads clearly and stays visually distinct from surrounding prose.
 - A question is not a command: answer it, do not act on it unless asked.
