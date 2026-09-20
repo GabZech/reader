@@ -282,6 +282,33 @@
     saved.forEach((h) => {
       wrapHighlight(h.start_block, h.start_offset, h.end_block, h.end_offset, h.id);
     });
+    // Live record of what's on the page, kept in sync as saves/merges
+    // happen so a second overlapping selection in the same visit (before
+    // any reload) still detects correctly.
+    const known = saved.map((h) => ({ ...h }));
+
+    // Tuple-less-than for [block, offset] points, matching the server's
+    // own (block, offset) comparisons.
+    const pointBefore = (a, b) => a[0] < b[0] || (a[0] === b[0] && a[1] < b[1]);
+
+    const textForSpan = (startBlock, startOffset, endBlock, endOffset) => {
+      const start = pointAtOffset(blocks[startBlock], startOffset);
+      const end = pointAtOffset(blocks[endBlock], endOffset);
+      if (!start || !end) return "";
+      const range = document.createRange();
+      range.setStart(start.node, start.offset);
+      range.setEnd(end.node, end.offset);
+      return range.toString();
+    };
+
+    const unwrapHighlight = (highlightId) => {
+      body.querySelectorAll(`mark.hl[data-highlight-id="${highlightId}"]`).forEach((mark) => {
+        const parent = mark.parentNode;
+        while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+        parent.removeChild(mark);
+        parent.normalize();
+      });
+    };
 
     body.addEventListener("click", (event) => {
       const mark = event.target.closest("mark.hl");
@@ -312,21 +339,56 @@
       );
       selection.removeAllRanges();
 
-      const marks = wrapHighlight(startBlock, startOffset, endBlock, endOffset);
+      const newStart = [startBlock, startOffset];
+      const newEnd = [endBlock, endOffset];
+      const overlapping = known.filter(
+        (h) =>
+          pointBefore(newStart, [h.end_block, h.end_offset]) &&
+          pointBefore([h.start_block, h.start_offset], newEnd)
+      );
+
+      let unionStart = newStart;
+      let unionEnd = newEnd;
+      overlapping.forEach((h) => {
+        const hStart = [h.start_block, h.start_offset];
+        const hEnd = [h.end_block, h.end_offset];
+        if (pointBefore(hStart, unionStart)) unionStart = hStart;
+        if (pointBefore(unionEnd, hEnd)) unionEnd = hEnd;
+      });
+
+      const finalText = overlapping.length
+        ? textForSpan(unionStart[0], unionStart[1], unionEnd[0], unionEnd[1])
+        : text;
+      if (!finalText.trim()) return;
 
       const data = new URLSearchParams({
-        start_block: String(startBlock),
-        start_offset: String(startOffset),
-        end_block: String(endBlock),
-        end_offset: String(endOffset),
-        text,
+        start_block: String(unionStart[0]),
+        start_offset: String(unionStart[1]),
+        end_block: String(unionEnd[0]),
+        end_offset: String(unionEnd[1]),
+        text: finalText,
       });
+      overlapping.forEach((h) => data.append("merge_id", String(h.id)));
+
+      // The DOM is only touched once the server confirms the save: no
+      // optimistic mark, so a rejected or failed save leaves the page
+      // exactly as it was instead of showing a phantom, unsaved highlight.
       fetch(saveUrl, { method: "POST", body: data })
         .then((r) => (r.ok ? r.json() : null))
         .then((result) => {
           if (!result) return;
-          marks.forEach((mark) => {
-            mark.dataset.highlightId = String(result.id);
+          overlapping.forEach((h) => unwrapHighlight(h.id));
+          wrapHighlight(unionStart[0], unionStart[1], unionEnd[0], unionEnd[1], result.id);
+          const mergedIds = new Set(overlapping.map((h) => h.id));
+          for (let i = known.length - 1; i >= 0; i--) {
+            if (mergedIds.has(known[i].id)) known.splice(i, 1);
+          }
+          known.push({
+            id: result.id,
+            start_block: unionStart[0],
+            start_offset: unionStart[1],
+            end_block: unionEnd[0],
+            end_offset: unionEnd[1],
           });
         })
         .catch(() => {});
