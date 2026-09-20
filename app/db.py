@@ -407,28 +407,30 @@ def highlights_for_item(conn: sqlite3.Connection, item_id: int) -> list[sqlite3.
     ).fetchall()
 
 
-def highlight_overlaps(
+def overlapping_highlights(
     conn: sqlite3.Connection,
     item_id: int,
     start_block: int,
     start_offset: int,
     end_block: int,
     end_offset: int,
-) -> bool:
+    exclude_ids: tuple[int, ...] = (),
+) -> list[sqlite3.Row]:
     new_start = (start_block, start_offset)
     new_end = (end_block, end_offset)
-    for row in conn.execute(
-        """
-        SELECT start_block, start_offset, end_block, end_offset
-        FROM highlights WHERE item_id = ?
-        """,
-        (item_id,),
-    ):
+    excluded = set(exclude_ids)
+    rows = conn.execute(
+        "SELECT * FROM highlights WHERE item_id = ?", (item_id,)
+    ).fetchall()
+    overlapping = []
+    for row in rows:
+        if row["id"] in excluded:
+            continue
         existing_start = (row["start_block"], row["start_offset"])
         existing_end = (row["end_block"], row["end_offset"])
         if new_start < existing_end and existing_start < new_end:
-            return True
-    return False
+            overlapping.append(row)
+    return overlapping
 
 
 def add_highlight(
@@ -468,6 +470,22 @@ def get_highlight(
     ).fetchone()
 
 
+def get_highlights_by_ids(
+    conn: sqlite3.Connection, item_id: int, ids: list[int]
+) -> list[sqlite3.Row]:
+    if not ids:
+        return []
+    placeholders = ",".join("?" * len(ids))
+    return conn.execute(
+        f"""
+        SELECT * FROM highlights
+        WHERE item_id = ? AND id IN ({placeholders})
+        ORDER BY start_block, start_offset
+        """,
+        (item_id, *ids),
+    ).fetchall()
+
+
 def set_highlight_section_title(
     conn: sqlite3.Connection, highlight_id: int, title: str | None
 ) -> None:
@@ -488,6 +506,13 @@ def set_highlight_subsection_title(
 
 def delete_highlight(conn: sqlite3.Connection, highlight_id: int) -> None:
     conn.execute("DELETE FROM highlights WHERE id = ?", (highlight_id,))
+
+
+def delete_highlights(conn: sqlite3.Connection, ids: list[int]) -> None:
+    if not ids:
+        return
+    placeholders = ",".join("?" * len(ids))
+    conn.execute(f"DELETE FROM highlights WHERE id IN ({placeholders})", ids)
 
 
 def touch_item_highlights(conn: sqlite3.Connection, item_id: int) -> None:

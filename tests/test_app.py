@@ -1692,3 +1692,144 @@ def test_saving_an_overlapping_highlight_is_rejected(monkeypatch, tmp_path):
             },
         )
         assert overlapping.status_code == 409
+
+
+def test_merging_an_overlapping_highlight_replaces_it_with_the_union(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        first_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+
+        merged = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "20",
+                "text": "the union span",
+                "merge_id": str(first_id),
+            },
+        )
+        assert merged.status_code == 200
+        merged_id = merged.json()["id"]
+        assert merged_id != first_id
+
+        missing = client.get(f"/items/{item_id}/highlights/{first_id}")
+        assert missing.status_code == 404
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            highlights = dbmod.highlights_for_item(conn, item_id)
+        finally:
+            conn.close()
+        assert len(highlights) == 1
+        assert highlights[0]["start_offset"] == 0
+        assert highlights[0]["end_offset"] == 20
+
+
+def test_merge_that_shrinks_an_existing_highlight_is_rejected(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        first_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+
+        shrinking = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "5",
+                "end_block": "0",
+                "end_offset": "20",
+                "text": "overlaps but does not cover the start",
+                "merge_id": str(first_id),
+            },
+        )
+        assert shrinking.status_code == 400
+
+        still_there = client.get(f"/items/{item_id}/highlights/{first_id}")
+        assert still_there.status_code == 200
+
+
+def test_merging_two_highlights_keeps_the_earlier_ones_title(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        early_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+        client.post(
+            f"/items/{item_id}/highlights/{early_id}/section-title",
+            data={"title": "Money and markets"},
+        )
+        later_id = _save_highlight(client, item_id, start_offset=20, end_offset=30)
+        client.post(
+            f"/items/{item_id}/highlights/{later_id}/section-title",
+            data={"title": "Later title"},
+        )
+
+        merged = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "30",
+                "text": "bridges both",
+                "merge_id": [str(early_id), str(later_id)],
+            },
+        )
+        assert merged.status_code == 200
+        merged_id = merged.json()["id"]
+
+        page = client.get(f"/items/{item_id}/highlights/{merged_id}/section-title")
+        assert 'value="Money and markets"' in page.text
+
+
+def test_merge_claim_that_does_not_actually_overlap_is_rejected(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        first_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+
+        bogus = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "50",
+                "end_block": "0",
+                "end_offset": "60",
+                "text": "does not actually overlap",
+                "merge_id": str(first_id),
+            },
+        )
+        assert bogus.status_code == 400
+
+        still_there = client.get(f"/items/{item_id}/highlights/{first_id}")
+        assert still_there.status_code == 200
+
+
+def test_merge_that_omits_a_second_overlapping_highlight_is_rejected(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        first_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+        second_id = _save_highlight(client, item_id, start_offset=20, end_offset=30)
+
+        merged = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "5",
+                "end_block": "0",
+                "end_offset": "25",
+                "text": "bridges both but only names one",
+                "merge_id": str(first_id),
+            },
+        )
+        assert merged.status_code == 409
+
+        assert client.get(f"/items/{item_id}/highlights/{first_id}").status_code == 200
+        assert client.get(f"/items/{item_id}/highlights/{second_id}").status_code == 200

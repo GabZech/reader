@@ -25,6 +25,7 @@ from app.db import (
     connect,
     count_for_list,
     delete_highlight,
+    delete_highlights,
     delete_item,
     delete_list,
     delete_source,
@@ -32,11 +33,11 @@ from app.db import (
     find_source_by_feed_url,
     format_when,
     get_highlight,
+    get_highlights_by_ids,
     get_item,
     get_list,
     get_source,
     has_pending_source_notice,
-    highlight_overlaps,
     highlights_for_item,
     init_db,
     insert_list,
@@ -52,6 +53,7 @@ from app.db import (
     mark_item_seen,
     membership_label,
     move_list,
+    overlapping_highlights,
     reading_length,
     remove_source_from_list,
     rename_list,
@@ -1131,19 +1133,62 @@ async def item_add_highlight(item_id: int, request: Request):
     text = str(form.get("text") or "")
     if not text or (end_block, end_offset) <= (start_block, start_offset):
         raise HTTPException(status_code=400)
+    try:
+        merge_ids = [int(v) for v in form.getlist("merge_id")]
+    except ValueError:
+        raise HTTPException(status_code=400)
     conn = connect()
     try:
         init_db(conn)
         item = get_item(conn, item_id)
         if item is None:
             raise HTTPException(status_code=404)
-        if highlight_overlaps(
+
+        # One query: everything the new range actually overlaps, regardless
+        # of what the client claims. A claimed merge_id that isn't in this
+        # set is fabricated or stale (never trust the client to say what it
+        # may delete without checking); anything in this set that wasn't
+        # claimed is an undeclared overlap and blocks the save, same as
+        # before merging existed.
+        overlapping = overlapping_highlights(
             conn, item_id, start_block, start_offset, end_block, end_offset
-        ):
+        )
+        overlapping_ids = {row["id"] for row in overlapping}
+        merge_id_set = set(merge_ids)
+        if not merge_id_set <= overlapping_ids:
+            raise HTTPException(status_code=400)
+        if overlapping_ids - merge_id_set:
             raise HTTPException(status_code=409)
+
+        merging = get_highlights_by_ids(conn, item_id, merge_ids)
+        for row in merging:
+            # Overlapping isn't enough: the submitted range must fully cover
+            # each highlight it's replacing, or the merge would silently
+            # shrink it instead of extending it.
+            if (start_block, start_offset) > (row["start_block"], row["start_offset"]) or (
+                end_block,
+                end_offset,
+            ) < (row["end_block"], row["end_offset"]):
+                raise HTTPException(status_code=400)
+
+        section_title = None
+        subsection_title = None
+        for row in merging:  # already ordered earliest-first
+            if section_title is None and row["section_title"]:
+                section_title = row["section_title"]
+            if subsection_title is None and row["subsection_title"]:
+                subsection_title = row["subsection_title"]
+
+        if merging:
+            delete_highlights(conn, [row["id"] for row in merging])
+
         highlight_id = add_highlight(
             conn, item_id, start_block, start_offset, end_block, end_offset, text
         )
+        if section_title:
+            set_highlight_section_title(conn, highlight_id, section_title)
+        if subsection_title:
+            set_highlight_subsection_title(conn, highlight_id, subsection_title)
         touch_item_highlights(conn, item_id)
         conn.commit()
     finally:
