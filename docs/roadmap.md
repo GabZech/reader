@@ -9,6 +9,7 @@
 - Discovery and Foundation are accepted, and feature work runs the change loop (`.claude/skills/2-develop/`): one change at a time from any epic, previewed when visual, tried on the live app, then merged and shipped
 - Manage Lists, Manage Sources, and Read Later's core line (send in, library/archive, resume, delete) are fully built; every list carries Unread/Read with automatic seen tracking
 - Newsletters land from the isolated mailbox and RSS, blog, and YouTube sources all work end to end on the live host
+- Highlight and Land in Obsidian is built and live: highlighting (including merging an overlapping selection into one highlight), sticky section titles, and the note landing in a dedicated private vault repo, kept to roughly one commit per article via an archive/mark-as-read trigger with a day-later fallback
 
 **⚠️ Open:**
 
@@ -55,10 +56,9 @@ Not its own epic in [epics](vision/epics.md); tracked here since it is built. Ap
 
 ### Highlight and Land in Obsidian
 
-- [ ] Highlight passages on first open
-- [ ] Section titles that stick to the highlights below them, and deleting a highlight
-- [ ] The note arriving in the vault in the agreed format
-- [ ] Make a highlight save safe against a rejected overlap: selecting text that overlaps an existing highlight is correctly refused server-side, but the client already wraps the selection in the DOM before that response comes back, so a phantom, unsaved mark (and a visually split original highlight) stays on screen with no error shown, until the next reload quietly fixes it. Fix by wrapping only after the server confirms the save.
+- [x] Highlight passages on first open
+- [x] Section titles that stick to the highlights below them, and deleting a highlight
+- [x] The note arriving in the vault in the agreed format
 
 ### Improve UI
 

@@ -4,6 +4,26 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**.
 
+## 2026-09-20: Vault export filenames are date + title, not the item id
+
+**Decision:** A highlight note's filename in `news-highlights` is `Highlights/YY-MM-DD Article title.md` (date from published date, falling back to when the article was added, then to today; title sanitized for filesystem-unsafe characters, falling back to the item id only if sanitizing leaves nothing). `items.exported_note_path` tracks the last-written path so a later export whose computed name differs deletes the old file first, instead of leaving a stale duplicate. Two articles with the same title on the same day silently overwrite each other's note; this is accepted, not guarded against.
+
+**Why:** The client wants filenames readable and sortable in the vault itself, not opaque ids. The original id-based naming was chosen specifically for stability (the filename could never change), which this deliberately gives up: a title or date correction can now change the filename. Guarding the collision case would mean departing from the exact pattern asked for, for a personal single-user library where it should be rare.
+
+**Rejected:** Appending a disambiguator (id or hash) to guarantee uniqueness: rejected because it breaks the exact pattern requested and the client accepted the collision risk explicitly.
+
+**Revisit when:** A real collision actually happens, or the vault stops being a single person's personal library.
+
+## 2026-09-20: Vault export fires on archive/mark-as-read or a day later, not on every highlight action
+
+**Decision:** Saving a highlight, setting a title, or deleting a highlight no longer exports to the vault immediately; it just records that the article's highlights were touched. Archiving (Read later) or marking as read (every other list) exports once, only if something changed since the last export. A background check once a day exports anything touched more than a day ago and never caught up otherwise. Deleting an article never deletes its note from the vault: any still-unexported highlights export once as a final catch-up first, then local highlight rows are removed — the vault file is the durable copy, not the local database.
+
+**Why:** The old design exported on every single highlight-related click, producing one commit per action in `news-highlights` (a session of highlighting could be seven commits for one article). The client wants roughly one commit per article. Archiving/marking as read is the natural "I'm done with this one" signal already in the app; the day-later fallback exists specifically for breaking off a reading session before reaching that signal.
+
+**Rejected:** Keeping per-action export and only reducing frequency (e.g. batching within a short window): rejected because it does not address the client's actual goal of a article getting materially fewer commits across a whole reading session, only within a single burst of edits.
+
+**Revisit when:** Not expected to, short of a different vault delivery mechanism replacing per-file GitHub commits entirely.
+
 ## 2026-09-15: Merge to main always goes through a PR, gated separately from sign-off
 
 **Decision:** Ship no longer merges and pushes to `main` directly. It pushes the branch, opens a PR, and merges only when the client merges it themselves or explicitly tells the agent to (a squash-merge, confirmation-gated like `flyctl deploy`). A `PreToolUse` hook now refuses any direct push to `main` outright rather than only asking, and GitHub branch protection on `main` requires a PR before merge.
