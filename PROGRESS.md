@@ -45,9 +45,10 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
   - Dragging a native selection handle slowly (pausing to reposition a finger mid-drag) could pause longer than the 400ms debounce and finalize a partial highlight, mutating the DOM under the OS's own handle UI (client saw the blue marker glitch, then only part of the intended text got highlighted). Fixed by tracking whether a touch is actually down and holding off finalizing until it lifts, regardless of how long a mid-drag pause lasts. Verified with a Playwright script simulating repeated mid-drag pauses (touch still active, no highlight created) followed by touchend (finalizes with the full, final selection). Committed; not yet deployed or confirmed by the client on a real device.
 
   ### Planned — export filename pattern (`YY-MM-DD Article title.md`, not `<item_id>.md`)
-  - Slice 1 — Compute the new filename: not started. Date from the article's published date, falling back to when it was added to the library, then to today's date, if missing; title sanitized for filesystem-unsafe characters, falling back to the item id if sanitizing leaves nothing.
-  - Slice 2 — Handle the filename changing: not started. Track the currently-exported path per item (new column) so a later export whose computed filename differs from last time deletes the old file and creates the new one, instead of leaving a stale duplicate behind.
+  - Slice 1 — Compute the new filename: done. Date from published date, falling back to seen_at then today; title sanitized for filesystem-unsafe characters (`\ / : * ? " < > |`), falling back to the item id if sanitizing leaves nothing. Path segments URL-encoded for the GitHub API call (titles routinely contain spaces now, which the old id-only path never did).
+  - Slice 2 — Handle the filename changing: done. `items.exported_note_path` (new column) tracks the last-written path; `export_note` takes `previous_path` and deletes the old file first when it differs from the newly computed one. Both slices: 9 new/updated tests in `test_obsidian.py`, full suite (179) and lint pass.
   - Flagged and accepted per client (confirmed with "these slices are good, build"): two articles with the same title on the same day would silently overwrite each other's note in the vault, since the pattern has no disambiguator. Not guarded against, since doing so would depart from the exact pattern asked for.
+  - Not yet deployed or tried live. Deploying this will also carry the touch-drag fix above (both are on this branch now).
 
 ## Stacked awaiting deploy
 
