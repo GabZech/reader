@@ -4,15 +4,15 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**.
 
-## 2026-09-20: A PR named in `PROGRESS.md` is verified against GitHub, not trusted
+## 2026-09-20: A PR just awaiting merge is never written into `PROGRESS.md`
 
-**Decision:** `AGENTS.md`'s start-of-session step 2 now requires checking GitHub before trusting any "PR open" line in `PROGRESS.md`; a merged PR's line is cleared immediately as part of resuming, not left for a later session to notice.
+**Decision:** `PROGRESS.md` never records "PR #N open, awaiting merge" as text, not even briefly. `AGENTS.md`'s start-of-session step 2 checks GitHub's own open-PR list fresh every session instead. `PROGRESS.md`'s in-flight entry for a shipped change is cleared outright in the same commit that precedes opening its PR (already 2-develop's Ship step, from an earlier fix); this decision closes the gap that let an agent satisfy "cleared" by writing a "PR open" note back in, which is exactly what happened.
 
-**Why:** PR #18 merged on 2026-09-15. `PROGRESS.md` kept calling it open for 5 days across an unknown number of sessions, because `init.sh` is plain bash with no GitHub access — it can only echo the file, never catch that it's now wrong — and nothing else ever re-checked. Writing a better sentence into the file at Ship time does not fix this: the file is committed once and then sits untouched by definition until a PR actually merges, so whatever it says about that PR's status is guaranteed to go stale the moment the merge happens. Only a check at the next read can catch that.
+**Why:** PR #18 merged on 2026-09-15. `PROGRESS.md` kept calling it open for 5 days across an unknown number of sessions, because `init.sh` is plain bash with no GitHub access — it can only echo the file, never catch that it's now wrong — and nothing else ever re-checked. Any text stored about a PR's status is frozen the moment it's committed and is guaranteed to go stale the instant the PR merges after that, no matter how it's worded ("open", "awaiting merge", a PR number). The number is also not known until after the PR exists, so a "last commit before the PR" literally cannot name it. The only way this stops going stale is to never store it: GitHub's PR list is the record, and it can't lie, since a merged PR simply stops appearing in it.
 
-**Rejected:** Wording the in-flight line more carefully (e.g. "open, awaiting merge"): does not solve the actual problem, since no wording self-updates when the PR merges. Automating a post-merge commit back to `main` to clear it: would need a bot writing to `main` outside the PR-gated flow this repo deliberately requires for every other change.
+**Rejected:** Checking whether a named PR has merged before trusting it (this decision's own first draft): still requires storing the PR's identity as text, and still leaves a session that skips the check exposed. Wording the in-flight line more carefully: no wording self-updates. Automating a post-merge commit back to `main` to clear it: would need a bot writing to `main` outside the PR-gated flow this repo deliberately requires for every other change.
 
-**Revisit when:** `init.sh` or an equivalent gains real GitHub access and can check PR state itself; then this becomes automatic instead of an agent instruction.
+**Revisit when:** A PR develops real unresolved work beyond waiting on the merge click (reviewer feedback, a known blocker) — that's worth a `PROGRESS.md` line again, since GitHub's PR list won't hand over that context for free.
 
 ## 2026-09-15: Merge to main always goes through a PR, gated separately from sign-off
 

@@ -22,7 +22,7 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 ## In flight
 
-- **Verify a PR named in `PROGRESS.md` before trusting it.** PR [#18](https://github.com/GabZech/reader/pull/18), which sat here as "open" for 5 days after it actually merged on 2026-09-15 (nothing ever re-checked it), is the proof this was needed. `AGENTS.md`'s start protocol now requires checking GitHub before trusting an open-PR line. This change itself: not started.
+None.
 
 ## Stacked awaiting deploy
 
