@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**.
 
+## 2026-09-21: Squash-merge into `main` is enforced, not just convention
+
+**Decision:** GitHub repo settings now allow only squash-merge for PRs into `main`; merge-commit and rebase-merge are disabled (`gh repo edit --enable-squash-merge --enable-merge-commit=false --enable-rebase-merge=false`). Every PR collapses to one commit on `main`, regardless of how many checkpoint commits it carried on the branch.
+
+**Why:** The client wants `main`'s history to read as one commit per shipped change, not a long trail of in-branch checkpoints. The 2026-09-15 entry on PR-gated merges already named squash-merge as the intended method, but only as a parenthetical; nothing stopped a merge-commit or rebase-merge from going through instead, whether from the GitHub UI or `gh pr merge` with a different flag.
+
+**Rejected:** Leaving it as an unenforced convention: relies on remembering to pick the right merge method every time, with no backstop if someone (or an agent) picks wrong.
+
+**Revisit when:** The client wants per-commit granularity preserved on `main` for some future need.
+
 ## 2026-09-20: Vault export filenames are date + title, not the item id
 
 **Decision:** A highlight note's filename in `news-highlights` is `Highlights/YY-MM-DD Article title.md` (date from published date, falling back to when the article was added, then to today; title sanitized for filesystem-unsafe characters, falling back to the item id only if sanitizing leaves nothing). `items.exported_note_path` tracks the last-written path so a later export whose computed name differs deletes the old file first, instead of leaving a stale duplicate. Two articles with the same title on the same day silently overwrite each other's note; this is accepted, not guarded against.
