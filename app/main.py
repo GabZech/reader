@@ -39,6 +39,7 @@ from app.db import (
     get_source,
     has_pending_source_notice,
     highlights_for_item,
+    images_in_block_range,
     init_db,
     insert_list,
     insert_source,
@@ -1185,8 +1186,19 @@ async def item_add_highlight(item_id: int, request: Request):
         if merging:
             delete_highlights(conn, [row["id"] for row in merging])
 
+        # Recomputed fresh from the final range every time, merge or not -
+        # never a union of the merged rows' own image_urls, since a wider
+        # range can span an image none of the narrower rows did.
+        image_urls = images_in_block_range(item["body_html"], start_block, end_block)
         highlight_id = add_highlight(
-            conn, item_id, start_block, start_offset, end_block, end_offset, text
+            conn,
+            item_id,
+            start_block,
+            start_offset,
+            end_block,
+            end_offset,
+            text,
+            image_urls,
         )
         if section_title:
             set_highlight_section_title(conn, highlight_id, section_title)

@@ -24,6 +24,13 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 - **Client to do manually:** force-push `news-highlights` to a clean slate (their own call, once this shipped) — not yet done as of this note.
 
+- **Change:** export images to Obsidian when part of a highlighted text selection. Kinds: behaviour, data/schema. Branch: `dev/export-images-to-obsidian`. Shape: an image is auto-included in a highlight when the selection's block range spans strictly around its top-level block (starts before it, ends after it) — no new tap/click, no JS changes. Leaves alone: any UI to show image presence on the highlight itself; only export is affected.
+
+### Planned
+
+1. Store which images a highlight covers — not started. Add `image_urls` column to `highlights` (JSON list); at save/merge time, walk `body_html`'s top-level blocks strictly between the final `(start_block, end_block)` and collect `<img>` sources (including `recovered-image-row` groups); recompute fresh from the final unioned range on a merge, never concatenate.
+2. Export images into the note — not started. `build_note_markdown` emits an image markdown line under a highlight's bullet for each stored `image_urls` entry.
+
 ## Stacked awaiting deploy
 
 None.
