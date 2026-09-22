@@ -13,7 +13,13 @@ from app.db import (
     item_in_window,
     items_for_list,
 )
-from app.ingest import capture_article, ingest_all_sources, ingest_xml, parse_feed
+from app.ingest import (
+    _flag_missing_images,
+    capture_article,
+    ingest_all_sources,
+    ingest_xml,
+    parse_feed,
+)
 
 FIXTURE = Path(__file__).parent / "fixtures" / "feed.xml"
 CAPTURE_FIXTURES = Path(__file__).parent / "fixtures" / "capture"
@@ -184,6 +190,92 @@ def test_capture_article_keeps_an_inline_body_image(tmp_path):
     assert title == "An Article With A Picture"
     item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
     assert 'src="https://example.test/diagram.png"' in item["body_html"]
+
+
+def test_capture_article_flags_a_table_image_trafilatura_still_drops(tmp_path):
+    # Uses the real page that surfaced this bug rather than a hand-built
+    # snippet: a minimal synthetic reproduction of the same table shape
+    # turned out to sit right on the edge of trafilatura's internal scoring
+    # and flipped pass/fail across separate runs depending on the process's
+    # hash seed. The real page's actual structure fails this deterministically.
+    #
+    # The hoist rewrite alone does not recover this specific page's images -
+    # deeper investigation found trafilatura drops this content regardless of
+    # tag shape, not just tables - so the flag is the real safety net here,
+    # not the rewrite.
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://vitalik.eth.limo/general/2023/11/27/techno_optimism.html"
+    item_id, title = capture_article(
+        conn, url, html=_capture_fixture("vitalik_techno_optimism.html")
+    )
+    conn.commit()
+    assert title == "My techno-optimism"
+    item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    body = item["body_html"]
+    assert 'class="missing-image"' in body
+    assert (
+        'href="https://vitalik.eth.limo/images/techno_optimism/path1.png"' in body
+    )
+    assert "Image not captured" in body
+
+
+def test_flag_missing_images_is_a_no_op_when_the_image_is_already_there():
+    body = '<p>Intro.</p><img src="https://example.test/pic.png"><p>Outro.</p>'
+    flagged = _flag_missing_images(body, [("https://example.test/pic.png", "Intro.")])
+    assert flagged == body
+
+
+def test_flag_missing_images_inserts_right_after_its_anchor_paragraph():
+    body = (
+        "<p>An opening paragraph that ends right here, giving the flag a"
+        " landmark to anchor against.</p><h2>Next section</h2>"
+    )
+    anchor = "landmark to anchor against."
+    flagged = _flag_missing_images(body, [("https://example.test/pic.png", anchor)])
+    assert flagged == (
+        "<p>An opening paragraph that ends right here, giving the flag a"
+        " landmark to anchor against.</p>"
+        '<p class="missing-image">Image not captured &mdash; '
+        '<a href="https://example.test/pic.png" rel="noreferrer">open original</a></p>'
+        "<h2>Next section</h2>"
+    )
+
+
+def test_flag_missing_images_appends_at_the_end_when_its_anchor_is_also_gone():
+    body = "<p>All that is left of the article.</p>"
+    flagged = _flag_missing_images(body, [("https://example.test/pic.png", "text nowhere in body")])
+    assert flagged == (
+        "<p>All that is left of the article.</p>"
+        '<p class="missing-image">Image not captured &mdash; '
+        '<a href="https://example.test/pic.png" rel="noreferrer">open original</a></p>'
+    )
+
+
+def test_capture_article_leaves_an_imageless_table_untouched(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://example.test/with-a-data-table"
+    html = """
+    <html><head><title>A Real Data Table</title></head>
+    <body><article>
+    <p>An opening paragraph with enough real words in it for trafilatura to
+    treat this page as an actual article worth extracting in the first place.</p>
+    <table>
+    <tr><td>Pros</td><td>Cons</td></tr>
+    <tr><td>Fast</td><td>Expensive</td></tr>
+    </table>
+    <p>A closing paragraph, again with enough real words in it for trafilatura
+    to treat this page as an actual article worth extracting in the first place.</p>
+    </article></body></html>
+    """
+    item_id, _title = capture_article(conn, url, html=html)
+    conn.commit()
+    item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    body = item["body_html"]
+    assert "<table>" in body
+    assert "Pros" in body
+    assert "Expensive" in body
 
 
 def test_capture_article_falls_back_to_a_server_fetch_when_given_no_html(

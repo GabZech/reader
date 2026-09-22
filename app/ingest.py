@@ -10,6 +10,8 @@ from urllib.parse import urljoin, urlparse
 import feedparser
 import httpx
 import trafilatura
+from lxml import etree
+from lxml.html import fromstring, tostring
 
 from app.db import (
     CAPTURED_SOURCE_ID,
@@ -397,6 +399,84 @@ def fetch_feed_xml(url: str, timeout: float = 8.0) -> str:
     return text
 
 
+def _nearby_text(element) -> str:
+    """The tail end of the nearest preceding element with real text, used as
+    a fingerprint to relocate this position in the extracted output later."""
+    for sibling in element.itersiblings(preceding=True):
+        text = " ".join(sibling.text_content().split())
+        if len(text) > 20:
+            return text[-40:]
+    return ""
+
+
+def _hoist_table_images(html: str, url: str) -> tuple[str, list[tuple[str, str]]]:
+    """Rewrite any <table> that contains an <img> into an equivalent <div>/<p>
+    structure (one paragraph per cell, images and captions kept together, row
+    order preserved), before trafilatura ever sees it.
+
+    Works around a confirmed trafilatura defect: a table that mixes an
+    image-only row with a text-only row gets dropped in its entirety -
+    images and captions both - even though either row survives extraction
+    fine on its own. Tables without images are left untouched, so genuine
+    data tables keep their real markup.
+
+    Also returns every table image's (absolute url, nearby anchor text) -
+    the rewrite above is best-effort, not a guarantee, so the caller checks
+    afterwards whether each one actually survived and flags it if not.
+    """
+    try:
+        tree = fromstring(html)
+    except Exception:  # noqa: BLE001 - arbitrary page HTML, any parse failure means skip the rewrite
+        return html, []
+    tables = [t for t in tree.iter("table") if t.find(".//img") is not None]
+    if not tables:
+        return html, []
+    candidates: list[tuple[str, str]] = []
+    for table in tables:
+        parent = table.getparent()
+        if parent is None:
+            continue
+        anchor = _nearby_text(table)
+        for img in table.findall(".//img"):
+            src = img.get("src") or img.get("data-src")
+            if src:
+                candidates.append((urljoin(url, src), anchor))
+        replacement = etree.Element("div")
+        for row in table.iter("tr"):
+            row_div = etree.SubElement(replacement, "div")
+            for cell in row.xpath("./td | ./th"):
+                cell_p = etree.SubElement(row_div, "p")
+                cell_p.text = cell.text
+                for child in list(cell):
+                    cell_p.append(child)
+        replacement.tail = table.tail
+        parent.replace(table, replacement)
+    return tostring(tree, encoding="unicode"), candidates
+
+
+def _flag_missing_images(body: str, candidates: list[tuple[str, str]]) -> str:
+    """Insert a visible, linked notice for any table image that didn't make
+    it into the extracted body, as close as possible to where it belongs:
+    right after the nearest preceding paragraph that did survive, or at the
+    end of the article when that paragraph didn't survive either."""
+    for image_url, anchor in candidates:
+        if _esc(image_url) in body:
+            continue
+        notice = (
+            f'<p class="missing-image">Image not captured &mdash; '
+            f'<a href="{_esc(image_url)}" rel="noreferrer">open original</a></p>'
+        )
+        insert_at = None
+        if anchor:
+            idx = body.find(_esc(anchor))
+            if idx != -1:
+                close_idx = body.find("</p>", idx)
+                if close_idx != -1:
+                    insert_at = close_idx + len("</p>")
+        body = body[:insert_at] + notice + body[insert_at:] if insert_at is not None else body + notice
+    return body
+
+
 def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
     """Clean an arbitrary page (fetching it first if the caller has no rendered
     copy already) and file it under Read later. Idempotent per URL."""
@@ -404,10 +484,13 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
         _final_url, html = fetch_url(url)
     metadata = trafilatura.extract_metadata(html, default_url=url)
     title = (metadata.title if metadata else None) or url
+    body_source, image_candidates = _hoist_table_images(html, url)
     extracted = trafilatura.extract(
-        html, url=url, output_format="html", favor_recall=True, include_images=True
+        body_source, url=url, output_format="html", favor_recall=True, include_images=True
     )
     body = sanitize_html(extracted, preserve_tables=True) if extracted else None
+    if body and image_candidates:
+        body = _flag_missing_images(body, image_candidates)
     upsert_item(
         conn,
         source_id=CAPTURED_SOURCE_ID,

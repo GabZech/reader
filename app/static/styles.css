@@ -541,6 +541,19 @@ body {
   height: auto;
 }
 
+.article-body .missing-image {
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.5rem;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.article-body .missing-image a {
+  color: var(--text-secondary);
+}
+
 .article-body table {
   display: block;
   overflow-x: auto;

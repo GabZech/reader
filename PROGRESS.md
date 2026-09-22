@@ -30,7 +30,7 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 ### Planned
 
-- [ ] Slice 1: pass `include_images=True` to the `trafilatura.extract()` call in `capture_article` (`app/ingest.py`). Fixes every captured article silently dropping inline body images (missing site-wide, not just on tables). Test: capture an article with a plain non-table inline image, assert it survives into `body_html`.
+- [x] Slice 1: pass `include_images=True` to the `trafilatura.extract()` call in `capture_article` (`app/ingest.py`). Fixes every captured article silently dropping inline body images (missing site-wide, not just on tables). Test: capture an article with a plain non-table inline image, assert it survives into `body_html`. Done, committed 5b46750.
 - [ ] Slice 2: declare `lxml` as a direct dependency (already installed transitively via `trafilatura`). Add a helper that, before extraction, finds any `<table>` containing an `<img>` and replaces it with an equivalent `<div>`/`<p>` structure (one paragraph per cell, images and captions kept together, row order preserved) — works around a confirmed trafilatura defect where a table mixing an image-only row with a text-only row gets emptied entirely. Tables without images are left untouched. Falls back to the original HTML unchanged if parsing fails. Test: reproduce the exact image-row/text-row shape from the real article that surfaced this bug, assert both images and captions survive into `body_html`.
 
 ## Stacked awaiting deploy
