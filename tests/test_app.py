@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 import re
 from datetime import UTC, datetime, timedelta
@@ -1682,6 +1683,52 @@ def test_close_from_home_returns_to_home_not_the_list(monkeypatch, tmp_path):
 
         opened = client.get(match.group(1))
         assert 'href="/">Close</a>' in opened.text
+
+
+def test_close_from_archive_returns_to_archive_not_library(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        client.post(f"/items/{item_id}/archive?from_list=later")
+
+        archive = client.get("/lists/later?view=archive")
+        match = re.search(rf'href="(/items/{item_id}[^"]*)"', archive.text)
+        assert match, "archive should link to the item"
+
+        opened = client.get(html.unescape(match.group(1)))
+        assert 'href="/lists/later?view=archive">Close</a>' in opened.text
+
+        delete = re.search(r'action="(/items/\d+/delete[^"]*)"', opened.text)
+        gone = client.post(html.unescape(delete.group(1)))
+        assert str(gone.request.url).endswith("/lists/later?view=archive&flash=Deleted")
+
+
+def test_close_from_read_tab_returns_to_read_not_unread(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/read?from_list=news")
+
+        read_tab = client.get("/lists/news?view=read")
+        match = re.search(rf'href="(/items/{item_id}[^"]*)"', read_tab.text)
+        assert match, "read tab should link to the item"
+
+        opened = client.get(html.unescape(match.group(1)))
+        assert 'href="/lists/news?view=read">Close</a>' in opened.text
+
+
+def test_swipe_delete_in_archive_stays_on_archive(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        client.post(f"/items/{item_id}/archive?from_list=later")
+
+        archive = client.get("/lists/later?view=archive")
+        match = re.search(rf'action="(/items/{item_id}/delete[^"]*)"', archive.text)
+        gone = client.post(html.unescape(match.group(1)))
+        assert str(gone.request.url).endswith("/lists/later?view=archive&flash=Deleted")
 
 
 def test_marking_read_moves_item_to_read_tab_and_off_home(monkeypatch, tmp_path):
