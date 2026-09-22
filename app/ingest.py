@@ -564,6 +564,28 @@ def _recover_missing_images(body: str, candidates: list[tuple[str, str, str]]) -
     return body
 
 
+_X_HOSTS = {"x.com", "twitter.com", "www.x.com", "www.twitter.com"}
+_GENERIC_X_TITLE_RE = re.compile(r".+\(@\w+\) on X$")
+
+
+def _synthesized_title(body: str) -> str | None:
+    """A title from the article's own opening text, for pages (X/Twitter
+    posts) whose page metadata never carries a real title - confirmed
+    across several real posts to always be the generic "Name (@handle) on
+    X" site boilerplate, not anything about the post's own content."""
+    text = " ".join(re.sub(r"<[^>]+>", " ", body).split())
+    if not text:
+        return None
+    match = re.match(r".{1,200}?[.!?](?=\s|$)", text)
+    if match:
+        return match.group(0).strip()
+    truncated = text[:120]
+    last_space = truncated.rfind(" ")
+    if last_space > 0:
+        truncated = truncated[:last_space]
+    return truncated.strip() + "…"
+
+
 def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
     """Clean an arbitrary page (fetching it first if the caller has no rendered
     copy already) and file it under Read later. Idempotent per URL."""
@@ -587,6 +609,15 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
     body = sanitize_html(extracted, preserve_tables=True) if extracted else None
     if body and image_candidates:
         body = _recover_missing_images(body, image_candidates)
+    if urlparse(url).netloc.lower() in _X_HOSTS and _GENERIC_X_TITLE_RE.match(title):
+        # X sets a real headline in og:description (matching an on-page <h1>)
+        # for anything using its long-form Article format - a far more
+        # reliable title than guessing from body text when it's there.
+        description = ((metadata.description if metadata else None) or "").strip()
+        if description:
+            title = description
+        elif body:
+            title = _synthesized_title(body) or title
     upsert_item(
         conn,
         source_id=CAPTURED_SOURCE_ID,
