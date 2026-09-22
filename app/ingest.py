@@ -5,6 +5,7 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC
 from html.parser import HTMLParser
+from itertools import groupby
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
@@ -457,10 +458,31 @@ def _find_content_root(tree):
     return Counter(parents).most_common(1)[0][0]
 
 
-def _image_candidates(tree, url: str) -> list[tuple[str, str]]:
+def _row_key(img) -> str:
+    """Identifies which table row (if any) an image belongs to, so images
+    that were laid out side by side (e.g. a 3-column image comparison) can
+    be recovered the same way instead of stacking as separate blocks.
+    Standalone images each get their own unique key.
+
+    Uses getpath() rather than id(): lxml element proxies are recycled, so
+    two getparent() calls for the very same underlying node can return
+    distinct Python objects whose id() differs (or, once one is garbage
+    collected, a later unrelated object can reuse that id and collide).
+    getpath() is computed from tree position, not object identity, so it
+    stays stable regardless.
+    """
+    node = img
+    while node is not None:
+        if node.tag == "tr":
+            return node.getroottree().getpath(node)
+        node = node.getparent()
+    return img.getroottree().getpath(img)
+
+
+def _image_candidates(tree, url: str) -> list[tuple[str, str, str]]:
     """Every content image within the article's own region, as (absolute
-    url, nearby anchor text) - checked after extraction to flag any that
-    trafilatura drops, table-nested or not."""
+    url, nearby anchor text, row key) - checked after extraction to flag any
+    that trafilatura drops, table-nested or not."""
     root = _find_content_root(tree)
     if root is None:
         return []
@@ -468,7 +490,7 @@ def _image_candidates(tree, url: str) -> list[tuple[str, str]]:
     for img in root.iter("img"):
         if not _is_content_image(img):
             continue
-        candidates.append((urljoin(url, _image_src(img)), _nearby_text(img)))
+        candidates.append((urljoin(url, _image_src(img)), _nearby_text(img), _row_key(img)))
     return candidates
 
 
@@ -505,18 +527,27 @@ def _hoist_table_images(tree) -> None:
         parent.replace(table, replacement)
 
 
-def _recover_missing_images(body: str, candidates: list[tuple[str, str]]) -> str:
+def _recover_missing_images(body: str, candidates: list[tuple[str, str, str]]) -> str:
     """Embed any article image that didn't make it into the extracted body,
     as close as possible to where it belongs: right after the nearest
     preceding paragraph that did survive, or at the end of the article when
     that paragraph didn't survive either. Sourced directly from the
     original page's own URL, same as every image extraction does keep -
     nothing is downloaded or cached, so this carries the same trust and
-    offline profile as the rest of the article, not a new one."""
-    for image_url, anchor in candidates:
-        if _esc(image_url) in body:
-            continue
-        notice = f'<img class="recovered-image" src="{_esc(image_url)}" alt="">'
+    offline profile as the rest of the article, not a new one.
+
+    Images that shared a table row (e.g. a side-by-side comparison) are
+    recovered together in one flex row instead of stacking one per line,
+    so a 3-column layout still reads as 3 columns.
+    """
+    missing = [(url, anchor, row) for url, anchor, row in candidates if _esc(url) not in body]
+    for _row_key, group_iter in groupby(missing, key=lambda c: c[2]):
+        group = list(group_iter)
+        imgs_html = "".join(
+            f'<img class="recovered-image" src="{_esc(url)}" alt="">' for url, _anchor, _row in group
+        )
+        notice = f'<div class="recovered-image-row">{imgs_html}</div>' if len(group) > 1 else imgs_html
+        anchor = group[0][1]
         insert_at = None
         if anchor:
             # A whitespace run in the anchor may be a single space in the

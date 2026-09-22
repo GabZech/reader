@@ -546,6 +546,17 @@ body {
   border-radius: 0.5rem;
 }
 
+.article-body .recovered-image-row {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.article-body .recovered-image-row .recovered-image {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .article-body table {
   display: block;
   overflow-x: auto;

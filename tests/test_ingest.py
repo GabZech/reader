@@ -245,7 +245,7 @@ def test_capture_article_embeds_a_table_image_trafilatura_still_drops(tmp_path):
 
 def test_recover_missing_images_is_a_no_op_when_the_image_is_already_there():
     body = '<p>Intro.</p><img src="https://example.test/pic.png"><p>Outro.</p>'
-    flagged = _recover_missing_images(body, [("https://example.test/pic.png", "Intro.")])
+    flagged = _recover_missing_images(body, [("https://example.test/pic.png", "Intro.", 1)])
     assert flagged == body
 
 
@@ -255,7 +255,7 @@ def test_recover_missing_images_inserts_right_after_its_anchor_paragraph():
         " landmark to anchor against.</p><h2>Next section</h2>"
     )
     anchor = "landmark to anchor against."
-    flagged = _recover_missing_images(body, [("https://example.test/pic.png", anchor)])
+    flagged = _recover_missing_images(body, [("https://example.test/pic.png", anchor, 1)])
     assert flagged == (
         "<p>An opening paragraph that ends right here, giving the flag a"
         " landmark to anchor against.</p>"
@@ -266,10 +266,34 @@ def test_recover_missing_images_inserts_right_after_its_anchor_paragraph():
 
 def test_recover_missing_images_appends_at_the_end_when_its_anchor_is_also_gone():
     body = "<p>All that is left of the article.</p>"
-    flagged = _recover_missing_images(body, [("https://example.test/pic.png", "text nowhere in body")])
+    flagged = _recover_missing_images(
+        body, [("https://example.test/pic.png", "text nowhere in body", 1)]
+    )
     assert flagged == (
         "<p>All that is left of the article.</p>"
         '<img class="recovered-image" src="https://example.test/pic.png" alt="">'
+    )
+
+
+def test_recover_missing_images_groups_a_shared_row_into_one_flex_row():
+    # The client caught this: three images that were originally a 3-column
+    # table row got recovered as three separate stacked blocks instead of
+    # staying side by side.
+    body = "<p>Landmark paragraph ending right here.</p>"
+    anchor = "Landmark paragraph ending right here."
+    candidates = [
+        ("https://example.test/a.png", anchor, 42),
+        ("https://example.test/b.png", anchor, 42),
+        ("https://example.test/c.png", anchor, 42),
+    ]
+    flagged = _recover_missing_images(body, candidates)
+    assert flagged == (
+        "<p>Landmark paragraph ending right here.</p>"
+        '<div class="recovered-image-row">'
+        '<img class="recovered-image" src="https://example.test/a.png" alt="">'
+        '<img class="recovered-image" src="https://example.test/b.png" alt="">'
+        '<img class="recovered-image" src="https://example.test/c.png" alt="">'
+        "</div>"
     )
 
 
@@ -288,7 +312,7 @@ def test_image_candidates_covers_standalone_images_not_just_tables():
     """
     tree = fromstring(html)
     candidates = _image_candidates(tree, "https://example.test/article")
-    assert ("https://example.test/standalone.png", candidates[0][1]) in candidates
+    assert ("https://example.test/standalone.png", candidates[0][1], candidates[0][2]) in candidates
 
 
 def test_image_candidates_ignores_a_lazy_load_placeholder():
@@ -304,8 +328,27 @@ def test_image_candidates_ignores_a_lazy_load_placeholder():
     """
     tree = fromstring(html)
     candidates = _image_candidates(tree, "https://example.test/article")
-    urls = [url for url, _anchor in candidates]
+    urls = [url for url, _anchor, _row in candidates]
     assert urls == ["https://example.test/real.png"]
+
+
+def test_image_candidates_gives_same_row_images_the_same_row_key():
+    html = """
+    <html><body><div id="doc">
+    <p>An opening paragraph with enough real words in it to anchor on later,
+    thirty-some characters and then some more to be sure.</p>
+    <table><tr>
+    <td><img src="https://example.test/left.png"></td>
+    <td><img src="https://example.test/right.png"></td>
+    </tr></table>
+    <p>A closing paragraph with enough real words in it to anchor on later,
+    thirty-some characters and then some more to be sure as well.</p>
+    </div></body></html>
+    """
+    tree = fromstring(html)
+    candidates = _image_candidates(tree, "https://example.test/article")
+    row_keys = {row for _url, _anchor, row in candidates}
+    assert len(row_keys) == 1
 
 
 def test_capture_article_leaves_an_imageless_table_untouched(tmp_path):
