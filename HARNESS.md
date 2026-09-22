@@ -38,8 +38,8 @@ Where "what's true right now" and "what's still in progress" live.
 
 How an agent proves a change actually works, instead of just claiming it does.
 
-- **`uv run pytest`**: 137 tests, run locally before every change is shown and in CI ([test.yml](.github/workflows/test.yml)) on every push and pull request.
-- **`uv run ruff check`**: runs in CI before the tests. `pytest` and `ruff` are dev-only dependencies (`[dependency-groups] dev`); the deployed image installs with `--no-dev`, so neither ships in production.
+- **`uv run pytest`**: 210 tests, run locally before every change is shown and in CI ([test.yml](.github/workflows/test.yml)) on every push and pull request. [tests/test_highlight_browser.py](tests/test_highlight_browser.py) drives the reader page in headless Chromium through Playwright, since highlighting runs in `app/static/app.js`; CI installs Chromium before the tests.
+- **`uv run ruff check`**: runs in CI before the tests. `pytest`, `ruff`, and `playwright` are dev-only dependencies (`[dependency-groups] dev`); the deployed image installs with `--no-dev`, so none ships in production.
 - **[tests/test_harness_refs.py](tests/test_harness_refs.py)** asserts that markdown links and multi-segment backticked paths across `AGENTS.md`, `CLAUDE.md`, `README.md`, `HARNESS.md`, `PROGRESS.md`, `evaluator-rubric.md`, `quality-document.md`, `.claude/skills/`, and `docs/` all resolve. It runs with the rest of the suite and would have caught the two stale-path findings that motivated it, plus anything broken by this file's own links.
 - **[change-kinds.md](.claude/skills/2-develop/change-kinds.md)** spells out what "verified" means per kind of change.
 - **[evaluator-rubric.md](evaluator-rubric.md)** and **[quality-document.md](quality-document.md)** are new: a post-change scorecard for a session's own work, and a standing snapshot of the codebase's health by domain and layer. Both are optional and neither is a merge gate; the position this file previously recorded as "an independent review pass was considered and left optional" now has concrete artifacts behind it, but the position is unchanged.
