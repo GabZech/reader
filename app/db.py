@@ -256,7 +256,8 @@ def _visible_items(
             AND {archived_clause}
             AND {read_clause}
         GROUP BY items.id
-        ORDER BY datetime(items.published_at) DESC, items.id DESC
+        ORDER BY datetime(COALESCE(MAX(item_lists.added_at), items.published_at)) DESC,
+                 items.id DESC
         """,
         (slug, slug, slug),
     ).fetchall()

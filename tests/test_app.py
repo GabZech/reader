@@ -870,6 +870,46 @@ def test_direct_read_later_membership_ignores_source_window(monkeypatch, tmp_pat
         assert "First fixture item" in later.text
 
 
+def test_later_list_orders_by_when_added_not_published_date(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        first = client.post(
+            "/capture",
+            data={"url": "https://example.test/first-added", "html": CAPTURE_BLOG_HTML},
+        )
+        first_id = int(first.json()["item_url"].removeprefix("/items/"))
+        second = client.post(
+            "/capture",
+            data={"url": "https://example.test/second-added", "html": CAPTURE_BLOG_HTML},
+        )
+        second_id = int(second.json()["item_url"].removeprefix("/items/"))
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            dbmod.init_db(conn)
+            # The item added FIRST gets the NEWER published date, and the one
+            # added SECOND gets the OLDER one - the opposite of what
+            # published-date order would show, so the two orderings disagree
+            # and the test actually proves which one the list is using.
+            conn.execute(
+                "UPDATE items SET published_at = ? WHERE id = ?",
+                ("2026-06-01T00:00:00+00:00", first_id),
+            )
+            conn.execute(
+                "UPDATE items SET published_at = ? WHERE id = ?",
+                ("2020-01-01T00:00:00+00:00", second_id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        later = client.get("/lists/later")
+        first_pos = later.text.find(f"/items/{first_id}")
+        second_pos = later.text.find(f"/items/{second_id}")
+        assert first_pos != -1
+        assert second_pos != -1
+        assert second_pos < first_pos
+
+
 def test_capture_endpoint_saves_a_captured_page_to_read_later(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         url = "https://www.explainx.ai/blog/hiten-shah-ai-skill-library-company-strategy-2026"
