@@ -42,12 +42,10 @@ The change loop's Ship step owns keeping this current; no standing refresh ask o
 
 ## Roadmap (`docs/roadmap.md`)
 
-Orient the reader; do not duplicate vision or a full feature inventory.
+Orient the reader; do not duplicate vision or a full feature inventory. Exactly two `##` sections, subheadings under each as needed.
 
-- **Where We Are:** 🏁 Milestone (MVP / none set); 📄 Summary, 2-4 prosaic bullets on what is accepted, built, and how feature work runs, not the pitch or a feature inventory; ⚠️ Open, only genuinely unresolved risk right now (a provisional MVP-boundary choice goes in Post-MVP Notes instead)
-- **What's Next:** remaining work grouped by epic from `docs/vision/epics.md`, epics-need-epics order. `###` group heading, then `[x]`/`[ ]` lines, one per turn of the change loop, named the way the reader would. Tick a line as part of shipping the change that earned it. An unticked line may carry `(in flight)` or `(blocked: <reason>)`; both clear at Ship, and at most one line is `(in flight)` at a time. Close with **Later** for deferred capabilities
-- **Post-MVP Notes:** choices explicitly deferred to after MVP, each with a real MVP-boundary trigger to revisit; not a parking lot. Remove once acted on
-- **Concluded:** one ✅ bullet per accepted phase or milestone, linking its living-doc results
+- **Where we are:** the accepted, already-built picture, concise enough to be its own summary (no dedicated summary bullet list). 🏁 Milestone and ⚠️ Open (only a genuinely unresolved risk right now; a provisional MVP-boundary choice goes in Deferred to post-MVP instead) lead it. `### Live features`: one bullet per shipped epic, named and explained in plain language a reader outside the project would follow, not the epic's internal task names. `### Phases completed`: one ✅ bullet per accepted phase or milestone, linking its living-doc results
+- **What's next:** remaining work grouped by epic from `docs/vision/epics.md`, epics-need-epics order. `###` group heading, then `[x]`/`[ ]` lines, one per turn of the change loop, named the way the reader would. Tick a line as part of shipping the change that earned it; once every line in a group is ticked, move that group into "Where we are" as a `Live features` bullet and delete it here. An unticked line may carry `(in flight)` or `(blocked: <reason>)`; both clear at Ship, and at most one line is `(in flight)` at a time. Then `### Later` for deferred capabilities, and `### 📌 Deferred to post-MVP` for choices explicitly put off until after MVP, each with a real MVP-boundary trigger to revisit; not a parking lot, remove once acted on
 
 ## Decisions (`docs/decisions.md`)
 
