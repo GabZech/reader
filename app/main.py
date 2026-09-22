@@ -975,14 +975,34 @@ async def source_window_submit(request: Request, source_id: str):
     return RedirectResponse(f"/sources/{source_id}?flash=Saved", status_code=303)
 
 
+def _list_view(view: str | None) -> str | None:
+    # Only a list's second tab (Read later's Archive, any other list's Read)
+    # is worth carrying; anything else falls back to the list's first tab.
+    return view if view in ("archive", "read") else None
+
+
+def _list_url(slug: str, view: str | None, flash: str = "") -> str:
+    params: dict[str, str] = {}
+    if _list_view(view):
+        params["view"] = view
+    if flash:
+        params["flash"] = flash
+    return f"/lists/{slug}?{urlencode(params)}" if params else f"/lists/{slug}"
+
+
 def _item_context_query(
-    from_source: str | None, from_list: str | None, from_home: str | None = None
+    from_source: str | None,
+    from_list: str | None,
+    from_home: str | None = None,
+    view: str | None = None,
 ) -> str:
     params: dict[str, str] = {}
     if from_source:
         params["from_source"] = from_source
     elif from_list:
         params["from_list"] = from_list
+        if _list_view(view):
+            params["view"] = view
     if from_home:
         params["from_home"] = from_home
     return f"?{urlencode(params)}" if params else ""
@@ -995,6 +1015,7 @@ def item_page(
     from_source: str | None = None,
     from_list: str | None = None,
     from_home: str | None = None,
+    view: str | None = None,
 ):
     conn = connect()
     try:
@@ -1026,10 +1047,10 @@ def item_page(
     elif from_home:
         back = "/"
     elif from_list:
-        back = f"/lists/{from_list}"
+        back = _list_url(from_list, view)
     else:
         back = "/"
-    context_query = _item_context_query(from_source, from_list, from_home)
+    context_query = _item_context_query(from_source, from_list, from_home, view)
     return templates.TemplateResponse(
         request,
         "item.html",
@@ -1400,6 +1421,7 @@ def item_delete(
     item_id: int,
     from_source: str | None = None,
     from_list: str | None = None,
+    view: str | None = None,
 ):
     conn = connect()
     try:
@@ -1423,7 +1445,7 @@ def item_delete(
             f"/sources/{from_source}/items?flash=Deleted", status_code=303
         )
     if from_list:
-        return RedirectResponse(f"/lists/{from_list}?flash=Deleted", status_code=303)
+        return RedirectResponse(_list_url(from_list, view, "Deleted"), status_code=303)
     return RedirectResponse("/", status_code=303)
 
 
