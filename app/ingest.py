@@ -505,18 +505,18 @@ def _hoist_table_images(tree) -> None:
         parent.replace(table, replacement)
 
 
-def _flag_missing_images(body: str, candidates: list[tuple[str, str]]) -> str:
-    """Insert a visible, linked notice for any article image that didn't
-    make it into the extracted body, as close as possible to where it
-    belongs: right after the nearest preceding paragraph that did survive,
-    or at the end of the article when that paragraph didn't survive either."""
+def _recover_missing_images(body: str, candidates: list[tuple[str, str]]) -> str:
+    """Embed any article image that didn't make it into the extracted body,
+    as close as possible to where it belongs: right after the nearest
+    preceding paragraph that did survive, or at the end of the article when
+    that paragraph didn't survive either. Sourced directly from the
+    original page's own URL, same as every image extraction does keep -
+    nothing is downloaded or cached, so this carries the same trust and
+    offline profile as the rest of the article, not a new one."""
     for image_url, anchor in candidates:
         if _esc(image_url) in body:
             continue
-        notice = (
-            f'<p class="missing-image">Image not captured &mdash; '
-            f'<a href="{_esc(image_url)}" rel="noreferrer">open original</a></p>'
-        )
+        notice = f'<img class="recovered-image" src="{_esc(image_url)}" alt="">'
         insert_at = None
         if anchor:
             # A whitespace run in the anchor may be a single space in the
@@ -555,7 +555,7 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
     )
     body = sanitize_html(extracted, preserve_tables=True) if extracted else None
     if body and image_candidates:
-        body = _flag_missing_images(body, image_candidates)
+        body = _recover_missing_images(body, image_candidates)
     upsert_item(
         conn,
         source_id=CAPTURED_SOURCE_ID,

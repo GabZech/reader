@@ -16,8 +16,8 @@ from app.db import (
     items_for_list,
 )
 from app.ingest import (
-    _flag_missing_images,
     _image_candidates,
+    _recover_missing_images,
     capture_article,
     ingest_all_sources,
     ingest_xml,
@@ -195,7 +195,7 @@ def test_capture_article_keeps_an_inline_body_image(tmp_path):
     assert 'src="https://example.test/diagram.png"' in item["body_html"]
 
 
-def test_capture_article_flags_a_table_image_trafilatura_still_drops(tmp_path):
+def test_capture_article_embeds_a_table_image_trafilatura_still_drops(tmp_path):
     # Uses the real page that surfaced this bug rather than a hand-built
     # snippet: a minimal synthetic reproduction of the same table shape
     # turned out to sit right on the edge of trafilatura's internal scoring
@@ -204,8 +204,8 @@ def test_capture_article_flags_a_table_image_trafilatura_still_drops(tmp_path):
     #
     # The hoist rewrite alone does not recover this specific page's images -
     # deeper investigation found trafilatura drops this content regardless of
-    # tag shape, not just tables - so the flag is the real safety net here,
-    # not the rewrite.
+    # tag shape, not just tables - so embedding the image directly from its
+    # original URL is the real safety net here, not the rewrite.
     conn = connect(tmp_path / "reader.db")
     init_db(conn)
     url = "https://vitalik.eth.limo/general/2023/11/27/techno_optimism.html"
@@ -216,18 +216,17 @@ def test_capture_article_flags_a_table_image_trafilatura_still_drops(tmp_path):
     assert title == "My techno-optimism"
     item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
     body = item["body_html"]
-    assert 'class="missing-image"' in body
+    assert 'class="recovered-image"' in body
     assert (
-        'href="https://vitalik.eth.limo/images/techno_optimism/path1.png"' in body
+        'src="https://vitalik.eth.limo/images/techno_optimism/path1.png"' in body
     )
-    assert "Image not captured" in body
-    # Regression: the notices must land near their real position in the
-    # article, not all get dumped together at the very end. A first pass at
-    # this positioned every single one at the end, because the anchor text
-    # search required an exact whitespace match while the captured body
+    # Regression: the recovered images must land near their real position in
+    # the article, not all get dumped together at the very end. A first pass
+    # at this positioned every single one at the end, because the anchor
+    # text search required an exact whitespace match while the captured body
     # keeps the source's own line-wrapped newlines inside each paragraph.
     tail = body[-400:]
-    assert tail.count("missing-image") < 6
+    assert tail.count("recovered-image") < 6
     # Regression: every real content image the source page references must
     # be accounted for, kept or flagged - not just the ones sitting inside a
     # table. The client caught a version that only checked table images and
@@ -244,35 +243,33 @@ def test_capture_article_flags_a_table_image_trafilatura_still_drops(tmp_path):
         assert f"{name}.png" in body, f"{name}.png missing entirely, not even flagged"
 
 
-def test_flag_missing_images_is_a_no_op_when_the_image_is_already_there():
+def test_recover_missing_images_is_a_no_op_when_the_image_is_already_there():
     body = '<p>Intro.</p><img src="https://example.test/pic.png"><p>Outro.</p>'
-    flagged = _flag_missing_images(body, [("https://example.test/pic.png", "Intro.")])
+    flagged = _recover_missing_images(body, [("https://example.test/pic.png", "Intro.")])
     assert flagged == body
 
 
-def test_flag_missing_images_inserts_right_after_its_anchor_paragraph():
+def test_recover_missing_images_inserts_right_after_its_anchor_paragraph():
     body = (
         "<p>An opening paragraph that ends right here, giving the flag a"
         " landmark to anchor against.</p><h2>Next section</h2>"
     )
     anchor = "landmark to anchor against."
-    flagged = _flag_missing_images(body, [("https://example.test/pic.png", anchor)])
+    flagged = _recover_missing_images(body, [("https://example.test/pic.png", anchor)])
     assert flagged == (
         "<p>An opening paragraph that ends right here, giving the flag a"
         " landmark to anchor against.</p>"
-        '<p class="missing-image">Image not captured &mdash; '
-        '<a href="https://example.test/pic.png" rel="noreferrer">open original</a></p>'
+        '<img class="recovered-image" src="https://example.test/pic.png" alt="">'
         "<h2>Next section</h2>"
     )
 
 
-def test_flag_missing_images_appends_at_the_end_when_its_anchor_is_also_gone():
+def test_recover_missing_images_appends_at_the_end_when_its_anchor_is_also_gone():
     body = "<p>All that is left of the article.</p>"
-    flagged = _flag_missing_images(body, [("https://example.test/pic.png", "text nowhere in body")])
+    flagged = _recover_missing_images(body, [("https://example.test/pic.png", "text nowhere in body")])
     assert flagged == (
         "<p>All that is left of the article.</p>"
-        '<p class="missing-image">Image not captured &mdash; '
-        '<a href="https://example.test/pic.png" rel="noreferrer">open original</a></p>'
+        '<img class="recovered-image" src="https://example.test/pic.png" alt="">'
     )
 
 
