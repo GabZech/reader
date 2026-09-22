@@ -24,12 +24,7 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 - **Client to do manually:** force-push `news-highlights` to a clean slate (their own call, once this shipped) — not yet done as of this note.
 
-- **Change:** export images to Obsidian when part of a highlighted text selection. Kinds: behaviour, data/schema. Branch: `dev/export-images-to-obsidian`. Shape: an image is auto-included in a highlight when the selection's block range spans strictly around its top-level block (starts before it, ends after it) — no new tap/click, no JS changes. Leaves alone: any UI to show image presence on the highlight itself; only export is affected.
-
-### Planned
-
-1. Store which images a highlight covers — done. Added `image_urls` column to `highlights`; at save/merge time, walks `body_html`'s top-level blocks strictly between the final `(start_block, end_block)` and collects `<img>` sources (including `recovered-image-row` groups); recomputes fresh from the final unioned range on a merge, never concatenates.
-2. Export images into the note — not started. `build_note_markdown` emits an image markdown line under a highlight's bullet for each stored `image_urls` entry.
+- **Change:** outline images a highlight covers, so a selection across an image shows it was included. Kinds: visual, bug. Branch: `claude/image-selection-feedback-3l9eft`. Shape: images strictly inside a highlight's block range (the same ones stored and exported) get a 4px outline in the highlight colour, on select and on reload; mockup signed off. Leaves alone: tapping an outlined image does not open the highlight detail; boundary-block images stay unmarked, matching export. Built and tested (`tests/test_highlight_browser.py`, first browser tests, Playwright dev dependency). Next: client says whether to deploy for a live try.
 
 ## Stacked awaiting deploy
 
