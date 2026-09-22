@@ -245,7 +245,14 @@
       block.matches("img") ? [block] : Array.from(block.querySelectorAll("img"));
     const isImageOnly = (block) => !block.textContent.trim() && imagesIn(block).length > 0;
 
-    const wrapHighlight = (startBlock, startOffset, endBlock, endOffset, highlightId) => {
+    const wrapHighlight = (
+      startBlock,
+      startOffset,
+      endBlock,
+      endOffset,
+      highlightId,
+      hasTitle = false
+    ) => {
       const marks = [];
       for (let b = startBlock; b <= endBlock; b++) {
         const block = blocks[b];
@@ -268,6 +275,16 @@
         marks.forEach((mark) => {
           mark.dataset.highlightId = String(highlightId);
         });
+      }
+      // A highlight carrying a section or subsection title gets a small §
+      // just before it. The element stays empty (CSS draws the §) so it adds
+      // no text: highlights are stored as character offsets into a block.
+      if (hasTitle && marks.length > 0) {
+        const marker = document.createElement("span");
+        marker.className = "hl-title-marker";
+        marker.setAttribute("aria-hidden", "true");
+        if (highlightId != null) marker.dataset.highlightId = String(highlightId);
+        marks[0].before(marker);
       }
       return marks;
     };
@@ -293,7 +310,7 @@
       saved = [];
     }
     saved.forEach((h) => {
-      wrapHighlight(h.start_block, h.start_offset, h.end_block, h.end_offset, h.id);
+      wrapHighlight(h.start_block, h.start_offset, h.end_block, h.end_offset, h.id, h.has_title);
     });
     // Live record of what's on the page, kept in sync as saves/merges
     // happen so a second overlapping selection in the same visit (before
@@ -315,6 +332,9 @@
     };
 
     const unwrapHighlight = (highlightId) => {
+      body
+        .querySelectorAll(`.hl-title-marker[data-highlight-id="${highlightId}"]`)
+        .forEach((marker) => marker.remove());
       body.querySelectorAll(`mark.hl[data-highlight-id="${highlightId}"]`).forEach((mark) => {
         const parent = mark.parentNode;
         while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
@@ -328,7 +348,7 @@
     };
 
     body.addEventListener("click", (event) => {
-      const mark = event.target.closest("mark.hl");
+      const mark = event.target.closest("mark.hl, .hl-title-marker");
       if (!mark || !mark.dataset.highlightId) return;
       location.href = `${location.pathname}/highlights/${mark.dataset.highlightId}`;
     });
@@ -411,7 +431,14 @@
         .then((result) => {
           if (!result) return;
           overlapping.forEach((h) => unwrapHighlight(h.id));
-          wrapHighlight(unionStart[0], unionStart[1], unionEnd[0], unionEnd[1], result.id);
+          wrapHighlight(
+            unionStart[0],
+            unionStart[1],
+            unionEnd[0],
+            unionEnd[1],
+            result.id,
+            result.has_title
+          );
           const mergedIds = new Set(overlapping.map((h) => h.id));
           for (let i = known.length - 1; i >= 0; i--) {
             if (mergedIds.has(known[i].id)) known.splice(i, 1);

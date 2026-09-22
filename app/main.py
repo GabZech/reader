@@ -1017,6 +1017,7 @@ def item_page(
                 "start_offset": h["start_offset"],
                 "end_block": h["end_block"],
                 "end_offset": h["end_offset"],
+                "has_title": bool(h["section_title"] or h["subsection_title"]),
             }
             for h in highlights
         ]
@@ -1208,7 +1209,11 @@ async def item_add_highlight(item_id: int, request: Request):
         conn.commit()
     finally:
         conn.close()
-    return {"ok": True, "id": highlight_id}
+    return {
+        "ok": True,
+        "id": highlight_id,
+        "has_title": bool(section_title or subsection_title),
+    }
 
 
 @app.get("/items/{item_id}/highlights/{highlight_id}")
