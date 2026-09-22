@@ -24,6 +24,15 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 - **Client to do manually:** force-push `news-highlights` to a clean slate (their own call, once this shipped) — not yet done as of this note.
 
+- **Change:** Fix capture body extraction dropping images. Kind: bug. Branch: `dev/fix-capture-image-extraction`.
+  - Found while investigating a client report that captured articles were missing images. A broad probe across 20 real capture URLs (fetched live, extracted, compared) confirmed two real bugs and ruled out several false leads (apparent encoding corruption turned out to be a display artifact of the diagnostic tooling, not a real bug; switching trafilatura's extraction mode away from `favor_recall` was investigated and rejected — trafilatura's own docs recommend recall mode for archiving use cases like this one, and the tradeoffs cut both ways per-site).
+  - Client confirmed proceeding with both slices below, including the lxml dependency for slice 2.
+
+### Planned
+
+- [ ] Slice 1: pass `include_images=True` to the `trafilatura.extract()` call in `capture_article` (`app/ingest.py`). Fixes every captured article silently dropping inline body images (missing site-wide, not just on tables). Test: capture an article with a plain non-table inline image, assert it survives into `body_html`.
+- [ ] Slice 2: declare `lxml` as a direct dependency (already installed transitively via `trafilatura`). Add a helper that, before extraction, finds any `<table>` containing an `<img>` and replaces it with an equivalent `<div>`/`<p>` structure (one paragraph per cell, images and captions kept together, row order preserved) — works around a confirmed trafilatura defect where a table mixing an image-only row with a text-only row gets emptied entirely. Tables without images are left untouched. Falls back to the original HTML unchanged if parsing fails. Test: reproduce the exact image-row/text-row shape from the real article that surfaced this bug, assert both images and captions survive into `body_html`.
+
 ## Stacked awaiting deploy
 
 None.
