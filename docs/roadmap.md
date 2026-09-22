@@ -28,7 +28,6 @@ Session logs from this phase, and the working files from an earlier per-epic way
 
 ### 🎯 Upcoming features
 
-Remaining work, grouped by [epic](vision/epics.md).
 
 #### Improve UI
 
