@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**.
 
+## 2026-09-22: Capture keeps trafilatura, with lxml doing pre/post-extraction repair around it, instead of swapping extraction engines
+
+**Decision:** `capture_article` still uses trafilatura as its extraction engine. Around it, `lxml` (now a direct dependency) does two things: rewrites an image-bearing `<table>` into `<div>`/`<p>` before extraction (works around a confirmed trafilatura defect where mixing an image-only row with a text-only row empties the whole table), and afterwards checks every image in the article's own region against what survived, recovering any that didn't by embedding it directly from its original URL (grouped back into its original table row when it had one).
+
+**Why:** A client-reported article (a personal static blog with hand-written `<table>`-based image layouts) lost every one of its 28 images under trafilatura. Directly ran Mozilla Readability (what most reader apps are built on) against the same 20 real capture URLs already used to validate this fix: no clear winner — it recovers far more of that one article's images, but loses badly on two ordinary WordPress sites trafilatura handles cleanly, and returns nothing at all on JS-shell/paywalled pages trafilatura at least degrades gracefully on. Matches trafilatura's own published benchmark lead over readability-lxml (0.912 vs 0.804 F-score) and public reports that Readwise itself has no single fix either, just ongoing per-site tuning. The safety-net pattern built here is engine-agnostic: it stays useful regardless of which extractor is underneath, or which of its bugs trips on a given site.
+
+**Rejected:** Replacing trafilatura with Mozilla Readability (via a Node/jsdom dependency, or a Python port): rejected on direct A/B evidence across real sites, not benchmark trust alone, plus it would add a Node runtime dependency and lose trafilatura's richer metadata extraction (readability's author/date signals are much thinner). Tuning trafilatura's own flags (`favor_recall` vs balanced mode): tested across all 20 URLs, found no flag setting that was a strict improvement — trades one site's boilerplate for another's dropped images.
+
+**Revisit when:** A future capture failure turns out to be systemic rather than per-site (i.e. the safety net itself is regularly doing the real work instead of trafilatura), or the extraction library landscape changes enough that a direct re-test is worth repeating.
+
 ## 2026-09-21: Squash-merge into `main` is enforced, not just convention
 
 **Decision:** GitHub repo settings now allow only squash-merge for PRs into `main`; merge-commit and rebase-merge are disabled (`gh repo edit --enable-squash-merge --enable-merge-commit=false --enable-rebase-merge=false`). Every PR collapses to one commit on `main`, regardless of how many checkpoint commits it carried on the branch.

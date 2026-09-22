@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC
 from html.parser import HTMLParser
+from itertools import groupby
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
 import feedparser
 import httpx
 import trafilatura
+from lxml import etree
+from lxml.html import fromstring, tostring
 
 from app.db import (
     CAPTURED_SOURCE_ID,
@@ -397,6 +401,169 @@ def fetch_feed_xml(url: str, timeout: float = 8.0) -> str:
     return text
 
 
+def _nearby_text(element) -> str:
+    """The tail end of the nearest preceding element with real text, used as
+    a fingerprint to relocate this position in the extracted output later.
+    Climbs to the parent's own preceding siblings when this element has none
+    of its own (e.g. a table sitting alone inside a <center> wrapper)."""
+    node = element
+    while node is not None:
+        for sibling in node.itersiblings(preceding=True):
+            text = " ".join(sibling.text_content().split())
+            if len(text) > 20:
+                return text[-40:]
+        node = node.getparent()
+    return ""
+
+
+_TRACKING_IMAGE_HINTS = ("favicon", "1x1", "pixel", "spacer", "tracker")
+
+
+def _image_src(img) -> str:
+    """The real image URL for an <img>, preferring `data-src` over `src`
+    when `src` is a lazy-load placeholder (a data: URI - a blank pixel or an
+    empty inline SVG, swapped for the real image by JS after load)."""
+    src = img.get("src") or ""
+    if not src or src.startswith("data:"):
+        return img.get("data-src") or ""
+    return src
+
+
+def _is_content_image(img) -> bool:
+    """False for the usual non-article images (tracking pixels, favicons) a
+    page carries alongside its real content. A cheap filter, not a precise
+    one - it only needs to keep obvious chrome out of the candidate list."""
+    src = _image_src(img)
+    if not src or src.startswith("data:"):
+        return False
+    if img.get("width") in ("0", "1") or img.get("height") in ("0", "1"):
+        return False
+    lowered = src.lower()
+    return not any(hint in lowered for hint in _TRACKING_IMAGE_HINTS)
+
+
+def _find_content_root(tree):
+    """Best guess at the element containing the article's real text: the
+    parent shared by the most substantial paragraphs. Used to scope which
+    images count as "part of the article" for the missing-image check below,
+    since the raw page also carries images (nav, header, footer, widgets)
+    that are correctly excluded from the captured body and must not be
+    flagged as missing."""
+    long_paragraphs = [
+        p for p in tree.iter("p") if len(" ".join(p.text_content().split())) > 40
+    ]
+    parents = [p.getparent() for p in long_paragraphs if p.getparent() is not None]
+    if not parents:
+        return None
+    return Counter(parents).most_common(1)[0][0]
+
+
+def _row_key(img) -> str:
+    """Identifies which table row (if any) an image belongs to, so images
+    that were laid out side by side (e.g. a 3-column image comparison) can
+    be recovered the same way instead of stacking as separate blocks.
+    Standalone images each get their own unique key.
+
+    Uses getpath() rather than id(): lxml element proxies are recycled, so
+    two getparent() calls for the very same underlying node can return
+    distinct Python objects whose id() differs (or, once one is garbage
+    collected, a later unrelated object can reuse that id and collide).
+    getpath() is computed from tree position, not object identity, so it
+    stays stable regardless.
+    """
+    node = img
+    while node is not None:
+        if node.tag == "tr":
+            return node.getroottree().getpath(node)
+        node = node.getparent()
+    return img.getroottree().getpath(img)
+
+
+def _image_candidates(tree, url: str) -> list[tuple[str, str, str]]:
+    """Every content image within the article's own region, as (absolute
+    url, nearby anchor text, row key) - checked after extraction to flag any
+    that trafilatura drops, table-nested or not."""
+    root = _find_content_root(tree)
+    if root is None:
+        return []
+    candidates = []
+    for img in root.iter("img"):
+        if not _is_content_image(img):
+            continue
+        candidates.append((urljoin(url, _image_src(img)), _nearby_text(img), _row_key(img)))
+    return candidates
+
+
+def _hoist_table_images(tree) -> None:
+    """Rewrite any <table> that contains an <img> into an equivalent <div>/<p>
+    structure (one paragraph per cell, images and captions kept together, row
+    order preserved), before trafilatura ever sees it. Mutates the tree.
+
+    Works around a confirmed trafilatura defect: a table that mixes an
+    image-only row with a text-only row gets dropped in its entirety -
+    images and captions both - even though either row survives extraction
+    fine on its own. Tables without images are left untouched, so genuine
+    data tables keep their real markup.
+
+    Best-effort, not a guarantee: trafilatura has been found to drop some
+    content regardless of tag shape, table or not, for reasons not fully
+    identified. `_image_candidates` is the real safety net; this just gives
+    it less work to do.
+    """
+    tables = [t for t in tree.iter("table") if t.find(".//img") is not None]
+    for table in tables:
+        parent = table.getparent()
+        if parent is None:
+            continue
+        replacement = etree.Element("div")
+        for row in table.iter("tr"):
+            row_div = etree.SubElement(replacement, "div")
+            for cell in row.xpath("./td | ./th"):
+                cell_p = etree.SubElement(row_div, "p")
+                cell_p.text = cell.text
+                for child in list(cell):
+                    cell_p.append(child)
+        replacement.tail = table.tail
+        parent.replace(table, replacement)
+
+
+def _recover_missing_images(body: str, candidates: list[tuple[str, str, str]]) -> str:
+    """Embed any article image that didn't make it into the extracted body,
+    as close as possible to where it belongs: right after the nearest
+    preceding paragraph that did survive, or at the end of the article when
+    that paragraph didn't survive either. Sourced directly from the
+    original page's own URL, same as every image extraction does keep -
+    nothing is downloaded or cached, so this carries the same trust and
+    offline profile as the rest of the article, not a new one.
+
+    Images that shared a table row (e.g. a side-by-side comparison) are
+    recovered together in one flex row instead of stacking one per line,
+    so a 3-column layout still reads as 3 columns.
+    """
+    missing = [(url, anchor, row) for url, anchor, row in candidates if _esc(url) not in body]
+    for _row_key, group_iter in groupby(missing, key=lambda c: c[2]):
+        group = list(group_iter)
+        imgs_html = "".join(
+            f'<img class="recovered-image" src="{_esc(url)}" alt="">' for url, _anchor, _row in group
+        )
+        notice = f'<div class="recovered-image-row">{imgs_html}</div>' if len(group) > 1 else imgs_html
+        anchor = group[0][1]
+        insert_at = None
+        if anchor:
+            # A whitespace run in the anchor may be a single space in the
+            # source but a literal newline in the captured body (extraction
+            # keeps the original text's own line wrapping inside a <p>), so
+            # match whitespace loosely rather than requiring an exact run.
+            words = [re.escape(word) for word in _esc(anchor).split()]
+            match = re.search(r"\s+".join(words), body) if words else None
+            if match is not None:
+                close_idx = body.find("</p>", match.end())
+                if close_idx != -1:
+                    insert_at = close_idx + len("</p>")
+        body = body[:insert_at] + notice + body[insert_at:] if insert_at is not None else body + notice
+    return body
+
+
 def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
     """Clean an arbitrary page (fetching it first if the caller has no rendered
     copy already) and file it under Read later. Idempotent per URL."""
@@ -404,8 +571,22 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
         _final_url, html = fetch_url(url)
     metadata = trafilatura.extract_metadata(html, default_url=url)
     title = (metadata.title if metadata else None) or url
-    extracted = trafilatura.extract(html, url=url, output_format="html", favor_recall=True)
+    body_source = html
+    image_candidates: list[tuple[str, str]] = []
+    try:
+        tree = fromstring(html)
+    except Exception:  # noqa: BLE001 - arbitrary page HTML, any parse failure means skip the rewrite
+        tree = None
+    if tree is not None:
+        image_candidates = _image_candidates(tree, url)
+        _hoist_table_images(tree)
+        body_source = tostring(tree, encoding="unicode")
+    extracted = trafilatura.extract(
+        body_source, url=url, output_format="html", favor_recall=True, include_images=True
+    )
     body = sanitize_html(extracted, preserve_tables=True) if extracted else None
+    if body and image_candidates:
+        body = _recover_missing_images(body, image_candidates)
     upsert_item(
         conn,
         source_id=CAPTURED_SOURCE_ID,

@@ -25,7 +25,7 @@ Data moves: browser opens the app → if online, the app syncs inbound sources i
 ## Stack
 
 - Python, FastAPI, Jinja templates, a small amount of page JavaScript
-- trafilatura, to fetch and clean an arbitrary captured page's HTML into the same article view a subscribed source's items use
+- trafilatura, to fetch and clean an arbitrary captured page's HTML into the same article view a subscribed source's items use, plus lxml directly for a pre-extraction rewrite that works around a trafilatura table-handling defect and for a post-extraction check that recovers or flags any article image trafilatura still drops
 - HTML and CSS copied from the accepted dummy look
 - SQLite
 - Docker
