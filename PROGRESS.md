@@ -28,7 +28,7 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 ### Planned
 
-1. Store which images a highlight covers — not started. Add `image_urls` column to `highlights` (JSON list); at save/merge time, walk `body_html`'s top-level blocks strictly between the final `(start_block, end_block)` and collect `<img>` sources (including `recovered-image-row` groups); recompute fresh from the final unioned range on a merge, never concatenate.
+1. Store which images a highlight covers — done. Added `image_urls` column to `highlights`; at save/merge time, walks `body_html`'s top-level blocks strictly between the final `(start_block, end_block)` and collects `<img>` sources (including `recovered-image-row` groups); recomputes fresh from the final unioned range on a merge, never concatenates.
 2. Export images into the note — not started. `build_note_markdown` emits an image markdown line under a highlight's bullet for each stored `image_urls` entry.
 
 ## Stacked awaiting deploy
