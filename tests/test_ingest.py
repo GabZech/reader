@@ -165,6 +165,27 @@ def test_capture_article_cleans_a_real_page_and_adds_it_to_read_later(tmp_path):
     assert item["word_count"] > 0
 
 
+def test_capture_article_keeps_an_inline_body_image(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://example.test/with-an-image"
+    html = """
+    <html><head><title>An Article With A Picture</title></head>
+    <body><article>
+    <p>An opening paragraph with enough real words in it for trafilatura to
+    treat this page as an actual article worth extracting in the first place.</p>
+    <img src="https://example.test/diagram.png" alt="A diagram">
+    <p>A closing paragraph, again with enough real words in it for trafilatura
+    to treat this page as an actual article worth extracting in the first place.</p>
+    </article></body></html>
+    """
+    item_id, title = capture_article(conn, url, html=html)
+    conn.commit()
+    assert title == "An Article With A Picture"
+    item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    assert 'src="https://example.test/diagram.png"' in item["body_html"]
+
+
 def test_capture_article_falls_back_to_a_server_fetch_when_given_no_html(
     monkeypatch, tmp_path
 ):

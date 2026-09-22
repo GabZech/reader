@@ -404,7 +404,9 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
         _final_url, html = fetch_url(url)
     metadata = trafilatura.extract_metadata(html, default_url=url)
     title = (metadata.title if metadata else None) or url
-    extracted = trafilatura.extract(html, url=url, output_format="html", favor_recall=True)
+    extracted = trafilatura.extract(
+        html, url=url, output_format="html", favor_recall=True, include_images=True
+    )
     body = sanitize_html(extracted, preserve_tables=True) if extracted else None
     upsert_item(
         conn,
