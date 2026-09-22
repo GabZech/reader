@@ -24,7 +24,8 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 - **Client to do manually:** force-push `news-highlights` to a clean slate (their own call, once this shipped) — not yet done as of this note.
 
-- **Change:** outline images a highlight covers, so a selection across an image shows it was included. Kinds: visual, bug. Branch: `claude/image-selection-feedback-3l9eft`. Shape: images strictly inside a highlight's block range (the same ones stored and exported) get a 4px outline in the highlight colour, on select and on reload; mockup signed off. Leaves alone: tapping an outlined image does not open the highlight detail; boundary-block images stay unmarked, matching export. Built and tested (`tests/test_highlight_browser.py`, first browser tests, Playwright dev dependency). Next: client says whether to deploy for a live try.
+- **Change:** outline images a highlight covers, so a selection across an image shows it was included. Kinds: visual, bug. Branch: `claude/image-selection-feedback-3l9eft`. Shape: images a highlight covers (the same ones stored and exported) get a 4px outline in the highlight colour, on select and on reload; mockup signed off. Leaves alone: tapping an outlined image does not open the highlight detail. Feedback round 1: a selection that starts or ends on an image must include it — done: an image-only boundary block now counts as covered; a boundary that merely touches one moves onto the neighbouring text. Tested in `tests/test_highlight_browser.py` (first browser tests, Playwright dev dependency). Next: client tries round 1 live.
+- **Also open:** `maint/hook-command-guards` (hooks check the command itself, since `if` filters run the hook for unparsable commands) is pushed; PR awaits the client's go-ahead. Next product change after this one: a `§` marker before highlights that carry a section or subsection title (client liked the idea; mockup not yet made).
 
 ## Stacked awaiting deploy
 
