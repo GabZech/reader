@@ -1704,6 +1704,20 @@ def test_close_from_archive_returns_to_archive_not_library(monkeypatch, tmp_path
         assert str(gone.request.url).endswith("/lists/later?view=archive&flash=Deleted")
 
 
+def test_close_from_read_tab_returns_to_read_not_unread(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/read?from_list=news")
+
+        read_tab = client.get("/lists/news?view=read")
+        match = re.search(rf'href="(/items/{item_id}[^"]*)"', read_tab.text)
+        assert match, "read tab should link to the item"
+
+        opened = client.get(html.unescape(match.group(1)))
+        assert 'href="/lists/news?view=read">Close</a>' in opened.text
+
+
 def test_swipe_delete_in_archive_stays_on_archive(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
