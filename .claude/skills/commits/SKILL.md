@@ -25,6 +25,8 @@ Each commit should leave the repo in a working state, not only the final one in 
 
 Do not title-case the action. Do not omit the colon.
 
+PR titles and descriptions follow `pull-requests` instead — a different format.
+
 ## Safety
 
 - Never force-push a shared branch. It can erase commits someone, or something like CI or a deploy, already has.
