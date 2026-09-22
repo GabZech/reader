@@ -28,6 +28,19 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(gh pr create*)",
+            "command": "git checkout main 2>/dev/null && git fetch origin 2>/dev/null && git merge --ff-only origin/main 2>/dev/null || true",
+            "statusMessage": "Switching back to main and syncing..."
+          }
+        ]
+      }
     ]
   }
 }
