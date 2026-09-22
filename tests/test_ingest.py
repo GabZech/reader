@@ -218,6 +218,13 @@ def test_capture_article_flags_a_table_image_trafilatura_still_drops(tmp_path):
         'href="https://vitalik.eth.limo/images/techno_optimism/path1.png"' in body
     )
     assert "Image not captured" in body
+    # Regression: the notices must land near their real position in the
+    # article, not all get dumped together at the very end. A first pass at
+    # this positioned every single one at the end, because the anchor text
+    # search required an exact whitespace match while the captured body
+    # keeps the source's own line-wrapped newlines inside each paragraph.
+    tail = body[-400:]
+    assert tail.count("missing-image") < 6
 
 
 def test_flag_missing_images_is_a_no_op_when_the_image_is_already_there():

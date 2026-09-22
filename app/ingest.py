@@ -401,11 +401,16 @@ def fetch_feed_xml(url: str, timeout: float = 8.0) -> str:
 
 def _nearby_text(element) -> str:
     """The tail end of the nearest preceding element with real text, used as
-    a fingerprint to relocate this position in the extracted output later."""
-    for sibling in element.itersiblings(preceding=True):
-        text = " ".join(sibling.text_content().split())
-        if len(text) > 20:
-            return text[-40:]
+    a fingerprint to relocate this position in the extracted output later.
+    Climbs to the parent's own preceding siblings when this element has none
+    of its own (e.g. a table sitting alone inside a <center> wrapper)."""
+    node = element
+    while node is not None:
+        for sibling in node.itersiblings(preceding=True):
+            text = " ".join(sibling.text_content().split())
+            if len(text) > 20:
+                return text[-40:]
+        node = node.getparent()
     return ""
 
 
@@ -468,9 +473,14 @@ def _flag_missing_images(body: str, candidates: list[tuple[str, str]]) -> str:
         )
         insert_at = None
         if anchor:
-            idx = body.find(_esc(anchor))
-            if idx != -1:
-                close_idx = body.find("</p>", idx)
+            # A whitespace run in the anchor may be a single space in the
+            # source but a literal newline in the captured body (extraction
+            # keeps the original text's own line wrapping inside a <p>), so
+            # match whitespace loosely rather than requiring an exact run.
+            words = [re.escape(word) for word in _esc(anchor).split()]
+            match = re.search(r"\s+".join(words), body) if words else None
+            if match is not None:
+                close_idx = body.find("</p>", match.end())
                 if close_idx != -1:
                     insert_at = close_idx + len("</p>")
         body = body[:insert_at] + notice + body[insert_at:] if insert_at is not None else body + notice
