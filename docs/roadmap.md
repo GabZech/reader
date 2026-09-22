@@ -43,7 +43,6 @@ Grouped by [epic](vision/epics.md). An epic names a capability, not a work order
 
 - [x] Send a link to Read later while browsing
 - [x] Library and archive
-- [ ] Started and unstarted apart on this list as an explicit label (the seen tracking below already carries the signal; resume shipped without adding this label, so it's still open)
 - [x] Resume an article where it was left
 - [x] Archive a finished article, and remove an item from Read later
 
