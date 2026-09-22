@@ -28,13 +28,6 @@ Session logs from this phase, and the working files from an earlier per-epic way
 
 ### 🎯 Upcoming features
 
-Remaining work, grouped by [epic](vision/epics.md).
-
-#### Bring the Library Over
-
-- [ ] Import sources from the subscriptions export (OPML)
-- [ ] Import saved items from the CSV
-- [ ] Import saved items from the folder of files
 
 #### Improve UI
 
@@ -46,6 +39,7 @@ Remaining work, grouped by [epic](vision/epics.md).
 
 Choices explicitly put off for later, each with a real trigger to revisit. Removed once acted on.
 
+- Bring the Library Over: importing sources from the subscriptions export (OPML), and saved items from the CSV and from the folder of files, so switching off the current reading app doesn't mean rebuilding by hand. Revisit when ready to actually switch off the current reading app
 - Evening Video Triage: watching inside the app, the evening session, and filtering Shorts wait. Removing a video from Favourite channels does not wait; it works like removing any other list item
 - Keep the GitHub repo name and the Fly URL `reader-skeleton.fly.dev` through feature work. Before the MVP is put on the phone as the lasting URL, rename the repo, stand up a new Fly app name (Fly cannot rename in place), and add a home-screen logo that shows when the site is installed
 - One Fly app serves both trying and living. During a change, the live app briefly runs an unmerged branch against the real library. Splitting into separate dev and prod Fly apps is the real fix; revisit once local testing is viable again
