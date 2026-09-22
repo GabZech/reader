@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -1370,6 +1371,131 @@ def test_deleting_an_item_with_nothing_pending_does_not_export(monkeypatch, tmp_
         deleted = client.post(f"/items/{item_id}/delete?from_list=news")
         assert deleted.status_code == 200
         assert calls == []
+
+
+def _set_body_html(tmp_path, item_id, body_html):
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        conn.execute("UPDATE items SET body_html = ? WHERE id = ?", (body_html, item_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_images_in_block_range_collects_urls_from_interior_blocks_only():
+    body = (
+        '<p>First</p>'
+        '<img src="https://example.test/a.png">'
+        '<p>Second</p>'
+    )
+    assert dbmod.images_in_block_range(body, 0, 2) == ["https://example.test/a.png"]
+    # The image is the boundary block itself in this range, not interior.
+    assert dbmod.images_in_block_range(body, 1, 2) == []
+    assert dbmod.images_in_block_range(body, 0, 1) == []
+
+
+def test_images_in_block_range_collects_a_recovered_image_row_group():
+    body = (
+        "<p>First</p>"
+        '<div class="recovered-image-row">'
+        '<img class="recovered-image" src="https://example.test/a.png">'
+        '<img class="recovered-image" src="https://example.test/b.png">'
+        "</div>"
+        "<p>Second</p>"
+    )
+    assert dbmod.images_in_block_range(body, 0, 2) == [
+        "https://example.test/a.png",
+        "https://example.test/b.png",
+    ]
+
+
+def test_images_in_block_range_returns_empty_for_missing_body_html():
+    assert dbmod.images_in_block_range(None, 0, 2) == []
+
+
+def test_saving_a_highlight_spanning_an_interior_image_block_stores_its_url(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _set_body_html(
+            tmp_path,
+            item_id,
+            '<p>First</p><img src="https://example.test/a.png"><p>Second</p>',
+        )
+
+        highlight_id = _save_highlight(
+            client, item_id, start_block=0, start_offset=0, end_block=2, end_offset=5
+        )
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            row = dbmod.get_highlight(conn, item_id, highlight_id)
+        finally:
+            conn.close()
+        assert json.loads(row["image_urls"]) == ["https://example.test/a.png"]
+
+
+def test_saving_a_highlight_that_stops_at_the_image_block_does_not_store_it(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _set_body_html(
+            tmp_path,
+            item_id,
+            '<p>First</p><img src="https://example.test/a.png"><p>Second</p>',
+        )
+
+        highlight_id = _save_highlight(
+            client, item_id, start_block=0, start_offset=0, end_block=1, end_offset=0
+        )
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            row = dbmod.get_highlight(conn, item_id, highlight_id)
+        finally:
+            conn.close()
+        assert row["image_urls"] is None
+
+
+def test_merging_a_highlight_across_an_image_recomputes_instead_of_concatenating(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _set_body_html(
+            tmp_path,
+            item_id,
+            '<p>First</p><img src="https://example.test/a.png"><p>Second</p>',
+        )
+        first_id = _save_highlight(
+            client, item_id, start_block=0, start_offset=0, end_block=0, end_offset=5
+        )
+
+        merged = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "2",
+                "end_offset": "5",
+                "text": "the union span",
+                "merge_id": str(first_id),
+            },
+        )
+        assert merged.status_code == 200
+        merged_id = merged.json()["id"]
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            row = dbmod.get_highlight(conn, item_id, merged_id)
+        finally:
+            conn.close()
+        assert json.loads(row["image_urls"]) == ["https://example.test/a.png"]
 
 
 def _backdate_touch(tmp_path, item_id, when):

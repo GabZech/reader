@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import sqlite3
 from collections.abc import Iterator
@@ -8,6 +9,8 @@ from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
+
+from lxml.html import fromstring
 
 from app.config import database_path
 
@@ -111,6 +114,9 @@ def init_db(conn: sqlite3.Connection) -> None:
         );
         """
     )
+    highlights_columns = {row["name"] for row in conn.execute("PRAGMA table_info(highlights)")}
+    if "image_urls" not in highlights_columns:
+        conn.execute("ALTER TABLE highlights ADD COLUMN image_urls TEXT")
     item_lists_columns = {row["name"] for row in conn.execute("PRAGMA table_info(item_lists)")}
     if "archived_at" not in item_lists_columns:
         conn.execute("ALTER TABLE item_lists ADD COLUMN archived_at TEXT")
@@ -436,6 +442,26 @@ def overlapping_highlights(
     return overlapping
 
 
+def images_in_block_range(body_html: str | None, start_block: int, end_block: int) -> list[str]:
+    """Image URLs inside the top-level blocks strictly between start_block and
+    end_block - the ones a highlight's boundary blocks only partially cover,
+    not the images that sit on the boundary itself. Mirrors the block
+    indexing `app/static/app.js`'s `blocks = Array.from(body.children)` uses,
+    so a block index here means the same thing it means client-side.
+    """
+    if not body_html or end_block - start_block < 2:
+        return []
+    container = fromstring(f"<div>{body_html}</div>")
+    blocks = list(container)
+    urls = []
+    for block in blocks[start_block + 1 : end_block]:
+        for img in block.iter("img"):
+            src = img.get("src")
+            if src:
+                urls.append(src)
+    return urls
+
+
 def add_highlight(
     conn: sqlite3.Connection,
     item_id: int,
@@ -444,12 +470,14 @@ def add_highlight(
     end_block: int,
     end_offset: int,
     text: str,
+    image_urls: list[str] | None = None,
 ) -> int:
     cursor = conn.execute(
         """
         INSERT INTO highlights
-            (item_id, start_block, start_offset, end_block, end_offset, text, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+            (item_id, start_block, start_offset, end_block, end_offset, text,
+             image_urls, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             item_id,
@@ -458,6 +486,7 @@ def add_highlight(
             end_block,
             end_offset,
             text,
+            json.dumps(image_urls) if image_urls else None,
             datetime.now(UTC).isoformat(),
         ),
     )

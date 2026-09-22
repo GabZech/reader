@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import json
 
 from app.obsidian import build_note_markdown, export_note, note_path_for_item
 
@@ -19,11 +20,12 @@ def _item(**overrides):
     return base
 
 
-def _highlight(text, section_title=None, subsection_title=None):
+def _highlight(text, section_title=None, subsection_title=None, image_urls=None):
     return {
         "text": text,
         "section_title": section_title,
         "subsection_title": subsection_title,
+        "image_urls": json.dumps(image_urls) if image_urls else None,
     }
 
 
@@ -57,6 +59,24 @@ def test_build_note_markdown_includes_frontmatter_and_title():
     assert "## Highlights" in md
     assert "- First point." in md
     assert "## Summary" not in md
+
+
+def test_build_note_markdown_includes_image_lines_under_the_bullet():
+    highlights = [
+        _highlight("Text only."),
+        _highlight(
+            "Spans an image.",
+            image_urls=["https://example.test/a.png", "https://example.test/b.png"],
+        ),
+    ]
+    md = build_note_markdown(_item(), highlights)
+    lines = [line for line in md.splitlines() if line]
+    assert "![](https://example.test/a.png)" not in "\n".join(
+        lines[: lines.index("- Spans an image.")]
+    )
+    idx = lines.index("- Spans an image.")
+    assert lines[idx + 1] == "![](https://example.test/a.png)"
+    assert lines[idx + 2] == "![](https://example.test/b.png)"
 
 
 def test_build_note_markdown_groups_by_sticky_section_title():

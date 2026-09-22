@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import re
 from datetime import UTC, datetime
 from urllib.parse import quote
@@ -72,8 +73,23 @@ def build_note_markdown(item, highlights) -> str:
             lines.append(f"#### {current_subsection}")
         lines.append("")
         lines.append(f"- {highlight['text']}")
+        for url in _image_urls(highlight):
+            lines.append(f"![]({url})")
 
     return "\n".join(lines) + "\n"
+
+
+def _image_urls(highlight) -> list[str]:
+    try:
+        raw = highlight["image_urls"]
+    except (KeyError, IndexError):
+        return []
+    if not raw:
+        return []
+    try:
+        return json.loads(raw)
+    except (TypeError, ValueError):
+        return []
 
 
 def _url_for_path(path: str) -> str:
