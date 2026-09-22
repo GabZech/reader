@@ -12,6 +12,7 @@
   --thumb-grad-start: #e7e5e4;
   --thumb-grad-end: #d6d3d1;
   --highlight-bg: #fde68a;
+  --title-marker: #b45309;
   --toast-bg: #1c1917;
   --toast-text: #fafaf9;
   --toast-shadow: rgba(28, 25, 23, 0.25);
@@ -34,6 +35,7 @@
   --thumb-grad-start: #44403c;
   --thumb-grad-end: #292524;
   --highlight-bg: #92400e;
+  --title-marker: #fbbf24;
   --toast-bg: #fafaf9;
   --toast-text: #1c1917;
   --toast-shadow: rgba(0, 0, 0, 0.4);
@@ -539,6 +541,15 @@ body {
 .article-body img {
   max-width: 100%;
   height: auto;
+}
+
+.article-body .hl-title-marker::before {
+  content: "\00A7";
+  color: var(--title-marker);
+  font-weight: 700;
+  font-size: 0.85em;
+  margin-right: 0.2em;
+  cursor: pointer;
 }
 
 .article-body img.hl-image {

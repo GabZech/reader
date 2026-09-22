@@ -13,7 +13,7 @@ change's deep-plan output lives here instead, under In flight's
 - **Standard verification path:** `uv run ruff check` then `uv run pytest`
 - **Focused debug command:** `uv run pytest tests/test_app.py -k <name>`
 - **Run the app:** `RUN_START_COMMAND=1 bash init.sh` (without `--quick`), or see `docs/development.md`
-- **Highest-priority unfinished item:** a small yellow `§` just before any highlight that carries a section or subsection title. Kinds: visual, behaviour (the reader page needs each highlight's titles in `highlights_json`). Mockup signed off: `#fbbf24` in dark, `#b45309` in light, bold, 0.85em, inline just before the highlight's first mark. Not started. Epics in `docs/roadmap.md` do not impose an order; this names what was actually picked, not a computed priority
+- **Highest-priority unfinished item:** none chosen yet. Epics in `docs/roadmap.md` do not impose an order; this names what was actually picked, not a computed priority
 - **Current blocker:** none
 
 ## Live now

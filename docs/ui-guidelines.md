@@ -12,7 +12,7 @@ The real UI follows the overall look accepted in the clickable dummy: layout, de
 - **Lists.** Uppercase, small, muted list name with a count. Item rows: title, then author and date, with reading length on the far right of that line (Today / Yesterday / DD/MM/YY). A small square on the left only when there is a main image; newsletters without one stay text-only.
 - **Home.** Each list shows three items, then Show more / Show less in place. The list name opens the full list.
 - **Bottom bar.** Fixed Home, Lists, Sources. Text only. Active tab is darker and heavier. The bar matches the column width.
-- **Article.** Close, then secondary text actions (Read later, Open original). Body is readable article type, not a card grid. Highlight colour is a yellow mark on the text (pale in light theme, deep amber in dark), not a brand accent; an image a highlight covers gets a 4px outline in the same colour instead.
+- **Article.** Close, then secondary text actions (Read later, Open original). Body is readable article type, not a card grid. Highlight colour is a yellow mark on the text (pale in light theme, deep amber in dark), not a brand accent; an image a highlight covers gets a 4px outline in the same colour instead. A highlight carrying a section or subsection title gets a small bold `§` just before it, in a stronger yellow (`#fbbf24` dark, `#b45309` light) so it stands apart from the mark.
 
 No icon set. No brand colour system. Controls are words.
 
