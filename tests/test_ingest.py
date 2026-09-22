@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
+from lxml.html import fromstring
+
 from app.db import (
     add_source_to_list,
     connect,
@@ -15,6 +17,7 @@ from app.db import (
 )
 from app.ingest import (
     _flag_missing_images,
+    _image_candidates,
     capture_article,
     ingest_all_sources,
     ingest_xml,
@@ -225,6 +228,20 @@ def test_capture_article_flags_a_table_image_trafilatura_still_drops(tmp_path):
     # keeps the source's own line-wrapped newlines inside each paragraph.
     tail = body[-400:]
     assert tail.count("missing-image") < 6
+    # Regression: every real content image the source page references must
+    # be accounted for, kept or flagged - not just the ones sitting inside a
+    # table. The client caught a version that only checked table images and
+    # silently lost the other 22 of this article's 28.
+    image_names = [
+        "0chan", "bensinger", "carbonvote", "civprogress", "dacc", "dacc_2",
+        "defensetypes", "differential", "genfill", "helpfulnote2",
+        "life_expectancy", "medbook", "meme", "mindpaths", "path1", "path2",
+        "path3", "poll1", "poll2", "poll3", "pollution", "samback",
+        "scamblock", "smog", "switzerland", "techtrajectory", "temperature",
+        "viewpoints",
+    ]
+    for name in image_names:
+        assert f"{name}.png" in body, f"{name}.png missing entirely, not even flagged"
 
 
 def test_flag_missing_images_is_a_no_op_when_the_image_is_already_there():
@@ -257,6 +274,41 @@ def test_flag_missing_images_appends_at_the_end_when_its_anchor_is_also_gone():
         '<p class="missing-image">Image not captured &mdash; '
         '<a href="https://example.test/pic.png" rel="noreferrer">open original</a></p>'
     )
+
+
+def test_image_candidates_covers_standalone_images_not_just_tables():
+    # The client caught this: an earlier version only ever looked inside
+    # tables for candidates, so a standalone <img> that trafilatura drops
+    # for its own unrelated reasons was silently lost with no flag at all.
+    html = """
+    <html><body><div id="doc">
+    <p>An opening paragraph with enough real words in it to anchor on later,
+    thirty-some characters and then some more to be sure.</p>
+    <img src="https://example.test/standalone.png">
+    <p>A closing paragraph with enough real words in it to anchor on later,
+    thirty-some characters and then some more to be sure as well.</p>
+    </div></body></html>
+    """
+    tree = fromstring(html)
+    candidates = _image_candidates(tree, "https://example.test/article")
+    assert ("https://example.test/standalone.png", candidates[0][1]) in candidates
+
+
+def test_image_candidates_ignores_a_lazy_load_placeholder():
+    html = """
+    <html><body><div id="doc">
+    <p>An opening paragraph with enough real words in it to anchor on later,
+    thirty-some characters and then some more to be sure.</p>
+    <img src="data:image/svg+xml,%3Csvg%20viewBox='0 0 0 0'%3E%3C/svg%3E"
+         data-src="https://example.test/real.png">
+    <p>A closing paragraph with enough real words in it to anchor on later,
+    thirty-some characters and then some more to be sure as well.</p>
+    </div></body></html>
+    """
+    tree = fromstring(html)
+    candidates = _image_candidates(tree, "https://example.test/article")
+    urls = [url for url, _anchor in candidates]
+    assert urls == ["https://example.test/real.png"]
 
 
 def test_capture_article_leaves_an_imageless_table_untouched(tmp_path):

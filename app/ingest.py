@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC
 from html.parser import HTMLParser
@@ -414,10 +415,67 @@ def _nearby_text(element) -> str:
     return ""
 
 
-def _hoist_table_images(html: str, url: str) -> tuple[str, list[tuple[str, str]]]:
+_TRACKING_IMAGE_HINTS = ("favicon", "1x1", "pixel", "spacer", "tracker")
+
+
+def _image_src(img) -> str:
+    """The real image URL for an <img>, preferring `data-src` over `src`
+    when `src` is a lazy-load placeholder (a data: URI - a blank pixel or an
+    empty inline SVG, swapped for the real image by JS after load)."""
+    src = img.get("src") or ""
+    if not src or src.startswith("data:"):
+        return img.get("data-src") or ""
+    return src
+
+
+def _is_content_image(img) -> bool:
+    """False for the usual non-article images (tracking pixels, favicons) a
+    page carries alongside its real content. A cheap filter, not a precise
+    one - it only needs to keep obvious chrome out of the candidate list."""
+    src = _image_src(img)
+    if not src or src.startswith("data:"):
+        return False
+    if img.get("width") in ("0", "1") or img.get("height") in ("0", "1"):
+        return False
+    lowered = src.lower()
+    return not any(hint in lowered for hint in _TRACKING_IMAGE_HINTS)
+
+
+def _find_content_root(tree):
+    """Best guess at the element containing the article's real text: the
+    parent shared by the most substantial paragraphs. Used to scope which
+    images count as "part of the article" for the missing-image check below,
+    since the raw page also carries images (nav, header, footer, widgets)
+    that are correctly excluded from the captured body and must not be
+    flagged as missing."""
+    long_paragraphs = [
+        p for p in tree.iter("p") if len(" ".join(p.text_content().split())) > 40
+    ]
+    parents = [p.getparent() for p in long_paragraphs if p.getparent() is not None]
+    if not parents:
+        return None
+    return Counter(parents).most_common(1)[0][0]
+
+
+def _image_candidates(tree, url: str) -> list[tuple[str, str]]:
+    """Every content image within the article's own region, as (absolute
+    url, nearby anchor text) - checked after extraction to flag any that
+    trafilatura drops, table-nested or not."""
+    root = _find_content_root(tree)
+    if root is None:
+        return []
+    candidates = []
+    for img in root.iter("img"):
+        if not _is_content_image(img):
+            continue
+        candidates.append((urljoin(url, _image_src(img)), _nearby_text(img)))
+    return candidates
+
+
+def _hoist_table_images(tree) -> None:
     """Rewrite any <table> that contains an <img> into an equivalent <div>/<p>
     structure (one paragraph per cell, images and captions kept together, row
-    order preserved), before trafilatura ever sees it.
+    order preserved), before trafilatura ever sees it. Mutates the tree.
 
     Works around a confirmed trafilatura defect: a table that mixes an
     image-only row with a text-only row gets dropped in its entirety -
@@ -425,27 +483,16 @@ def _hoist_table_images(html: str, url: str) -> tuple[str, list[tuple[str, str]]
     fine on its own. Tables without images are left untouched, so genuine
     data tables keep their real markup.
 
-    Also returns every table image's (absolute url, nearby anchor text) -
-    the rewrite above is best-effort, not a guarantee, so the caller checks
-    afterwards whether each one actually survived and flags it if not.
+    Best-effort, not a guarantee: trafilatura has been found to drop some
+    content regardless of tag shape, table or not, for reasons not fully
+    identified. `_image_candidates` is the real safety net; this just gives
+    it less work to do.
     """
-    try:
-        tree = fromstring(html)
-    except Exception:  # noqa: BLE001 - arbitrary page HTML, any parse failure means skip the rewrite
-        return html, []
     tables = [t for t in tree.iter("table") if t.find(".//img") is not None]
-    if not tables:
-        return html, []
-    candidates: list[tuple[str, str]] = []
     for table in tables:
         parent = table.getparent()
         if parent is None:
             continue
-        anchor = _nearby_text(table)
-        for img in table.findall(".//img"):
-            src = img.get("src") or img.get("data-src")
-            if src:
-                candidates.append((urljoin(url, src), anchor))
         replacement = etree.Element("div")
         for row in table.iter("tr"):
             row_div = etree.SubElement(replacement, "div")
@@ -456,14 +503,13 @@ def _hoist_table_images(html: str, url: str) -> tuple[str, list[tuple[str, str]]
                     cell_p.append(child)
         replacement.tail = table.tail
         parent.replace(table, replacement)
-    return tostring(tree, encoding="unicode"), candidates
 
 
 def _flag_missing_images(body: str, candidates: list[tuple[str, str]]) -> str:
-    """Insert a visible, linked notice for any table image that didn't make
-    it into the extracted body, as close as possible to where it belongs:
-    right after the nearest preceding paragraph that did survive, or at the
-    end of the article when that paragraph didn't survive either."""
+    """Insert a visible, linked notice for any article image that didn't
+    make it into the extracted body, as close as possible to where it
+    belongs: right after the nearest preceding paragraph that did survive,
+    or at the end of the article when that paragraph didn't survive either."""
     for image_url, anchor in candidates:
         if _esc(image_url) in body:
             continue
@@ -494,7 +540,16 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
         _final_url, html = fetch_url(url)
     metadata = trafilatura.extract_metadata(html, default_url=url)
     title = (metadata.title if metadata else None) or url
-    body_source, image_candidates = _hoist_table_images(html, url)
+    body_source = html
+    image_candidates: list[tuple[str, str]] = []
+    try:
+        tree = fromstring(html)
+    except Exception:  # noqa: BLE001 - arbitrary page HTML, any parse failure means skip the rewrite
+        tree = None
+    if tree is not None:
+        image_candidates = _image_candidates(tree, url)
+        _hoist_table_images(tree)
+        body_source = tostring(tree, encoding="unicode")
     extracted = trafilatura.extract(
         body_source, url=url, output_format="html", favor_recall=True, include_images=True
     )
