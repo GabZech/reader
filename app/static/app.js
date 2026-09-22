@@ -250,6 +250,15 @@
         const to = b === endBlock ? endOffset : block.textContent.length;
         const mark = wrapBlockRange(block, from, to);
         if (mark) marks.push(mark);
+        // Images have no text to wrap. Outline the ones strictly inside
+        // the range: the same ones the server stores and exports
+        // (`images_in_block_range` in app/db.py).
+        if (b > startBlock && b < endBlock) {
+          block.querySelectorAll("img").forEach((img) => {
+            img.classList.add("hl-image");
+            if (highlightId != null) img.dataset.highlightId = String(highlightId);
+          });
+        }
       }
       if (highlightId != null) {
         marks.forEach((mark) => {
@@ -307,6 +316,10 @@
         while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
         parent.removeChild(mark);
         parent.normalize();
+      });
+      body.querySelectorAll(`img.hl-image[data-highlight-id="${highlightId}"]`).forEach((img) => {
+        img.classList.remove("hl-image");
+        delete img.dataset.highlightId;
       });
     };
 

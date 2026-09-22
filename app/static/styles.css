@@ -541,6 +541,11 @@ body {
   height: auto;
 }
 
+.article-body img.hl-image {
+  outline: 4px solid var(--highlight-bg);
+  outline-offset: 3px;
+}
+
 .article-body .recovered-image {
   border: 1px dashed var(--border);
   border-radius: 0.5rem;
