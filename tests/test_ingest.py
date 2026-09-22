@@ -195,6 +195,61 @@ def test_capture_article_keeps_an_inline_body_image(tmp_path):
     assert 'src="https://example.test/diagram.png"' in item["body_html"]
 
 
+def test_capture_article_synthesizes_a_title_for_an_x_post(tmp_path):
+    # X/Twitter's own page metadata never carries a real title for a post -
+    # <title>, og:title, and twitter:title are all just the generic "Name
+    # (@handle) on X" site boilerplate, confirmed across several real posts.
+    # The client caught every captured X post showing that boilerplate
+    # instead of anything about the post's actual content.
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://x.com/seanlinehan/status/2091955290552078418"
+    html = """
+    <html><head>
+    <title>Sean Linehan on X: &quot;https://t.co/aoqzeekmmv&quot; / X</title>
+    <meta property="og:title" content="Sean Linehan (@seanlinehan) on X">
+    <meta name="twitter:title" content="Sean Linehan (@seanlinehan) on X">
+    </head>
+    <body><article>
+    <p>There is a lot of hand-wringing right now over whether frontier model
+    companies are going to make it when open competitors commoditize their
+    capabilities. I think it is entirely plausible that frontier model
+    companies wind up among the biggest companies on Earth while most of
+    the tasks their models perform become commodities.</p>
+    </article></body></html>
+    """
+    item_id, title = capture_article(conn, url, html=html)
+    conn.commit()
+    assert title == (
+        "There is a lot of hand-wringing right now over whether frontier "
+        "model companies are going to make it when open competitors "
+        "commoditize their capabilities."
+    )
+    item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    assert item["title"] == title
+
+
+def test_capture_article_keeps_a_normal_x_title_alone_when_no_pattern_matches(tmp_path):
+    # A guard against over-triggering: only the exact generic pattern
+    # should be replaced, not any title that happens to contain "on X".
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://x.com/someuser/status/1"
+    html = """
+    <html><head>
+    <title>A genuinely specific headline someone wrote</title>
+    <meta property="og:title" content="A genuinely specific headline someone wrote">
+    </head>
+    <body><article>
+    <p>Body text that should not matter here since the title is already
+    a real one, not the generic X site boilerplate this fix targets.</p>
+    </article></body></html>
+    """
+    _item_id, title = capture_article(conn, url, html=html)
+    conn.commit()
+    assert title == "A genuinely specific headline someone wrote"
+
+
 def test_capture_article_embeds_a_table_image_trafilatura_still_drops(tmp_path):
     # Uses the real page that surfaced this bug rather than a hand-built
     # snippet: a minimal synthetic reproduction of the same table shape
