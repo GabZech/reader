@@ -31,7 +31,6 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 1. Store which images a highlight covers — done. Added `image_urls` column to `highlights`; at save/merge time, walks `body_html`'s top-level blocks strictly between the final `(start_block, end_block)` and collects `<img>` sources (including `recovered-image-row` groups); recomputes fresh from the final unioned range on a merge, never concatenates.
 2. Export images into the note — not started. `build_note_markdown` emits an image markdown line under a highlight's bullet for each stored `image_urls` entry.
 
-- **Change (separate, small):** Close from an item opened in Read later's Archive tab returns to Archive, not Library. Kinds: bug. Branch: `claude/archived-item-nav-bug-n1bzuq`. Shape: item links carry the list tab (`view=archive`, or `view=read` on other lists) so Close and Delete land back on it; leaves Archive and Mark as read landing pages alone. Built and tested; next: the client decides whether to deploy it for a live try.
 
 ## Stacked awaiting deploy
 
