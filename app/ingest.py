@@ -609,8 +609,15 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
     body = sanitize_html(extracted, preserve_tables=True) if extracted else None
     if body and image_candidates:
         body = _recover_missing_images(body, image_candidates)
-    if body and urlparse(url).netloc.lower() in _X_HOSTS and _GENERIC_X_TITLE_RE.match(title):
-        title = _synthesized_title(body) or title
+    if urlparse(url).netloc.lower() in _X_HOSTS and _GENERIC_X_TITLE_RE.match(title):
+        # X sets a real headline in og:description (matching an on-page <h1>)
+        # for anything using its long-form Article format - a far more
+        # reliable title than guessing from body text when it's there.
+        description = ((metadata.description if metadata else None) or "").strip()
+        if description:
+            title = description
+        elif body:
+            title = _synthesized_title(body) or title
     upsert_item(
         conn,
         source_id=CAPTURED_SOURCE_ID,

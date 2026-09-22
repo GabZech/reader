@@ -195,12 +195,38 @@ def test_capture_article_keeps_an_inline_body_image(tmp_path):
     assert 'src="https://example.test/diagram.png"' in item["body_html"]
 
 
-def test_capture_article_synthesizes_a_title_for_an_x_post(tmp_path):
-    # X/Twitter's own page metadata never carries a real title for a post -
-    # <title>, og:title, and twitter:title are all just the generic "Name
-    # (@handle) on X" site boilerplate, confirmed across several real posts.
-    # The client caught every captured X post showing that boilerplate
-    # instead of anything about the post's actual content.
+def test_capture_article_prefers_the_real_headline_for_an_x_article(tmp_path):
+    # The client caught this: X's long-form Article format sets a real
+    # headline in og:description (matching an on-page <h1>), which the
+    # first version of this fix ignored in favor of synthesizing one from
+    # body text - producing a much worse title than was actually available.
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://x.com/seanlinehan/status/2091955290552078418"
+    html = """
+    <html><head>
+    <title>Sean Linehan on X: &quot;https://t.co/aoqzeekmmv&quot; / X</title>
+    <meta property="og:title" content="Sean Linehan (@seanlinehan) on X">
+    <meta name="twitter:title" content="Sean Linehan (@seanlinehan) on X">
+    <meta property="og:description" content="The Economics of the Intelligence Frontier">
+    </head>
+    <body><article>
+    <h1>The Economics of the Intelligence Frontier</h1>
+    <p>There is a lot of hand-wringing right now over whether frontier model
+    companies are going to make it when open competitors commoditize their
+    capabilities.</p>
+    </article></body></html>
+    """
+    item_id, title = capture_article(conn, url, html=html)
+    conn.commit()
+    assert title == "The Economics of the Intelligence Frontier"
+    item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    assert item["title"] == title
+
+
+def test_capture_article_synthesizes_a_title_for_an_x_post_without_a_headline(tmp_path):
+    # A plain tweet/thread with no og:description headline falls back to a
+    # title synthesized from the post's own opening text.
     conn = connect(tmp_path / "reader.db")
     init_db(conn)
     url = "https://x.com/seanlinehan/status/2091955290552078418"
