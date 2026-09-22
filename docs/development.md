@@ -47,7 +47,9 @@ uv run ruff check
 uv run pytest
 ```
 
-That is what continuous integration runs (`.github/workflows/test.yml`), lint then tests. `pytest` and `ruff` are dev-only dependencies; the deployed image does not install them.
+That is what continuous integration runs (`.github/workflows/test.yml`), lint then tests. `pytest`, `ruff`, and `playwright` are dev-only dependencies; the deployed image does not install them.
+
+**Browser tests need Chromium.** `tests/test_highlight_browser.py` drives the reader page in a real browser, since highlighting runs in `app/static/app.js`. Install it once with `uv run playwright install chromium`; CI does the same before running the tests.
 
 ## Local config
 

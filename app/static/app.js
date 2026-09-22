@@ -241,6 +241,10 @@
       }
     };
 
+    const imagesIn = (block) =>
+      block.matches("img") ? [block] : Array.from(block.querySelectorAll("img"));
+    const isImageOnly = (block) => !block.textContent.trim() && imagesIn(block).length > 0;
+
     const wrapHighlight = (startBlock, startOffset, endBlock, endOffset, highlightId) => {
       const marks = [];
       for (let b = startBlock; b <= endBlock; b++) {
@@ -250,6 +254,15 @@
         const to = b === endBlock ? endOffset : block.textContent.length;
         const mark = wrapBlockRange(block, from, to);
         if (mark) marks.push(mark);
+        // Images have no text to wrap. Outline the ones the highlight
+        // covers, by the same rule the server stores and exports them
+        // (`images_in_block_range` in app/db.py).
+        if ((b > startBlock && b < endBlock) || isImageOnly(block)) {
+          imagesIn(block).forEach((img) => {
+            img.classList.add("hl-image");
+            if (highlightId != null) img.dataset.highlightId = String(highlightId);
+          });
+        }
       }
       if (highlightId != null) {
         marks.forEach((mark) => {
@@ -308,6 +321,10 @@
         parent.removeChild(mark);
         parent.normalize();
       });
+      body.querySelectorAll(`img.hl-image[data-highlight-id="${highlightId}"]`).forEach((img) => {
+        img.classList.remove("hl-image");
+        delete img.dataset.highlightId;
+      });
     };
 
     body.addEventListener("click", (event) => {
@@ -324,20 +341,36 @@
       const text = range.toString();
       if (!text.trim()) return;
 
-      const startBlock = blockIndexOf(range.startContainer);
-      const endBlock = blockIndexOf(range.endContainer);
+      let startBlock = blockIndexOf(range.startContainer);
+      let endBlock = blockIndexOf(range.endContainer);
       if (startBlock < 0 || endBlock < 0) return;
-      const startOffset = charOffsetWithinBlock(
+      let startOffset = charOffsetWithinBlock(
         blocks[startBlock],
         range.startContainer,
         range.startOffset
       );
-      const endOffset = charOffsetWithinBlock(
+      let endOffset = charOffsetWithinBlock(
         blocks[endBlock],
         range.endContainer,
         range.endOffset
       );
       selection.removeAllRanges();
+
+      // A boundary in an image-only block counts as covering its image
+      // (see `images_in_block_range` in app/db.py). A browser often puts a
+      // selection's end at the very start of the next block, touching an
+      // image without covering it: move such a boundary onto the
+      // neighbouring text so the image stays out.
+      const touchesOnly = (block) =>
+        isImageOnly(block) && !imagesIn(block).some((img) => range.intersectsNode(img));
+      if (endBlock > startBlock && touchesOnly(blocks[endBlock])) {
+        endBlock -= 1;
+        endOffset = blocks[endBlock].textContent.length;
+      }
+      if (startBlock < endBlock && touchesOnly(blocks[startBlock])) {
+        startBlock += 1;
+        startOffset = 0;
+      }
 
       const newStart = [startBlock, startOffset];
       const newEnd = [endBlock, endOffset];
