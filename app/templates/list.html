@@ -21,7 +21,7 @@
 
       <section class="list">
         {% for item in items %}
-          {{ item_row(item, list_slug=slug, swipeable=true) }}
+          {{ item_row(item, list_slug=slug, swipeable=true, view=view if view in ("archive", "read") else none) }}
         {% endfor %}
       </section>
 {% endblock %}
