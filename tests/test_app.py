@@ -1382,15 +1382,33 @@ def _set_body_html(tmp_path, item_id, body_html):
         conn.close()
 
 
-def test_images_in_block_range_collects_urls_from_interior_blocks_only():
+def test_images_in_block_range_collects_urls_from_interior_blocks():
     body = (
         '<p>First</p>'
         '<img src="https://example.test/a.png">'
         '<p>Second</p>'
     )
     assert dbmod.images_in_block_range(body, 0, 2) == ["https://example.test/a.png"]
-    # The image is the boundary block itself in this range, not interior.
-    assert dbmod.images_in_block_range(body, 1, 2) == []
+
+
+def test_images_in_block_range_includes_an_image_only_boundary_block():
+    # A selection starting or ending on the image itself covers it.
+    body = (
+        '<p>First</p>'
+        '<p><img src="https://example.test/a.png"></p>'
+        '<p>Second</p>'
+    )
+    assert dbmod.images_in_block_range(body, 1, 2) == ["https://example.test/a.png"]
+    assert dbmod.images_in_block_range(body, 0, 1) == ["https://example.test/a.png"]
+
+
+def test_images_in_block_range_skips_an_inline_image_in_a_text_boundary_block():
+    # The boundary block is only partly covered, so its inline image may
+    # sit outside the selection.
+    body = (
+        '<p>Before <img src="https://example.test/a.png"> after</p>'
+        '<p>Second</p>'
+    )
     assert dbmod.images_in_block_range(body, 0, 1) == []
 
 
@@ -1437,7 +1455,7 @@ def test_saving_a_highlight_spanning_an_interior_image_block_stores_its_url(
         assert json.loads(row["image_urls"]) == ["https://example.test/a.png"]
 
 
-def test_saving_a_highlight_that_stops_at_the_image_block_does_not_store_it(
+def test_saving_a_highlight_that_ends_on_the_image_block_stores_it(
     monkeypatch, tmp_path
 ):
     with _client(monkeypatch, tmp_path) as client:
@@ -1458,7 +1476,7 @@ def test_saving_a_highlight_that_stops_at_the_image_block_does_not_store_it(
             row = dbmod.get_highlight(conn, item_id, highlight_id)
         finally:
             conn.close()
-        assert row["image_urls"] is None
+        assert json.loads(row["image_urls"]) == ["https://example.test/a.png"]
 
 
 def test_merging_a_highlight_across_an_image_recomputes_instead_of_concatenating(

@@ -443,18 +443,24 @@ def overlapping_highlights(
 
 
 def images_in_block_range(body_html: str | None, start_block: int, end_block: int) -> list[str]:
-    """Image URLs inside the top-level blocks strictly between start_block and
-    end_block - the ones a highlight's boundary blocks only partially cover,
-    not the images that sit on the boundary itself. Mirrors the block
-    indexing `app/static/app.js`'s `blocks = Array.from(body.children)` uses,
-    so a block index here means the same thing it means client-side.
+    """Image URLs a highlight covers: every image in the top-level blocks
+    strictly between start_block and end_block, plus the image in a boundary
+    block that holds no text, since a selection only starts or ends inside
+    such a block when it covers the image (the client moves a boundary that
+    merely touches one onto the neighbouring text). A text boundary block's
+    inline images stay out: the selection may cover only part of it. Mirrors
+    the block indexing `app/static/app.js`'s `blocks = Array.from(body.children)`
+    uses, so a block index here means the same thing it means client-side.
     """
-    if not body_html or end_block - start_block < 2:
+    if not body_html or end_block <= start_block:
         return []
     container = fromstring(f"<div>{body_html}</div>")
     blocks = list(container)
     urls = []
-    for block in blocks[start_block + 1 : end_block]:
+    for index, block in enumerate(blocks[start_block : end_block + 1], start_block):
+        interior = start_block < index < end_block
+        if not interior and block.text_content().strip():
+            continue
         for img in block.iter("img"):
             src = img.get("src")
             if src:
