@@ -155,3 +155,58 @@ def test_saved_highlight_over_an_image_marks_it_on_reload(
         )
         browser_page.goto(f"{ORIGIN}/items/{item_id}")
         assert _outlined(browser_page) == 1
+
+
+LIST_BODY = (
+    "<p>Two thresholds.</p>"
+    "<ul>\n<li>Minimum viable</li>\n<li><em>Maximum</em> necessary</li>\n</ul>"
+    "<p>After the list</p>"
+)
+
+
+def _list_state(page):
+    return page.evaluate(
+        """() => {
+          const ul = document.querySelector(".article-body ul");
+          return {
+            items: Array.from(ul.children).map((el) => el.tagName + ":" + el.textContent),
+            unmarked: Array.from(ul.querySelectorAll("li"))
+              .flatMap((li) => {
+                const walker = document.createTreeWalker(li, NodeFilter.SHOW_TEXT);
+                const out = [];
+                for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+                  if (n.textContent && !n.parentElement.closest("mark.hl")) out.push(n.textContent);
+                }
+                return out;
+              }),
+          };
+        }"""
+    )
+
+
+def test_highlight_into_a_list_keeps_its_items_and_marks_them(
+    monkeypatch, tmp_path, browser_page
+):
+    # A highlight running from a paragraph into a list used to wrap the
+    # list items themselves in one <mark>, leaving empty bullets behind and
+    # no visible highlight colour on the items.
+    list_text = "\nMinimum viable\nMaximum necessary\n"
+    with _opened(browser_page, monkeypatch, tmp_path, LIST_BODY) as (client, item_id):
+        _save_highlight(
+            client, item_id, start_block=0, start_offset=0,
+            end_block=1, end_offset=len(list_text),
+        )
+        browser_page.goto(f"{ORIGIN}/items/{item_id}")
+        state = _list_state(browser_page)
+        assert state["items"] == ["LI:Minimum viable", "LI:Maximum necessary"]
+        assert state["unmarked"] == []
+
+
+def test_selecting_into_a_list_keeps_its_items(monkeypatch, tmp_path, browser_page):
+    with _opened(browser_page, monkeypatch, tmp_path, LIST_BODY):
+        _select_and_save(
+            browser_page, "b[0].firstChild, 0", "b[1].children[1].lastChild, 10"
+        )
+        state = _list_state(browser_page)
+        assert state["items"] == ["LI:Minimum viable", "LI:Maximum necessary"]
+        assert state["unmarked"] == []
