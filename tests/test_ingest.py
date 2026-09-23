@@ -195,6 +195,39 @@ def test_capture_article_keeps_an_inline_body_image(tmp_path):
     assert 'src="https://example.test/diagram.png"' in item["body_html"]
 
 
+def test_capture_article_keeps_whole_paragraph_bold_in_an_interview(tmp_path):
+    # trafilatura strips a <strong> that wraps an entire paragraph's text
+    # (treating it as noise rather than emphasis), which loses the
+    # question/answer distinction in an interview transcript where every
+    # interviewer question is a fully-bold paragraph and every answer isn't.
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://example.test/an-interview"
+    html = """
+    <html><head><title>An Interview About Technofascism</title></head>
+    <body><article>
+    <p>An opening paragraph with enough real words in it for trafilatura to
+    treat this page as an actual article worth extracting in the first place.</p>
+    <p><strong>How does artificial intelligence pave the way for
+    technofascism in your view, and why does it matter so much right now?</strong></p>
+    <p>Artificial intelligence concentrates power in ways we have not fully
+    reckoned with yet, and that concentration is what makes it dangerous.</p>
+    <p><strong>What role do the big platforms play in that concentration of
+    power across the technology industry as a whole?</strong></p>
+    <p>The big platforms control the infrastructure that everything else
+    depends on, which gives them leverage far beyond their market share.</p>
+    </article></body></html>
+    """
+    item_id, _title = capture_article(conn, url, html=html)
+    conn.commit()
+    item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    body = item["body_html"]
+    assert "<strong>How does artificial intelligence" in body
+    assert "<strong>What role do the big platforms" in body
+    assert "<strong>Artificial intelligence concentrates power" not in body
+    assert "<strong>The big platforms control" not in body
+
+
 def test_capture_article_prefers_the_real_headline_for_an_x_article(tmp_path):
     # The client caught this: X's long-form Article format sets a real
     # headline in og:description (matching an on-page <h1>), which the

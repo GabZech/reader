@@ -540,6 +540,59 @@ def _hoist_table_images(tree) -> None:
         parent.replace(table, replacement)
 
 
+def _is_fully_bold_paragraph(p) -> bool:
+    """True when every bit of a <p>'s direct text reads as bold in the
+    original - the shape an interview's question paragraph takes
+    (<p><strong>the whole question</strong></p>), as opposed to a paragraph
+    that merely bolds one word or phrase inside otherwise plain text."""
+    if p.text and p.text.strip():
+        return False
+    children = list(p)
+    if not children:
+        return False
+    for child in children:
+        if child.tag not in ("strong", "b"):
+            return False
+        if child.tail and child.tail.strip():
+            return False
+    return True
+
+
+def _fully_bold_paragraph_texts(tree) -> list[str]:
+    """The normalized text of every whole-paragraph-bold <p> in the original
+    page, used to recover them after extraction (see
+    `_recover_bold_paragraphs`) since trafilatura drops a <strong> that spans
+    a paragraph's entire text, treating it as noise rather than emphasis."""
+    texts = []
+    for p in tree.iter("p"):
+        if _is_fully_bold_paragraph(p):
+            text = " ".join(p.text_content().split())
+            if text:
+                texts.append(text)
+    return texts
+
+
+def _recover_bold_paragraphs(body: str, texts: list[str]) -> str:
+    """Re-wrap a paragraph in <strong> when its text matches one trafilatura
+    stripped whole-paragraph bold from (see `_fully_bold_paragraph_texts`).
+    Matches whitespace loosely, same as `_recover_missing_images`' anchor
+    matching, since extraction can reflow the original's line wrapping."""
+    for text in texts:
+        words = [re.escape(word) for word in _esc(text).split()]
+        if not words:
+            continue
+        pattern = re.compile(r"<p(\s[^>]*)?>\s*" + r"\s+".join(words) + r"\s*</p>")
+        match = pattern.search(body)
+        if not match or "<strong>" in match.group(0):
+            continue
+        attrs = match.group(1) or ""
+        open_tag = f"<p{attrs}>"
+        inner = match.group(0)[len(open_tag) : -len("</p>")].strip()
+        replacement = f"{open_tag}<strong>{inner}</strong></p>"
+        body = body[: match.start()] + replacement + body[match.end() :]
+    return body
+
+
 def _recover_missing_images(body: str, candidates: list[tuple[str, str, str]]) -> str:
     """Embed any article image that didn't make it into the extracted body,
     as close as possible to where it belongs: right after the nearest
@@ -621,12 +674,14 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
     title = (metadata.title if metadata else None) or url
     body_source = html
     image_candidates: list[tuple[str, str]] = []
+    bold_paragraph_texts: list[str] = []
     try:
         tree = fromstring(html)
     except Exception:  # noqa: BLE001 - arbitrary page HTML, any parse failure means skip the rewrite
         tree = None
     if tree is not None:
         image_candidates = _image_candidates(tree, url)
+        bold_paragraph_texts = _fully_bold_paragraph_texts(tree)
         _hoist_table_images(tree)
         body_source = tostring(tree, encoding="unicode")
     extracted = trafilatura.extract(
@@ -635,6 +690,8 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
     body = sanitize_html(extracted, preserve_tables=True) if extracted else None
     if body and image_candidates:
         body = _recover_missing_images(body, image_candidates)
+    if body and bold_paragraph_texts:
+        body = _recover_bold_paragraphs(body, bold_paragraph_texts)
     if _is_generic_x_title(url, title):
         # X sets a real headline in og:description (matching an on-page <h1>)
         # for anything using its long-form Article format - a far more
