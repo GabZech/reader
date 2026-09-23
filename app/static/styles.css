@@ -188,32 +188,101 @@ body {
   position: relative;
   background: var(--bg-card);
   border-top: 0;
-  transition: transform 0.15s ease;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: transform 0.2s ease;
 }
 
-.item-swipe.is-open .item {
-  transform: translateX(-5.5rem);
-}
-
-.item-delete-action {
+.swipe-under {
   position: absolute;
   inset: 0;
-  margin: 0;
-  display: flex;
-  justify-content: flex-end;
-  align-items: stretch;
-}
-
-.item-delete-btn {
-  width: 5.5rem;
-  border: 0;
-  background: var(--notice);
-  color: #fff;
-  font: inherit;
+  display: none;
+  align-items: center;
+  padding: 0 1.25rem;
   font-size: 0.9375rem;
   font-weight: 600;
   letter-spacing: -0.005em;
+}
+
+.swipe-delete {
+  justify-content: flex-start;
+  background: var(--notice);
+  color: #fff;
+}
+
+.swipe-move {
+  justify-content: flex-end;
+  background: #57534e;
+  color: #fafaf9;
+}
+
+.item-swipe.is-swiping-right .swipe-delete,
+.item-swipe.is-swiping-left .swipe-move {
+  display: flex;
+}
+
+.item-swipe.is-leaving {
+  transition: height 0.2s ease, border-color 0.2s ease;
+}
+
+.swipe-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.swipe-dialog {
+  width: 100%;
+  max-width: 18.5rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--bg-card);
+}
+
+.swipe-dialog-body {
+  padding: 1.1rem 1.1rem 1rem;
+}
+
+.swipe-dialog h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.swipe-dialog p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.swipe-dialog-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--border);
+}
+
+.swipe-dialog button {
+  padding: 0.8rem;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
   cursor: pointer;
+}
+
+.swipe-dialog button + button {
+  border-left: 1px solid var(--border);
+  color: var(--notice);
+  font-weight: 600;
 }
 
 .item.has-thumb {

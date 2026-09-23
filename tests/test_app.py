@@ -1794,6 +1794,78 @@ def test_marking_read_moves_item_to_read_tab_and_off_home(monkeypatch, tmp_path)
         assert "First fixture item" not in home.text
 
 
+def test_marking_unread_moves_item_back_to_unread_tab(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/read?from_list=news")
+
+        unread = client.post(f"/items/{item_id}/unread?from_list=news")
+        assert unread.status_code == 200
+        assert unread.request.url.path == "/lists/news"
+
+        news = client.get("/lists/news")
+        assert "Unread (2)" in news.text
+        assert "Read (0)" in news.text
+        assert "First fixture item" in news.text
+
+        home = client.get("/")
+        assert "First fixture item" in home.text
+
+
+def test_marking_unread_never_touches_the_vault(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _save_highlight(client, item_id)
+        client.post(f"/items/{item_id}/read?from_list=news")
+        calls = _record_exports(monkeypatch)
+
+        client.post(f"/items/{item_id}/unread?from_list=news")
+        assert calls == []
+
+
+def test_mark_unread_on_missing_item_is_404(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        assert client.post("/items/999/unread?from_list=news").status_code == 404
+
+
+def test_moving_to_library_brings_an_archived_item_back(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        client.post(f"/items/{item_id}/archive?from_list=later")
+        assert "Library (0)" in client.get("/lists/later").text
+
+        back = client.post(f"/items/{item_id}/unarchive?from_list=later")
+        assert back.status_code == 200
+        assert back.request.url.path == "/lists/later"
+
+        later = client.get("/lists/later")
+        assert "Library (1)" in later.text
+        assert "Archive (0)" in later.text
+        assert "First fixture item" in later.text
+
+
+def test_moving_to_library_never_touches_the_vault(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        _save_highlight(client, item_id)
+        client.post(f"/items/{item_id}/archive?from_list=later")
+        calls = _record_exports(monkeypatch)
+
+        client.post(f"/items/{item_id}/unarchive?from_list=later")
+        assert calls == []
+
+
+def test_move_to_library_on_missing_item_is_404(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        assert client.post("/items/999/unarchive").status_code == 404
+
+
 def test_delete_captured_item_clears_its_direct_list_membership(monkeypatch, tmp_path):
     # A captured item reaches Read later through item_lists, not source_lists.
     # Deleting it must clear that row too, or the items.id foreign key from

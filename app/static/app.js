@@ -50,68 +50,208 @@
     }
   };
 
-  document.querySelectorAll("[data-list]").forEach((section) => {
-    const extras = [...section.querySelectorAll(".item.is-more")];
+  // Home shows three rows per list, the rest behind Show more. Laid out
+  // from the rows still present, so a row swiped away lets the next move up.
+  const layoutHomeList = (section) => {
+    const rows = [...section.querySelectorAll(":scope > .item-swipe, :scope > .item")];
     const button = section.querySelector(".show-more");
-    if (!button || extras.length === 0) return;
-
-    const setExpanded = (expanded) => {
-      extras.forEach((item) => {
-        item.hidden = !expanded;
-      });
+    const expanded = section.dataset.expanded === "1";
+    rows.forEach((row, index) => {
+      row.hidden = !expanded && index >= 3;
+    });
+    if (button) {
+      button.hidden = rows.length <= 3;
       button.textContent = expanded ? "Show less" : "Show more";
-    };
+    }
+  };
 
-    setExpanded(false);
+  document.querySelectorAll("[data-list]").forEach((section) => {
+    const button = section.querySelector(".show-more");
+    if (!button) return;
     button.addEventListener("click", () => {
-      const isExpanded = extras.every((item) => !item.hidden);
-      setExpanded(!isExpanded);
+      section.dataset.expanded = section.dataset.expanded === "1" ? "" : "1";
+      layoutHomeList(section);
     });
   });
 
-  const initSwipeToDelete = () => {
-    const OPEN_X = -88; // 5.5rem at the default 16px root font-size, matches .item-delete-btn width
-    const THRESHOLD = OPEN_X / 2;
-    let openRow = null;
+  const initSwipe = () => {
+    const rows = document.querySelectorAll(".item-swipe");
+    if (rows.length === 0) return;
+    const SLIDE = "transform 0.2s ease";
 
-    const closeRow = (row) => {
-      row.classList.remove("is-open");
-      if (openRow === row) openRow = null;
+    // A row leaving one tab lands in the other: the active tab's count
+    // drops and, when it moved rather than got deleted, the other rises.
+    const bumpCounts = (row, moved) => {
+      // On Home a row leaves its list whichever way it goes.
+      const homeList = row.closest("[data-list]");
+      if (homeList) {
+        const count = homeList.querySelector(".count");
+        if (count) count.textContent = String(Math.max(0, Number(count.textContent) - 1));
+        return;
+      }
+      const tabs = document.querySelectorAll(".actions a");
+      tabs.forEach((tab) => {
+        const delta = tab.classList.contains("is-active") ? -1 : moved ? 1 : 0;
+        if (delta === 0) return;
+        tab.textContent = tab.textContent.replace(/\((\d+)\)/, (_, n) => `(${Number(n) + delta})`);
+      });
     };
 
-    document.querySelectorAll(".item-swipe").forEach((row) => {
+    const post = async (url) => {
+      // `manual` keeps the redirect the form routes answer with from being
+      // followed: a 303 back to the list is success, and nothing else loads.
+      const response = await fetch(url, { method: "POST", redirect: "manual" });
+      if (!(response.ok || response.type === "opaqueredirect")) {
+        throw new Error(`status ${response.status}`);
+      }
+    };
+
+    const setX = (row, x, animate) => {
+      const link = row.querySelector(".item");
+      link.style.transition = animate ? SLIDE : "none";
+      link.style.transform = x ? `translateX(${x}px)` : "";
+      row.classList.toggle("is-swiping-left", x < 0);
+      row.classList.toggle("is-swiping-right", x > 0);
+    };
+
+    const removeRow = (row) => {
+      row.style.height = `${row.offsetHeight}px`;
+      row.classList.add("is-leaving");
+      requestAnimationFrame(() => {
+        row.style.height = "0px";
+        row.style.borderTopColor = "transparent";
+      });
+      setTimeout(() => {
+        const homeList = row.closest("[data-list]");
+        row.remove();
+        if (!homeList) return;
+        const count = homeList.querySelector(".count");
+        // Home hides a list with nothing unread; match that without a reload.
+        if (count && count.textContent === "0") {
+          homeList.remove();
+        } else {
+          layoutHomeList(homeList);
+        }
+      }, 220);
+    };
+
+    const failed = (row) => {
+      setX(row, 0, true);
+      delete row.dataset.busy;
+      showToast("Couldn't save");
+    };
+
+    const runMove = async (row) => {
+      row.dataset.busy = "1";
+      setX(row, -row.offsetWidth, true);
+      try {
+        await post(row.dataset.swipeAction);
+      } catch {
+        failed(row);
+        return;
+      }
+      bumpCounts(row, true);
+      removeRow(row);
+    };
+
+    const confirmDelete = (row) => {
+      row.dataset.busy = "1";
+      setX(row, Math.round(row.offsetWidth * 0.4), true);
+      const backdrop = document.createElement("div");
+      backdrop.className = "swipe-dialog-backdrop";
+      backdrop.innerHTML = `
+        <div class="swipe-dialog" role="alertdialog" aria-modal="true" aria-labelledby="swipe-dialog-title">
+          <div class="swipe-dialog-body">
+            <h2 id="swipe-dialog-title">Delete this article?</h2>
+            <p></p>
+          </div>
+          <div class="swipe-dialog-buttons">
+            <button type="button">Cancel</button>
+            <button type="button">Delete</button>
+          </div>
+        </div>`;
+      backdrop.querySelector("p").textContent =
+        `“${row.querySelector(".title").textContent}” will be removed from every list. This can’t be undone.`;
+      const [cancel, confirm] = backdrop.querySelectorAll("button");
+
+      const close = () => {
+        backdrop.remove();
+        document.removeEventListener("keydown", onKey);
+      };
+      const onCancel = () => {
+        close();
+        setX(row, 0, true);
+        delete row.dataset.busy;
+      };
+      const onKey = (event) => {
+        if (event.key === "Escape") onCancel();
+      };
+
+      cancel.addEventListener("click", onCancel);
+      backdrop.addEventListener("click", (event) => {
+        if (event.target === backdrop) onCancel();
+      });
+      document.addEventListener("keydown", onKey);
+      confirm.addEventListener("click", async () => {
+        close();
+        try {
+          await post(row.dataset.deleteAction);
+        } catch {
+          failed(row);
+          return;
+        }
+        bumpCounts(row, false);
+        removeRow(row);
+      });
+
+      document.body.appendChild(backdrop);
+      cancel.focus();
+    };
+
+    rows.forEach((row) => {
       const link = row.querySelector(".item");
       if (!link) return;
+      const canMove = Boolean(row.dataset.swipeAction);
       let startX = 0;
       let startY = 0;
+      let dx = 0;
       let dragging = false;
       let deciding = false;
       let justDragged = false;
 
+      const clamp = (value) => {
+        const width = row.offsetWidth;
+        return Math.max(canMove ? -width : 0, Math.min(width, value));
+      };
+
+      // A mouse drag on a link otherwise starts the browser's own link drag,
+      // which cancels the pointer mid-swipe.
+      link.addEventListener("dragstart", (event) => event.preventDefault());
+
       link.addEventListener("pointerdown", (event) => {
         if (event.pointerType === "mouse" && event.button !== 0) return;
+        if (row.dataset.busy) return;
         startX = event.clientX;
         startY = event.clientY;
+        dx = 0;
         dragging = false;
         deciding = true;
       });
 
       link.addEventListener("pointermove", (event) => {
         if (!deciding && !dragging) return;
-        const dx = event.clientX - startX;
-        const dy = event.clientY - startY;
+        const moveX = event.clientX - startX;
+        const moveY = event.clientY - startY;
         if (deciding) {
-          if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+          if (Math.abs(moveX) < 8 && Math.abs(moveY) < 8) return;
           deciding = false;
-          dragging = Math.abs(dx) > Math.abs(dy);
+          dragging = Math.abs(moveX) > Math.abs(moveY);
           if (dragging) link.setPointerCapture(event.pointerId);
         }
         if (!dragging) return;
         event.preventDefault();
-        const base = row.classList.contains("is-open") ? OPEN_X : 0;
-        const next = Math.min(0, Math.max(OPEN_X, base + dx));
-        link.style.transition = "none";
-        link.style.transform = `translateX(${next}px)`;
+        dx = clamp(moveX);
+        setX(row, dx, false);
       });
 
       const finishDrag = (event) => {
@@ -120,17 +260,13 @@
         dragging = false;
         // A drag release fires a trailing click on this same element; swallow it below.
         justDragged = true;
-        link.style.transition = "";
-        link.style.transform = "";
-        const base = row.classList.contains("is-open") ? OPEN_X : 0;
-        const dx = event.clientX - startX;
-        const next = Math.min(0, Math.max(OPEN_X, base + dx));
-        if (next < THRESHOLD) {
-          if (openRow && openRow !== row) closeRow(openRow);
-          row.classList.add("is-open");
-          openRow = row;
+        const threshold = row.offsetWidth / 3;
+        if (event.type === "pointerup" && dx <= -threshold) {
+          runMove(row);
+        } else if (event.type === "pointerup" && dx >= threshold) {
+          confirmDelete(row);
         } else {
-          closeRow(row);
+          setX(row, 0, true);
         }
       };
 
@@ -138,14 +274,9 @@
       link.addEventListener("pointercancel", finishDrag);
 
       link.addEventListener("click", (event) => {
-        if (justDragged) {
+        if (justDragged || row.dataset.busy) {
           justDragged = false;
           event.preventDefault();
-          return;
-        }
-        if (row.classList.contains("is-open")) {
-          event.preventDefault();
-          closeRow(row);
         }
       });
     });
@@ -527,7 +658,7 @@
   }
 
   initThemeToggle();
-  initSwipeToDelete();
+  initSwipe();
   initReadingProgress();
   initHighlights();
   initHighlightDetail();
