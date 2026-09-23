@@ -173,7 +173,11 @@ def home(request: Request):
     conn = connect()
     try:
         init_db(conn)
-        lists = lists_with_items(conn, limit_per_list=6)
+        lists = [
+            section
+            for section in lists_with_items(conn, limit_per_list=6)
+            if section["items"]
+        ]
     finally:
         conn.close()
     return templates.TemplateResponse(

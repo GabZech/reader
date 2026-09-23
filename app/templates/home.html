@@ -26,5 +26,7 @@
         <button class="show-more" type="button">Show more</button>
         {% endif %}
       </section>
+      {% else %}
+      <p class="caught-up">You're all caught up.</p>
       {% endfor %}
 {% endblock %}
