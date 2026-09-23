@@ -52,6 +52,7 @@ from app.db import (
     mark_highlights_exported,
     mark_item_read,
     mark_item_seen,
+    mark_item_unread,
     membership_label,
     move_list,
     overlapping_highlights,
@@ -68,6 +69,7 @@ from app.db import (
     source_id_for,
     source_memberships,
     touch_item_highlights,
+    unarchive_item_in_list,
 )
 from app.ingest import (
     capture_article,
@@ -1423,6 +1425,38 @@ def item_mark_read(
         conn.close()
     _export_if_pending(item)
     return RedirectResponse(f"/lists/{from_list}?flash=Read", status_code=303)
+
+
+@app.post("/items/{item_id}/unread")
+def item_mark_unread(item_id: int, from_list: str):
+    conn = connect()
+    try:
+        init_db(conn)
+        if get_item(conn, item_id) is None:
+            raise HTTPException(status_code=404)
+        mark_item_unread(conn, item_id, from_list)
+        conn.commit()
+    finally:
+        conn.close()
+    # Undoing a read never touches the vault: whatever was exported stays.
+    return RedirectResponse(_list_url(from_list, "read", "Unread"), status_code=303)
+
+
+@app.post("/items/{item_id}/unarchive")
+def item_unarchive(item_id: int):
+    conn = connect()
+    try:
+        init_db(conn)
+        if get_item(conn, item_id) is None:
+            raise HTTPException(status_code=404)
+        unarchive_item_in_list(conn, item_id, "later")
+        conn.commit()
+    finally:
+        conn.close()
+    # Same as unread: moving back to Library never touches the vault.
+    return RedirectResponse(
+        _list_url("later", "archive", "Moved to Library"), status_code=303
+    )
 
 
 @app.post("/items/{item_id}/delete")

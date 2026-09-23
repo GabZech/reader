@@ -605,10 +605,24 @@ def mark_item_read(conn: sqlite3.Connection, item_id: int, list_slug: str) -> No
     )
 
 
+def mark_item_unread(conn: sqlite3.Connection, item_id: int, list_slug: str) -> None:
+    conn.execute(
+        "DELETE FROM item_read WHERE item_id = ? AND list_slug = ?",
+        (item_id, list_slug),
+    )
+
+
 def archive_item_in_list(conn: sqlite3.Connection, item_id: int, list_slug: str) -> None:
     conn.execute(
         "UPDATE item_lists SET archived_at = ? WHERE item_id = ? AND list_slug = ?",
         (datetime.now(UTC).isoformat(), item_id, list_slug),
+    )
+
+
+def unarchive_item_in_list(conn: sqlite3.Connection, item_id: int, list_slug: str) -> None:
+    conn.execute(
+        "UPDATE item_lists SET archived_at = NULL WHERE item_id = ? AND list_slug = ?",
+        (item_id, list_slug),
     )
 
 
