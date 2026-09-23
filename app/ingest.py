@@ -578,7 +578,9 @@ def _recover_missing_images(body: str, candidates: list[tuple[str, str, str]]) -
 
 
 _X_HOSTS = {"x.com", "twitter.com", "www.x.com", "www.twitter.com"}
-_GENERIC_X_TITLE_RE = re.compile(r".+\(@\w+\) on X$")
+# X localizes the word before "X" to the viewer's language ("on X", "en X",
+# "sur X", "auf X"...), so any single word there counts.
+_GENERIC_X_TITLE_RE = re.compile(r".+\(@\w+\) \S+ X$")
 
 
 def _synthesized_title(body: str) -> str | None:
