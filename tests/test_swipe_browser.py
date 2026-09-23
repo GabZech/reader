@@ -35,8 +35,8 @@ def _row(page, title):
     return page.locator(".item-swipe", has_text=title)
 
 
-def _swipe(page, title, dx):
-    box = _row(page, title).bounding_box()
+def _swipe(page, title, dx, within=None):
+    box = _row(within or page, title).bounding_box()
     x = box["x"] + box["width"] / 2
     y = box["y"] + box["height"] / 2
     page.mouse.move(x, y)
@@ -266,3 +266,113 @@ def test_a_finger_swipe_right_asks_before_deleting_on_a_phone(
         _finger_swipe(touch_phone, FIRST, 170)
 
         expect(touch_phone.get_by_role("alertdialog")).to_be_visible()
+
+
+def _add_news_items(tmp_path, count):
+    """Two fixture items plus `count` more, all inside the News window."""
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        source_id = conn.execute("SELECT id FROM sources").fetchone()["id"]
+        for n in range(count):
+            dbmod.upsert_item(
+                conn,
+                source_id=source_id,
+                guid=f"extra-{n}",
+                title=f"Extra item {n}",
+                author=None,
+                url=f"https://example.test/extra-{n}",
+                published_at=f"2026-08-19T0{n}:00:00+00:00",
+                body_html="<p>x</p>",
+                image_url=None,
+                word_count=None,
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _home(page):
+    # Home syncs and reloads once per session; mark this one synced so a
+    # reload doesn't land mid-swipe.
+    page.add_init_script("sessionStorage.setItem('reader-synced', '1')")
+    page.goto(f"{ORIGIN}/")
+
+
+def _section(page, slug):
+    return page.locator(f"section[aria-labelledby='{slug}-heading']")
+
+
+def _visible_rows(page, slug):
+    return _section(page, slug).locator(".item-swipe:visible")
+
+
+def test_swiping_left_on_home_marks_read(monkeypatch, tmp_path, phone):
+    with _news(phone, monkeypatch, tmp_path):
+        _home(phone)
+        _left(phone, FIRST)
+
+        expect(_row(phone, FIRST)).to_have_count(0)
+        expect(_section(phone, "news").locator(".count")).to_have_text("1")
+        assert _titles(tmp_path, "news", read=True) == [FIRST]
+
+
+def test_swiping_left_on_home_read_later_archives(monkeypatch, tmp_path, phone):
+    with _news(phone, monkeypatch, tmp_path) as (client, _):
+        _save_later(client, SECOND, tmp_path)
+        _home(phone)
+        _swipe(phone, SECOND, -170, within=_section(phone, "later"))
+
+        expect(_section(phone, "later")).to_have_count(0)
+        assert _titles(tmp_path, "later", archived=True) == [SECOND]
+
+
+def test_swiping_right_on_home_deletes_after_the_popup(monkeypatch, tmp_path, phone):
+    with _news(phone, monkeypatch, tmp_path) as (_, item_id):
+        _home(phone)
+        _right(phone, FIRST)
+        phone.get_by_role("alertdialog").get_by_role("button", name="Delete").click()
+
+        expect(_row(phone, FIRST)).to_have_count(0)
+        expect(_section(phone, "news").locator(".count")).to_have_text("1")
+        assert not _exists(tmp_path, item_id)
+
+
+def test_the_next_hidden_row_moves_up_on_home(monkeypatch, tmp_path, phone):
+    with _news(phone, monkeypatch, tmp_path):
+        _add_news_items(tmp_path, 3)
+        _home(phone)
+        expect(_visible_rows(phone, "news")).to_have_count(3)
+        first_visible = _visible_rows(phone, "news").first.locator(".title").inner_text()
+
+        _left(phone, first_visible)
+
+        expect(_row(phone, first_visible)).to_have_count(0)
+        expect(_visible_rows(phone, "news")).to_have_count(3)
+        expect(_section(phone, "news").locator(".count")).to_have_text("4")
+
+
+def test_show_more_still_shows_and_hides_the_extra_rows(monkeypatch, tmp_path, phone):
+    with _news(phone, monkeypatch, tmp_path):
+        _add_news_items(tmp_path, 3)
+        _home(phone)
+        more = _section(phone, "news").locator(".show-more")
+
+        expect(_visible_rows(phone, "news")).to_have_count(3)
+        more.click()
+        expect(_visible_rows(phone, "news")).to_have_count(5)
+        expect(more).to_have_text("Show less")
+        more.click()
+        expect(_visible_rows(phone, "news")).to_have_count(3)
+
+
+def test_show_more_goes_once_three_or_fewer_rows_are_left(monkeypatch, tmp_path, phone):
+    with _news(phone, monkeypatch, tmp_path):
+        _add_news_items(tmp_path, 2)
+        _home(phone)
+        more = _section(phone, "news").locator(".show-more")
+        expect(more).to_be_visible()
+
+        _left(phone, _visible_rows(phone, "news").first.locator(".title").inner_text())
+
+        expect(_visible_rows(phone, "news")).to_have_count(3)
+        expect(more).to_be_hidden()

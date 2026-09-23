@@ -12,13 +12,13 @@
 {% else %}
 {% set swipe_action, swipe_label = "/items/" ~ item.id ~ "/read?from_list=" ~ list_slug, "Mark as read" %}
 {% endif %}
-        <div class="item-swipe" data-delete-action="/items/{{ item.id }}/delete{{ context }}"{% if swipe_action %} data-swipe-action="{{ swipe_action }}"{% endif %}>
+        <div class="item-swipe{% if extra %} is-more{% endif %}"{% if extra %} hidden{% endif %} data-delete-action="/items/{{ item.id }}/delete{{ context }}"{% if swipe_action %} data-swipe-action="{{ swipe_action }}"{% endif %}>
           <div class="swipe-under swipe-delete" aria-hidden="true">Delete</div>
           {% if swipe_action %}
           <div class="swipe-under swipe-move" aria-hidden="true">{{ swipe_label }}</div>
           {% endif %}
 {% endif %}
-          <a class="item{% if item.image_url %} has-thumb{% endif %}{% if extra %} is-more{% endif %}{% if item.seen_at %} is-seen{% endif %}"{% if extra %} hidden{% endif %} href="/items/{{ item.id }}{% if source_id %}?from_source={{ source_id }}{% elif list_slug %}?from_list={{ list_slug }}{% if view %}&view={{ view }}{% endif %}{% if from_home %}&from_home=1{% endif %}{% endif %}">
+          <a class="item{% if item.image_url %} has-thumb{% endif %}{% if extra and not swipeable %} is-more{% endif %}{% if item.seen_at %} is-seen{% endif %}"{% if extra and not swipeable %} hidden{% endif %} href="/items/{{ item.id }}{% if source_id %}?from_source={{ source_id }}{% elif list_slug %}?from_list={{ list_slug }}{% if view %}&view={{ view }}{% endif %}{% if from_home %}&from_home=1{% endif %}{% endif %}">
           {% if item.image_url %}
           <span class="thumb" aria-hidden="true" style="background-image:url('{{ item.image_url }}')"></span>
           {% endif %}

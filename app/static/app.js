@@ -50,22 +50,27 @@
     }
   };
 
-  document.querySelectorAll("[data-list]").forEach((section) => {
-    const extras = [...section.querySelectorAll(".item.is-more")];
+  // Home shows three rows per list, the rest behind Show more. Laid out
+  // from the rows still present, so a row swiped away lets the next move up.
+  const layoutHomeList = (section) => {
+    const rows = [...section.querySelectorAll(":scope > .item-swipe, :scope > .item")];
     const button = section.querySelector(".show-more");
-    if (!button || extras.length === 0) return;
-
-    const setExpanded = (expanded) => {
-      extras.forEach((item) => {
-        item.hidden = !expanded;
-      });
+    const expanded = section.dataset.expanded === "1";
+    rows.forEach((row, index) => {
+      row.hidden = !expanded && index >= 3;
+    });
+    if (button) {
+      button.hidden = rows.length <= 3;
       button.textContent = expanded ? "Show less" : "Show more";
-    };
+    }
+  };
 
-    setExpanded(false);
+  document.querySelectorAll("[data-list]").forEach((section) => {
+    const button = section.querySelector(".show-more");
+    if (!button) return;
     button.addEventListener("click", () => {
-      const isExpanded = extras.every((item) => !item.hidden);
-      setExpanded(!isExpanded);
+      section.dataset.expanded = section.dataset.expanded === "1" ? "" : "1";
+      layoutHomeList(section);
     });
   });
 
@@ -76,7 +81,14 @@
 
     // A row leaving one tab lands in the other: the active tab's count
     // drops and, when it moved rather than got deleted, the other rises.
-    const bumpCounts = (moved) => {
+    const bumpCounts = (row, moved) => {
+      // On Home a row leaves its list whichever way it goes.
+      const homeList = row.closest("[data-list]");
+      if (homeList) {
+        const count = homeList.querySelector(".count");
+        if (count) count.textContent = String(Math.max(0, Number(count.textContent) - 1));
+        return;
+      }
       const tabs = document.querySelectorAll(".actions a");
       tabs.forEach((tab) => {
         const delta = tab.classList.contains("is-active") ? -1 : moved ? 1 : 0;
@@ -109,7 +121,18 @@
         row.style.height = "0px";
         row.style.borderTopColor = "transparent";
       });
-      setTimeout(() => row.remove(), 220);
+      setTimeout(() => {
+        const homeList = row.closest("[data-list]");
+        row.remove();
+        if (!homeList) return;
+        const count = homeList.querySelector(".count");
+        // Home hides a list with nothing unread; match that without a reload.
+        if (count && count.textContent === "0") {
+          homeList.remove();
+        } else {
+          layoutHomeList(homeList);
+        }
+      }, 220);
     };
 
     const failed = (row) => {
@@ -127,7 +150,7 @@
         failed(row);
         return;
       }
-      bumpCounts(true);
+      bumpCounts(row, true);
       removeRow(row);
     };
 
@@ -177,7 +200,7 @@
           failed(row);
           return;
         }
-        bumpCounts(false);
+        bumpCounts(row, false);
         removeRow(row);
       });
 
