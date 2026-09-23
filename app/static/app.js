@@ -352,24 +352,42 @@
       return last ? { node: last, offset: last.textContent.length } : null;
     };
 
+    // Wraps each text node's covered slice in its own <mark>, so a range
+    // crossing element boundaries (list items, links, emphasis) never pulls
+    // those elements apart or nests block elements inside an inline mark.
     const wrapBlockRange = (block, from, to) => {
-      if (to <= from) return null;
-      const start = pointAtOffset(block, from);
-      const end = pointAtOffset(block, to);
-      if (!start || !end) return null;
-      const range = document.createRange();
-      range.setStart(start.node, start.offset);
-      range.setEnd(end.node, end.offset);
-      try {
+      if (to <= from) return [];
+      const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+      const slices = [];
+      let pos = 0;
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const len = node.textContent.length;
+        const a = Math.max(from - pos, 0);
+        const b = Math.min(to - pos, len);
+        // Whitespace beside a block element (between list items, table
+        // cells, paragraphs in a quote) is layout, not text.
+        const layoutOnly =
+          !node.textContent.trim() &&
+          [node.previousSibling, node.nextSibling].some(
+            (el) =>
+              el &&
+              el.nodeType === Node.ELEMENT_NODE &&
+              !getComputedStyle(el).display.startsWith("inline")
+          );
+        if (a < b && !layoutOnly) slices.push({ node, a, b });
+        pos += len;
+        if (pos >= to) break;
+      }
+      return slices.map(({ node, a, b }) => {
+        let target = node;
+        if (b < target.textContent.length) target.splitText(b);
+        if (a > 0) target = target.splitText(a);
         const mark = document.createElement("mark");
         mark.className = "hl";
-        mark.appendChild(range.extractContents());
-        range.insertNode(mark);
+        target.before(mark);
+        mark.appendChild(target);
         return mark;
-      } catch {
-        /* leave the text unwrapped rather than corrupt the DOM */
-        return null;
-      }
+      });
     };
 
     const imagesIn = (block) =>
@@ -390,8 +408,7 @@
         if (!block) continue;
         const from = b === startBlock ? startOffset : 0;
         const to = b === endBlock ? endOffset : block.textContent.length;
-        const mark = wrapBlockRange(block, from, to);
-        if (mark) marks.push(mark);
+        marks.push(...wrapBlockRange(block, from, to));
         // Images have no text to wrap. Outline the ones the highlight
         // covers, by the same rule the server stores and exports them
         // (`images_in_block_range` in app/db.py).
