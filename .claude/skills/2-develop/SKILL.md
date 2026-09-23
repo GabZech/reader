@@ -65,12 +65,12 @@ On the branch, once the client has signed off live: check the docs. Tick the roa
 
 Push the branch and open a PR (`gh pr create` locally; the GitHub MCP server's PR tool in a cloud session, same substitution the branch-trial deploy in `docs/operations.md` already uses) — title and description follow `pull-requests`. Never push `main` directly — a local hook refuses it, and branch protection refuses it on GitHub's side too. Merge only two ways: the client merges the PR themselves, or explicitly tells the agent to, in which case squash-merge it (`gh pr merge --squash`), a confirmation-gated action like `flyctl deploy`.
 
-Either way, the live host must be back on `main` before the turn closes: a merge (by either path) deploys automatically per `docs/operations.md`. If the PR is still unmerged when the turn ends, redeploy `main` directly the same way a Try trial deploy gets cleared — an open PR is a fine stopping point, live drifting from `main` is not. Then the rest of the clean-state checklist, on top of `AGENTS.md`'s End of session:
+A merge (by either path) deploys `main` automatically per `docs/operations.md`, so an open PR is a fine stopping point with the live host left on this signed-off branch: do not redeploy `main` just because the turn is ending. If the PR is closed without merging, redeploy `main` then, the same way a Try trial deploy gets cleared. Then the rest of the clean-state checklist, on top of `AGENTS.md`'s End of session:
 
 - [ ] `docs/roadmap.md` reflects what actually passed: no line ticked that the client has not signed off live, no stale `(in flight)` or `(blocked)` marker.
 - [ ] `PROGRESS.md`'s in-flight entry for this change is cleared, committed on this same branch.
 - [ ] `preview/` empty, port 8000 free.
-- [ ] The live host is back on `main` (`bash init.sh --quick` confirms it), whether or not the PR has merged yet.
+- [ ] The live host is on `main`, or on this signed-off branch while its PR is open (`bash init.sh --quick` shows which).
 
 Recommend `/clear` (a fresh chat without leaving the terminal), or `/compact` if context has grown but continuity still matters.
 
@@ -95,7 +95,7 @@ Procedures for the middle four: [change-kinds.md](change-kinds.md).
 - Merge before the client has signed off on the live app, or merge a PR without the client's explicit permission
 - Push `main` directly, including for a revert
 - Deploy before the client's reply says to — showing the screenshot is not itself permission
-- Leave the live host on a branch once the turn is over
+- Leave the live host on a branch the client has not signed off once the turn is over
 - Skip, disable, or weaken a test to get green
 - Create per-epic plan or clarifying-answers files
 - Restyle, or widen the change beyond what was asked
