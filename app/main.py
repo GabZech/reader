@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from contextlib import asynccontextmanager, suppress
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -104,17 +104,41 @@ TIMED_NOTE = "Timed list · only recent items"
 UNTIMED_NOTE = "Not timed"
 
 
-EXPORT_DUE_AFTER = timedelta(days=1)
-EXPORT_CHECK_INTERVAL_SECONDS = 24 * 60 * 60
+# Brasilia has had no daylight saving since 2019, so a fixed offset is exact.
+EXPORT_TIMEZONE = timezone(timedelta(hours=-3), "BRT")
+EXPORT_HOUR = 5
+
+
+def _latest_export_run(now: datetime) -> datetime:
+    local = now.astimezone(EXPORT_TIMEZONE)
+    run = local.replace(hour=EXPORT_HOUR, minute=0, second=0, microsecond=0)
+    if run > local:
+        run -= timedelta(days=1)
+    return run.astimezone(UTC)
+
+
+def _next_export_run(now: datetime) -> datetime:
+    return _latest_export_run(now) + timedelta(days=1)
+
+
+def _run_startup_catch_up() -> None:
+    # Only what a missed 5am run would have sent: a restart mid-day never
+    # exports highlights that are still being worked on.
+    _run_due_exports(_latest_export_run(datetime.now(UTC)))
 
 
 async def _daily_export_check_loop() -> None:
+    try:
+        _run_startup_catch_up()
+    except Exception:  # noqa: BLE001, S110 - the background check must never crash the app
+        pass
     while True:
+        run_at = _next_export_run(datetime.now(UTC))
+        await asyncio.sleep((run_at - datetime.now(UTC)).total_seconds())
         try:
-            _run_due_exports()
+            _run_due_exports(run_at)
         except Exception:  # noqa: BLE001, S110 - the background check must never crash the app
             pass
-        await asyncio.sleep(EXPORT_CHECK_INTERVAL_SECONDS)
 
 
 @asynccontextmanager
@@ -1140,12 +1164,11 @@ def _export_if_pending(item) -> None:
         _export_item_highlights(item["id"])
 
 
-def _run_due_exports() -> None:
-    cutoff = (datetime.now(UTC) - EXPORT_DUE_AFTER).isoformat()
+def _run_due_exports(run_at: datetime) -> None:
     conn = connect()
     try:
         init_db(conn)
-        due = items_due_for_export(conn, cutoff)
+        due = items_due_for_export(conn, run_at.astimezone(UTC).isoformat())
     finally:
         conn.close()
     for item in due:

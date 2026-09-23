@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**.
 
+## 2026-09-23: The vault export fallback runs daily at 5am Brasilia time, with no settle time
+
+**Decision:** The background export no longer waits for highlights to go untouched for a day, checked every 24 hours from whenever the app started. It runs once a day at 5:00 Brasilia time (UTC−3) and exports every article whose highlights changed since its last export. On startup it exports only what a missed 5am run would have sent: changes made before the most recent 5am. Archive, mark as read, and delete still export immediately, as before.
+
+**Why:** The old timing could leave an edited note stale for up to about 48 hours, at unpredictable times. A fixed early-morning run caps the wait at about 24 hours and groups commits in `news-highlights` into one predictable batch. It also keeps the old settle time's purpose of never exporting mid-session, because the client is not highlighting at 5am. Restricting the startup run to missed changes keeps a mid-day deploy from exporting highlights still being worked on.
+
+**Rejected:** A 12-hour settle time with hourly checks (about 13 hours at most): the client preferred one predictable daily run. A real time-zone database lookup: Brasilia has had no daylight saving since 2019, so a fixed offset is exact and avoids adding a dependency.
+
+**Revisit when:** Brazil reintroduces daylight saving, or the client moves to a time zone that has it.
+
 ## 2026-09-23: The live host may stay on a signed-off branch until its PR merges
 
 **Decision:** Once the client has signed a change off live and its PR is open, the live host stays on that branch when the turn ends. The merge deploys `main` automatically; `main` is redeployed by hand only if the PR closes without merging. The host still ends a turn on `main` in every other case: a change not yet signed off, a paused one, or a scrapped one.
@@ -46,7 +56,7 @@ Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit 
 
 ## 2026-09-20: Vault export fires on archive/mark-as-read or a day later, not on every highlight action
 
-**Decision:** Saving a highlight, setting a title, or deleting a highlight no longer exports to the vault immediately; it just records that the article's highlights were touched. Archiving (Read later) or marking as read (every other list) exports once, only if something changed since the last export. A background check once a day exports anything touched more than a day ago and never caught up otherwise. Deleting an article never deletes its note from the vault: any still-unexported highlights export once as a final catch-up first, then local highlight rows are removed — the vault file is the durable copy, not the local database.
+**Decision:** Saving a highlight, setting a title, or deleting a highlight no longer exports to the vault immediately; it just records that the article's highlights were touched. Archiving (Read later) or marking as read (every other list) exports once, only if something changed since the last export. A background check once a day exports anything touched more than a day ago and never caught up otherwise (timing superseded by the 2026-09-23 entry: daily at 5am Brasilia time, no settle time). Deleting an article never deletes its note from the vault: any still-unexported highlights export once as a final catch-up first, then local highlight rows are removed — the vault file is the durable copy, not the local database.
 
 **Why:** The old design exported on every single highlight-related click, producing one commit per action in `news-highlights` (a session of highlighting could be seven commits for one article). The client wants roughly one commit per article. Archiving/marking as read is the natural "I'm done with this one" signal already in the app; the day-later fallback exists specifically for breaking off a reading session before reaching that signal.
 
