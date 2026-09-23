@@ -14,6 +14,16 @@ Each entry: date, title and PR (when one exists), then **Decision**, **Why** (on
 
 **Revisit when:** A choice needs its reasoning readable without GitHub, e.g. if the repo moves off it.
 
+## 2026-09-23: The vault export fallback runs daily at 5am Brasilia time, with no settle time (#47)
+
+**Decision:** The background export no longer waits for highlights to go untouched for a day, checked every 24 hours from whenever the app started. It runs once a day at 5:00 Brasilia time (UTC−3) and exports every article whose highlights changed since its last export; on startup it exports only what a missed 5am run would have sent. Archive, mark as read, and delete still export immediately, as before.
+
+**Why:** The old timing could leave an edited note stale for up to about 48 hours at unpredictable times, and a fixed early-morning run caps that to about a day in one predictable batch, while keeping the old settle time's purpose of never exporting mid-session.
+
+**Rejected:** A 12-hour settle time with hourly checks (about 13 hours at most): the client preferred one predictable daily run. A real time-zone database lookup: Brasilia has had no daylight saving since 2019, so a fixed offset is exact and avoids a dependency.
+
+**Revisit when:** Brazil reintroduces daylight saving, or the client moves to a time zone that has it.
+
 ## 2026-09-23: The live host may stay on a signed-off branch until its PR merges (#45)
 
 **Decision:** Once the client has signed a change off live and its PR is open, the live host stays on that branch when the turn ends; the merge deploys `main`, and `main` is redeployed by hand only if the PR closes unmerged. In every other case (not signed off, paused, scrapped) the host still ends a turn on `main`.
@@ -56,7 +66,7 @@ Each entry: date, title and PR (when one exists), then **Decision**, **Why** (on
 
 ## 2026-09-20: Vault export fires on archive/mark-as-read or a day later, not on every highlight action (#23)
 
-**Decision:** Highlight edits only mark an article as touched. Archiving or marking as read exports once if anything changed; a daily check exports anything touched more than a day ago. Deleting an article never deletes its vault note: unexported highlights export first, then local rows go.
+**Decision:** Highlight edits only mark an article as touched. Archiving or marking as read exports once if anything changed; a daily check exports anything touched more than a day ago (timing superseded by the 2026-09-23 entry: daily at 5am Brasilia time, no settle time). Deleting an article never deletes its vault note: unexported highlights export first, then local rows go.
 
 **Why:** Per-action export made one commit per click in `news-highlights`, and the client wants roughly one commit per article.
 

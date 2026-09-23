@@ -22,6 +22,7 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 ## In flight
 
+- **Queued, not started:** commit message `add note:` for a new file, `update note:` for an existing one — awaiting client go-ahead.
 - **Client to do manually:** force-push `news-highlights` to a clean slate (their own call, once this shipped) — not yet done as of this note.
 
 ## Stacked awaiting deploy
