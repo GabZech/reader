@@ -324,6 +324,31 @@ def test_capture_article_embeds_a_table_image_trafilatura_still_drops(tmp_path):
         assert f"{name}.png" in body, f"{name}.png missing entirely, not even flagged"
 
 
+def test_capture_article_keeps_images_on_a_page_split_into_many_text_blocks(tmp_path):
+    # The client caught this on a Squarespace post: its text is split across
+    # a dozen separate blocks, so the busiest single block held only 14 of
+    # the page's 40 paragraphs, and the images sat in sibling blocks outside
+    # it. Trafilatura dropped all five charts, and the safety net never saw
+    # them either, since it only looked inside that one text block.
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://www.tobyord.com/writing/swarm-scaling"
+    item_id, _title = capture_article(
+        conn, url, html=_capture_fixture("tobyord_swarm_scaling.html")
+    )
+    conn.commit()
+    body = conn.execute("SELECT body_html FROM items WHERE id = ?", (item_id,)).fetchone()[0]
+    image_names = [
+        "SEC-Bench+Pro+%28Multi-Agent%29.png", "SEC-Bench+%28log+scale%29",
+        "Swarm+Scaling.png", "Inference+scaling+of+Stokes+model+vs+Astra.png",
+        "o3-GPT5+SWE+diff.png",
+    ]
+    for name in image_names:
+        assert name in body, f"{name} missing entirely, not even flagged"
+    # Each lands next to its own paragraph, not all piled up at the end.
+    assert body[-600:].count("recovered-image") < 2
+
+
 def test_recover_missing_images_is_a_no_op_when_the_image_is_already_there():
     body = '<p>Intro.</p><img src="https://example.test/pic.png"><p>Outro.</p>'
     flagged = _recover_missing_images(body, [("https://example.test/pic.png", "Intro.", 1)])

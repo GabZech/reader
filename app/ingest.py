@@ -448,14 +448,27 @@ def _find_content_root(tree):
     images count as "part of the article" for the missing-image check below,
     since the raw page also carries images (nav, header, footer, widgets)
     that are correctly excluded from the captured body and must not be
-    flagged as missing."""
+    flagged as missing.
+
+    Page builders (Squarespace, for one) split an article into many sibling
+    blocks, text and images apart, so no single parent holds most of the
+    text. When the busiest parent holds under half the paragraphs, climb to
+    its nearest ancestor holding most of them: the wrapper around every
+    block, image blocks included."""
     long_paragraphs = [
         p for p in tree.iter("p") if len(" ".join(p.text_content().split())) > 40
     ]
     parents = [p.getparent() for p in long_paragraphs if p.getparent() is not None]
     if not parents:
         return None
-    return Counter(parents).most_common(1)[0][0]
+    root, count = Counter(parents).most_common(1)[0]
+    if count * 2 >= len(parents):
+        return root
+    for ancestor in root.iterancestors():
+        held = sum(1 for p in long_paragraphs if ancestor in p.iterancestors())
+        if held * 5 >= len(parents) * 4:
+            return ancestor
+    return root
 
 
 def _row_key(img) -> str:
