@@ -48,7 +48,7 @@ Every branch is `<type>/<kebab-slug>`, `type` matching which kind of task it is:
 8. **Commit incrementally, one logical change per commit.** A single end-of-session commit hides which step broke something; format in the `commits` skill.
 9. **Never force-push a shared branch, amend or rebase a pushed commit, or skip a hook.** Any of these can erase work someone, or CI, or a deploy, already has.
 10. **Ship updates whichever living doc the change made wrong, on the branch, before merge.** Docs drift the moment a change lands without this.
-11. **The live host always ends a turn on `main`.** One Fly app serves both trying and living; leaving it on a branch shows the client the wrong thing.
+11. **The live host ends a turn on `main`, or on a branch the client signed off live whose PR is open.** One Fly app serves both trying and living; leaving it on an unsigned branch shows the client the wrong thing. A signed-off branch awaiting merge is what `main` is about to become, and the merge deploys `main` itself.
 12. **Route every task through the table above before improvising.** The same kind of task handled the same way every time is what makes the rest of this file trustworthy.
 13. **A doc or skill edit follows `writing-docs` or `write-skills`.** Both encode a house style that ad hoc edits drift from.
 14. **Repo maintenance skips the change loop's gates, never its discipline.** Commit incrementally and route anything it touches through the table above.
@@ -85,7 +85,7 @@ A change is done only when all of these hold:
 2. The verification for every kind the change carries actually ran, per the change-kinds table in `.claude/skills/2-develop/SKILL.md`.
 3. Whichever living docs the change made wrong are updated on the branch, before the merge.
 4. The client tried it live and said it is good. Nothing else substitutes for this, including a green suite or a passing rubric score.
-5. The repo restarts clean from `bash init.sh` and the live host is back on `main`.
+5. The repo restarts clean from `bash init.sh` and the live host is on `main`, or on the signed-off branch while its PR is open.
 
 ## End of session
 

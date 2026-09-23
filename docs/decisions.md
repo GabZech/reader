@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**.
 
+## 2026-09-23: The live host may stay on a signed-off branch until its PR merges
+
+**Decision:** Once the client has signed a change off live and its PR is open, the live host stays on that branch when the turn ends. The merge deploys `main` automatically; `main` is redeployed by hand only if the PR closes without merging. The host still ends a turn on `main` in every other case: a change not yet signed off, a paused one, or a scrapped one.
+
+**Why:** Redeploying `main` over a signed-off branch took away the feature the client had just approved, until they merged, and spent a deploy to show them an older app. The signed-off branch is what `main` is about to become, so leaving it live shows the client the right thing.
+
+**Rejected:** Keeping the strict "always end on `main`" rule: correct only while a branch is unapproved, and it made the gap between sign-off and merge a regression on the live app.
+
+**Revisit when:** A PR can sit open long enough for `main` to move on underneath it (another change merges first), since the live host would then be missing that change until this one merges; or once separate dev and prod apps exist (see 2026-08-20).
+
 ## 2026-09-22: Capture keeps trafilatura, with lxml doing pre/post-extraction repair around it, instead of swapping extraction engines
 
 **Decision:** `capture_article` still uses trafilatura as its extraction engine. Around it, `lxml` (now a direct dependency) does two things: rewrites an image-bearing `<table>` into `<div>`/`<p>` before extraction (works around a confirmed trafilatura defect where mixing an image-only row with a text-only row empties the whole table), and afterwards checks every image in the article's own region against what survived, recovering any that didn't by embedding it directly from its original URL (grouped back into its original table row when it had one).
