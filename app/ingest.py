@@ -540,6 +540,74 @@ def _hoist_table_images(tree) -> None:
         parent.replace(table, replacement)
 
 
+# Block tags whose entire text trafilatura is known to un-bold/un-italicize
+# when a single emphasis tag spans it completely - it treats full-block
+# formatting as noise rather than emphasis. Covers an interview's bold
+# question paragraphs, a fully italic editor's note, a bold FAQ list item,
+# and a bold pull quote.
+_RECOVERABLE_BLOCK_TAGS = ("p", "li", "blockquote")
+_WRAP_TAG_GROUPS = (("strong", ("strong", "b")), ("em", ("em", "i")))
+
+
+def _is_fully_wrapped(block, wrap_tags: tuple[str, ...]) -> bool:
+    """True when every bit of a block's direct text sits inside one of
+    `wrap_tags` in the original - the shape an interview's bold question
+    takes (<p><strong>the whole question</strong></p>), as opposed to a
+    block that merely bolds/italicizes one word or phrase inside otherwise
+    plain text."""
+    if block.text and block.text.strip():
+        return False
+    children = list(block)
+    if not children:
+        return False
+    for child in children:
+        if child.tag not in wrap_tags:
+            return False
+        if child.tail and child.tail.strip():
+            return False
+    return True
+
+
+def _fully_wrapped_block_texts(tree) -> list[tuple[str, str, str]]:
+    """(block tag, wrap tag, normalized text) for every <p>/<li>/<blockquote>
+    in the original page whose entire text is bold or italic, used to
+    recover them after extraction (see `_recover_wrapped_blocks`)."""
+    found = []
+    for block in tree.iter(*_RECOVERABLE_BLOCK_TAGS):
+        for wrap_tag, wrap_tags in _WRAP_TAG_GROUPS:
+            if _is_fully_wrapped(block, wrap_tags):
+                text = " ".join(block.text_content().split())
+                if text:
+                    found.append((block.tag, wrap_tag, text))
+                break
+    return found
+
+
+def _recover_wrapped_blocks(body: str, blocks: list[tuple[str, str, str]]) -> str:
+    """Re-wrap a block in its emphasis tag when its text matches one
+    trafilatura stripped whole-block bold/italic from (see
+    `_fully_wrapped_block_texts`). Matches whitespace loosely, same as
+    `_recover_missing_images`' anchor matching, since extraction can reflow
+    the original's line wrapping."""
+    for block_tag, wrap_tag, text in blocks:
+        words = [re.escape(word) for word in _esc(text).split()]
+        if not words:
+            continue
+        pattern = re.compile(
+            rf"<{block_tag}(\s[^>]*)?>\s*" + r"\s+".join(words) + rf"\s*</{block_tag}>"
+        )
+        match = pattern.search(body)
+        if not match or f"<{wrap_tag}>" in match.group(0):
+            continue
+        attrs = match.group(1) or ""
+        open_tag = f"<{block_tag}{attrs}>"
+        close_tag = f"</{block_tag}>"
+        inner = match.group(0)[len(open_tag) : -len(close_tag)].strip()
+        replacement = f"{open_tag}<{wrap_tag}>{inner}</{wrap_tag}>{close_tag}"
+        body = body[: match.start()] + replacement + body[match.end() :]
+    return body
+
+
 def _recover_missing_images(body: str, candidates: list[tuple[str, str, str]]) -> str:
     """Embed any article image that didn't make it into the extracted body,
     as close as possible to where it belongs: right after the nearest
@@ -621,12 +689,14 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
     title = (metadata.title if metadata else None) or url
     body_source = html
     image_candidates: list[tuple[str, str]] = []
+    wrapped_block_texts: list[tuple[str, str, str]] = []
     try:
         tree = fromstring(html)
     except Exception:  # noqa: BLE001 - arbitrary page HTML, any parse failure means skip the rewrite
         tree = None
     if tree is not None:
         image_candidates = _image_candidates(tree, url)
+        wrapped_block_texts = _fully_wrapped_block_texts(tree)
         _hoist_table_images(tree)
         body_source = tostring(tree, encoding="unicode")
     extracted = trafilatura.extract(
@@ -635,6 +705,8 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
     body = sanitize_html(extracted, preserve_tables=True) if extracted else None
     if body and image_candidates:
         body = _recover_missing_images(body, image_candidates)
+    if body and wrapped_block_texts:
+        body = _recover_wrapped_blocks(body, wrapped_block_texts)
     if _is_generic_x_title(url, title):
         # X sets a real headline in og:description (matching an on-page <h1>)
         # for anything using its long-form Article format - a far more
