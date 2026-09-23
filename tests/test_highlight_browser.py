@@ -210,3 +210,91 @@ def test_selecting_into_a_list_keeps_its_items(monkeypatch, tmp_path, browser_pa
         state = _list_state(browser_page)
         assert state["items"] == ["LI:Minimum viable", "LI:Maximum necessary"]
         assert state["unmarked"] == []
+
+
+# Every block structure the sanitizer lets through (app/ingest.py
+# ALLOWED_TAGS, plus tables kept for captured articles), with the
+# whitespace between elements a real article carries.
+STRUCTURES = {
+    "bulleted-list": "<ul>\n<li>Bullet one</li>\n<li>Bullet <em>two</em></li>\n</ul>",
+    "numbered-list": "<ol>\n<li>First step</li>\n<li>Second step</li>\n<li>Third step</li>\n</ol>",
+    "nested-list": (
+        "<ul>\n<li>Outer one\n<ul>\n<li>Inner a</li>\n<li>Inner b</li>\n</ul>\n</li>\n"
+        "<li>Outer two</li>\n</ul>"
+    ),
+    "list-of-paragraphs": "<ul>\n<li><p>Para in item</p></li>\n<li><p>Another para</p></li>\n</ul>",
+    "quote-box": "<blockquote>\n<p>Quoted first</p>\n<p>Quoted <strong>second</strong></p>\n</blockquote>",
+    "table": (
+        "<table>\n<thead><tr><th>Model</th><th>Score</th></tr></thead>\n<tbody>\n"
+        "<tr><td>Alpha</td><td>91</td></tr>\n<tr><td>Beta</td><td>87</td></tr>\n</tbody>\n</table>"
+    ),
+    "code-block": "<pre><code>line one\n  line two\nline three</code></pre>",
+    "figure": (
+        '<figure>\n<img src="/static/favicon.svg" alt="c">\n'
+        "<figcaption>A caption here</figcaption>\n</figure>"
+    ),
+    "inline-formatting": (
+        '<p>Plain <a href="https://x.test">link <strong>bold</strong></a> and '
+        "<em>em</em> <code>code</code> end</p>"
+    ),
+}
+
+# Draws the page's highlights back off (as unwrapHighlight does) so the
+# result can be compared with the page as served.
+_UNWRAPPED_BODY = """() => {
+  const clone = document.querySelector(".article-body").cloneNode(true);
+  clone.querySelectorAll(".hl-title-marker").forEach((m) => m.remove());
+  clone.querySelectorAll("mark.hl").forEach((m) => m.replaceWith(...m.childNodes));
+  clone.querySelectorAll("img").forEach((i) => { i.removeAttribute("class"); delete i.dataset.highlightId; });
+  clone.normalize();
+  return clone.innerHTML;
+}"""
+
+_MARK_PROBLEMS = """() => {
+  const problems = [];
+  document.querySelectorAll(".article-body mark.hl").forEach((m) => {
+    if (m.children.length) problems.push("mark holds elements: " + m.innerHTML);
+    if (m.parentElement.matches("ul, ol, table, thead, tbody, tfoot, tr"))
+      problems.push("mark loose in <" + m.parentElement.tagName + ">");
+    const blockSibling = [m.previousSibling, m.nextSibling].some(
+      (s) => s && s.nodeType === 1 && !getComputedStyle(s).display.startsWith("inline"));
+    if (!m.textContent.trim() && blockSibling) problems.push("layout whitespace marked");
+  });
+  return problems;
+}"""
+
+
+@pytest.mark.parametrize("shape", ["into", "out-of", "over"])
+@pytest.mark.parametrize("structure", list(STRUCTURES))
+def test_highlight_across_a_block_structure_keeps_it_intact(
+    monkeypatch, tmp_path, browser_page, structure, shape
+):
+    body = f"<p>Before text</p>{STRUCTURES[structure]}<p>After text</p>"
+    with _opened(browser_page, monkeypatch, tmp_path, body) as (client, item_id):
+        served = browser_page.evaluate(_UNWRAPPED_BODY)
+        texts = browser_page.eval_on_selector_all(
+            ".article-body > *", "els => els.map((e) => e.textContent)"
+        )
+        mid = len(texts[1]) // 2
+        start, end = {
+            "into": ((0, 3), (1, mid)),
+            "out-of": ((1, mid), (2, 5)),
+            "over": ((0, 3), (2, 5)),
+        }[shape]
+        _save_highlight(
+            client, item_id, start_block=start[0], start_offset=start[1],
+            end_block=end[0], end_offset=end[1],
+        )
+        browser_page.goto(f"{ORIGIN}/items/{item_id}")
+
+        assert browser_page.evaluate(_UNWRAPPED_BODY) == served
+        assert browser_page.evaluate(_MARK_PROBLEMS) == []
+        if start[0] == end[0]:
+            expected = texts[start[0]][start[1]:end[1]]
+        else:
+            expected = texts[start[0]][start[1]:] + "".join(
+                texts[start[0] + 1:end[0]]) + texts[end[0]][:end[1]]
+        marked = browser_page.eval_on_selector_all(
+            ".article-body mark.hl", "els => els.map((e) => e.textContent).join('')"
+        )
+        assert "".join(marked.split()) == "".join(expected.split())

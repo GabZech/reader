@@ -364,10 +364,16 @@
         const len = node.textContent.length;
         const a = Math.max(from - pos, 0);
         const b = Math.min(to - pos, len);
-        // Whitespace between list items or table cells is layout, not text.
+        // Whitespace beside a block element (between list items, table
+        // cells, paragraphs in a quote) is layout, not text.
         const layoutOnly =
           !node.textContent.trim() &&
-          node.parentElement.matches("ul, ol, table, thead, tbody, tfoot, tr");
+          [node.previousSibling, node.nextSibling].some(
+            (el) =>
+              el &&
+              el.nodeType === Node.ELEMENT_NODE &&
+              !getComputedStyle(el).display.startsWith("inline")
+          );
         if (a < b && !layoutOnly) slices.push({ node, a, b });
         pos += len;
         if (pos >= to) break;
