@@ -119,6 +119,7 @@ def test_export_note_creates_when_no_existing_file(monkeypatch):
     assert methods == ["GET", "PUT"]
     put_kwargs = calls[1][2]
     assert "sha" not in put_kwargs["json"]
+    assert put_kwargs["json"]["message"] == f"add note: {item['title']}"
     decoded = base64.b64decode(put_kwargs["json"]["content"]).decode()
     assert "Some text." in decoded
 
@@ -141,6 +142,7 @@ def test_export_note_updates_with_existing_sha(monkeypatch):
     result = export_note(item, [_highlight("Some text.")])
     assert result == {"exported": True, "path": note_path_for_item(item)}
     assert calls[1][2]["json"]["sha"] == "existing-sha"
+    assert calls[1][2]["json"]["message"] == f"update note: {item['title']}"
 
 
 def test_export_note_deletes_when_no_highlights_left(monkeypatch):

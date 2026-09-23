@@ -161,7 +161,7 @@ def export_note(item, highlights, previous_path: str | None = None) -> dict:
         return {"exported": False, "reason": "no_highlights", "path": None}
 
     body = {
-        "message": f"update note: {item['title']}",
+        "message": f"{'update' if sha is not None else 'add'} note: {item['title']}",
         "content": base64.b64encode(
             build_note_markdown(item, highlights).encode()
         ).decode(),
