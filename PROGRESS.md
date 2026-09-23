@@ -27,7 +27,7 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 ### Planned
 
-1. List pages and a source's items page: both swipes, all four actions (two new routes: unread, unarchive), the popup, live tab counts — not started
+1. List pages and a source's items page: both swipes, all four actions (two new routes: unread, unarchive), the popup, live tab counts — built, tests green, awaiting live try
 2. Home rows: same swipes, next hidden row moves up — not started
 
 ## Stacked awaiting deploy
