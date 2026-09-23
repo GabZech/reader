@@ -49,7 +49,7 @@ Orient the reader; do not duplicate vision or a full feature inventory. Exactly 
 
 ## Decisions (`docs/decisions.md`)
 
-Living, append-only, newest first. One entry per choice expensive to undo: date and title, then **Decision**, **Why**, **Rejected**, **Revisit when**. Written by Ship when a change produces one. Threshold: a choice a future session might plausibly reverse, not a design detail already implied by the code.
+Living, append-only, newest first. One entry per choice expensive to undo: date, title and PR link (`(#N)`, when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. Keep each field short; the full reasoning and evidence belong in the PR description, not here. Written by Ship when a change produces one. Threshold: a choice a future session might plausibly reverse, not a design detail already implied by the code.
 
 ## System docs
 
