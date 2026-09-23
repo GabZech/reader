@@ -1594,31 +1594,65 @@ def test_items_due_for_export_needs_a_day_of_no_further_activity(monkeypatch, tm
             conn.close()
 
 
-def test_the_daily_export_check_exports_only_what_is_actually_due(monkeypatch, tmp_path):
-    with _client(monkeypatch, tmp_path) as client:
-        _add_to_news(client, "https://example.test/feed.xml")
-        old_item_id = _first_item_id(tmp_path)
-        _save_highlight(client, old_item_id)
-        _backdate_touch(tmp_path, old_item_id, datetime.now(UTC) - timedelta(hours=25))
+def test_the_export_runs_daily_at_5am_brasilia_time():
+    from app.main import _latest_export_run, _next_export_run
 
-        captured = client.post(
-            "/capture",
-            data={
-                "url": "https://example.test/second-article",
-                "html": CAPTURE_BLOG_HTML,
-            },
-        )
-        recent_item_id = int(captured.json()["item_url"].removeprefix("/items/"))
-        _save_highlight(client, recent_item_id)
+    # 5am in Brasilia (UTC-3) is 08:00 UTC.
+    before_5am = datetime(2026, 9, 23, 7, 59, tzinfo=UTC)
+    assert _next_export_run(before_5am) == datetime(2026, 9, 23, 8, 0, tzinfo=UTC)
+    assert _latest_export_run(before_5am) == datetime(2026, 9, 22, 8, 0, tzinfo=UTC)
+
+    after_5am = datetime(2026, 9, 23, 15, 0, tzinfo=UTC)
+    assert _next_export_run(after_5am) == datetime(2026, 9, 24, 8, 0, tzinfo=UTC)
+    assert _latest_export_run(after_5am) == datetime(2026, 9, 23, 8, 0, tzinfo=UTC)
+
+
+def _two_highlighted_items(client, tmp_path):
+    _add_to_news(client, "https://example.test/feed.xml")
+    first_id = _first_item_id(tmp_path)
+    _save_highlight(client, first_id)
+    captured = client.post(
+        "/capture",
+        data={
+            "url": "https://example.test/second-article",
+            "html": CAPTURE_BLOG_HTML,
+        },
+    )
+    second_id = int(captured.json()["item_url"].removeprefix("/items/"))
+    _save_highlight(client, second_id)
+    return first_id, second_id
+
+
+def test_the_5am_export_sends_every_pending_note_with_no_wait(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        first_id, second_id = _two_highlighted_items(client, tmp_path)
+        run_at = datetime.now(UTC)
+        _backdate_touch(tmp_path, first_id, run_at - timedelta(hours=25))
+        _backdate_touch(tmp_path, second_id, run_at - timedelta(minutes=1))
 
         calls = _record_exports(monkeypatch)
         from app.main import _run_due_exports
 
-        _run_due_exports()
+        _run_due_exports(run_at)
 
-        assert [call[0] for call in calls] == [old_item_id]
-        after = _get_item_row(tmp_path, old_item_id)
-        assert after["highlights_exported_at"] is not None
+        assert sorted(call[0] for call in calls) == sorted([first_id, second_id])
+        assert _get_item_row(tmp_path, second_id)["highlights_exported_at"] is not None
+
+
+def test_a_restart_only_catches_up_on_a_missed_5am_run(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        first_id, second_id = _two_highlighted_items(client, tmp_path)
+        from app.main import _latest_export_run, _run_startup_catch_up
+
+        last_run = _latest_export_run(datetime.now(UTC))
+        _backdate_touch(tmp_path, first_id, last_run - timedelta(minutes=1))
+        _backdate_touch(tmp_path, second_id, last_run + timedelta(seconds=1))
+
+        calls = _record_exports(monkeypatch)
+        _run_startup_catch_up()
+
+        assert [call[0] for call in calls] == [first_id]
+        assert _get_item_row(tmp_path, second_id)["highlights_exported_at"] is None
 
 
 def test_delete_button_on_article_page_removes_it_for_good(monkeypatch, tmp_path):
