@@ -22,6 +22,8 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 ## In flight
 
+- **Daily 5am export (behaviour):** on `claude/news-highlights-commit-messages-knsdhy`. Vault export fallback runs daily at 5:00 Brasilia time (UTC-3), no settle time; startup only catches up on changes before the latest 5am. Leaves alone: archive/read/delete exports, commit messages. Built, tests green, docs updated; next: client's deploy go-ahead, then live sign-off.
+- **Queued, not started:** commit message `add note:` for a new file, `update note:` for an existing one — awaiting client go-ahead.
 - **Client to do manually:** force-push `news-highlights` to a clean slate (their own call, once this shipped) — not yet done as of this note.
 
 ## Stacked awaiting deploy
