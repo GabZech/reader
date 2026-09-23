@@ -110,9 +110,24 @@ def _add_to_news(client: TestClient, url: str, window: str = "week", backfill: s
     return done
 
 
+def _fill_every_home_list(client: TestClient, tmp_path) -> None:
+    _add_to_news(client, "https://example.test/feed.xml")
+    item_id = _first_item_id(tmp_path)
+    client.post(f"/items/{item_id}/later")
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        conn.execute(
+            "INSERT INTO item_lists (item_id, list_slug, added_at) VALUES (?, 'fav', ?)",
+            (item_id, datetime(2026, 8, 20, tzinfo=UTC).isoformat()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def test_home_shell(monkeypatch, tmp_path):
-    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "reader.db"))
-    with TestClient(app) as client:
+    with _client(monkeypatch, tmp_path) as client:
+        _fill_every_home_list(client, tmp_path)
         response = client.get("/")
     assert response.status_code == 200
     assert "Home" in response.text
@@ -150,6 +165,26 @@ def test_settings_page_has_a_read_later_bookmarklet(monkeypatch, tmp_path):
     assert "outerHTML" in response.text
 
 
+def test_home_hides_lists_with_nothing_unread(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        home = client.get("/")
+    assert 'href="/lists/news"' in home.text
+    assert 'href="/lists/later"' not in home.text
+    assert 'href="/lists/fav"' not in home.text
+    assert "all caught up" not in home.text
+
+
+def test_home_says_all_caught_up_when_every_list_is_empty(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        home = client.get("/")
+        edit = client.get("/home/edit")
+    assert "You're all caught up." in home.text
+    assert "data-list" not in home.text
+    assert "Read later" in edit.text
+    assert "Favourite channels" in edit.text
+
+
 def test_home_edit_shows_lists_with_move_boundaries(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         response = client.get("/home/edit")
@@ -165,6 +200,7 @@ def test_home_edit_shows_lists_with_move_boundaries(monkeypatch, tmp_path):
 
 def test_home_edit_toggle_hides_list_from_home(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
+        _fill_every_home_list(client, tmp_path)
         toggled = client.post("/home/edit/news/toggle", follow_redirects=False)
         assert toggled.status_code == 303
         edit_page = client.get("/home/edit")
@@ -178,6 +214,7 @@ def test_home_edit_toggle_hides_list_from_home(monkeypatch, tmp_path):
 
 def test_home_edit_move_reorders_lists(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
+        _fill_every_home_list(client, tmp_path)
         client.post(
             "/home/edit/news/move", data={"direction": "down"}, follow_redirects=False
         )

@@ -163,6 +163,13 @@ body {
   border-bottom: 0;
 }
 
+.caught-up {
+  margin: 3rem 1rem 0;
+  text-align: center;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+}
+
 .item {
   display: block;
   padding: 0.7rem 1rem;
