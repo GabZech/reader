@@ -1,9 +1,22 @@
 {% macro item_row(item, extra=false, source_id=none, list_slug=none, swipeable=false, from_home=false, view=none) %}
 {% if swipeable %}
-        <div class="item-swipe">
-          <form class="item-delete-action" method="post" action="/items/{{ item.id }}/delete{% if source_id %}?from_source={{ source_id }}{% elif list_slug %}?from_list={{ list_slug }}{% if view %}&view={{ view }}{% endif %}{% endif %}">
-            <button class="item-delete-btn" type="submit">Delete</button>
-          </form>
+{% set context = "?from_source=" ~ source_id if source_id else ("?from_list=" ~ list_slug ~ ("&view=" ~ view if view else "") if list_slug else "") %}
+{% if source_id or not list_slug %}
+{% set swipe_action, swipe_label = none, none %}
+{% elif list_slug == "later" and view == "archive" %}
+{% set swipe_action, swipe_label = "/items/" ~ item.id ~ "/unarchive", "Move to Library" %}
+{% elif list_slug == "later" %}
+{% set swipe_action, swipe_label = "/items/" ~ item.id ~ "/archive?from_list=later", "Archive" %}
+{% elif view == "read" %}
+{% set swipe_action, swipe_label = "/items/" ~ item.id ~ "/unread?from_list=" ~ list_slug, "Mark as unread" %}
+{% else %}
+{% set swipe_action, swipe_label = "/items/" ~ item.id ~ "/read?from_list=" ~ list_slug, "Mark as read" %}
+{% endif %}
+        <div class="item-swipe" data-delete-action="/items/{{ item.id }}/delete{{ context }}"{% if swipe_action %} data-swipe-action="{{ swipe_action }}"{% endif %}>
+          <div class="swipe-under swipe-delete" aria-hidden="true">Delete</div>
+          {% if swipe_action %}
+          <div class="swipe-under swipe-move" aria-hidden="true">{{ swipe_label }}</div>
+          {% endif %}
 {% endif %}
           <a class="item{% if item.image_url %} has-thumb{% endif %}{% if extra %} is-more{% endif %}{% if item.seen_at %} is-seen{% endif %}"{% if extra %} hidden{% endif %} href="/items/{{ item.id }}{% if source_id %}?from_source={{ source_id }}{% elif list_slug %}?from_list={{ list_slug }}{% if view %}&view={{ view }}{% endif %}{% if from_home %}&from_home=1{% endif %}{% endif %}">
           {% if item.image_url %}
