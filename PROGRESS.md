@@ -22,7 +22,6 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 ## In flight
 
-- **Highlight into a list/table/quote breaks it (bug):** branch `claude/list-highlight-bug-economics-iytij7`, deployed live for Try, awaiting the client's sign-off on "The Economics of the Intelligence Frontier". Fix wraps each text node separately (`wrapBlockRange` in `app/static/app.js`); leaves saving, export and highlight look alone. Next: sign-off, then Ship (doc check, PR on go-ahead). If scrapped, redeploy `main`.
 - **Client to do manually:** force-push `news-highlights` to a clean slate (their own call, once this shipped) — not yet done as of this note.
 
 ## Stacked awaiting deploy
