@@ -250,6 +250,28 @@ def test_capture_article_prefers_the_real_headline_for_a_localized_x_article(tmp
     assert item["title"] == title
 
 
+def test_capture_article_spots_x_boilerplate_by_the_handle_not_the_wording(tmp_path):
+    # Some languages reorder X's boilerplate entirely (Japanese puts the
+    # name mid-sentence), so it is recognised by the post author's own
+    # handle from the URL rather than by any fixed wording around it.
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://x.com/JayaGup10/status/2101799427145183571"
+    html = """
+    <html><head>
+    <meta property="og:title" content="X上のJaya Gupta（@JayaGup10）さん">
+    <meta property="og:description" content="The Great Unbundling of Intelligence">
+    </head>
+    <body><article>
+    <p>For most of the last decade, intelligence came bundled with the
+    software that delivered it, and that bundle is now coming apart.</p>
+    </article></body></html>
+    """
+    _item_id, title = capture_article(conn, url, html=html)
+    conn.commit()
+    assert title == "The Great Unbundling of Intelligence"
+
+
 def test_capture_article_synthesizes_a_title_for_an_x_post_without_a_headline(tmp_path):
     # A plain tweet/thread with no og:description headline falls back to a
     # title synthesized from the post's own opening text.

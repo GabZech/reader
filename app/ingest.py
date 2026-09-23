@@ -578,9 +578,20 @@ def _recover_missing_images(body: str, candidates: list[tuple[str, str, str]]) -
 
 
 _X_HOSTS = {"x.com", "twitter.com", "www.x.com", "www.twitter.com"}
-# X localizes the word before "X" to the viewer's language ("on X", "en X",
-# "sur X", "auf X"...), so any single word there counts.
-_GENERIC_X_TITLE_RE = re.compile(r".+\(@\w+\) \S+ X$")
+
+
+def _is_generic_x_title(url: str, title: str) -> bool:
+    """Whether an X/Twitter page's title is X's own "Name (@handle) on X"
+    boilerplate rather than a real headline. X localizes that wording and
+    even its word order to the viewer's language, so it is recognised by
+    the post author's handle from the URL instead of by any fixed phrasing."""
+    parsed = urlparse(url)
+    if parsed.netloc.lower() not in _X_HOSTS:
+        return False
+    handle = parsed.path.strip("/").split("/")[0]
+    if not handle:
+        return False
+    return re.search(rf"[(（]@{re.escape(handle)}[)）]", title, re.IGNORECASE) is not None
 
 
 def _synthesized_title(body: str) -> str | None:
@@ -624,7 +635,7 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
     body = sanitize_html(extracted, preserve_tables=True) if extracted else None
     if body and image_candidates:
         body = _recover_missing_images(body, image_candidates)
-    if urlparse(url).netloc.lower() in _X_HOSTS and _GENERIC_X_TITLE_RE.match(title):
+    if _is_generic_x_title(url, title):
         # X sets a real headline in og:description (matching an on-page <h1>)
         # for anything using its long-form Article format - a far more
         # reliable title than guessing from body text when it's there.
