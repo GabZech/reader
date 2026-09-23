@@ -23,12 +23,6 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 ## In flight
 
 - **Client to do manually:** force-push `news-highlights` to a clean slate (their own call, once this shipped) — not yet done as of this note.
-- **Swipe gestures on item rows** (visual + behaviour), branch `claude/swipe-gestures-items-g4yteh`. Mockup signed off (throwaway, in `preview/`). Right to left acts at once: Mark as read (Unread tab), Mark as unread (Read tab), Archive (Library), Move to Library (Archive tab). Left to right deletes after a popup (title, "removed from every list, can't be undone", Cancel / Delete). A source's items page: delete only. Replaces the old swipe-left-to-reveal-Delete. Leaves alone: article page buttons, rows at rest, schema. Unread and Move to Library never touch the vault. Failed save: row snaps back with "Couldn't save".
-
-### Planned
-
-1. List pages and a source's items page: both swipes, all four actions (two new routes: unread, unarchive), the popup, live tab counts — built, deployed for live try (725fe6a)
-2. Home rows: same swipes, next hidden row moves up — built, deployed for live try (725fe6a)
 
 ## Stacked awaiting deploy
 
