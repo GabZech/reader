@@ -28,7 +28,8 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
   Shape: server-only — reconstruct structure from `item['body_html']` + the highlight's stored block range at export time (same pattern as `images_in_block_range`); no changes to `app.js`, the save path, or the schema. Falls back to today's shipped flat behaviour whenever the HTML-derived shape doesn't cleanly line up with the captured text (missing `body_html`, or an edge case like list-items-containing-paragraphs).
   ### Planned
   - [x] Slice 1: shape extraction — pure function walking `body_html`'s blocks in a highlight's range, returning per-line `None` (plain) or `(depth, marker)` for each `<li>` (nesting depth, `-`/`N.` marker honoring `<ol start>`). Verified with unit tests only (flat list, nested list, ordered list, mixed nesting, plain paragraphs, missing `body_html`).
-  - [x] Slice 2: wire into `build_note_markdown` — use shapes to indent/mark each line when they align with the captured text; fall back to the flat rendering otherwise (proven with a blockquote-holding-two-paragraphs mismatch test). Verified with unit tests; screenshot still to send.
+  - [x] Slice 2: wire into `build_note_markdown` — use shapes to indent/mark each line when they align with the captured text; fall back to the flat rendering otherwise (proven with a blockquote-holding-two-paragraphs mismatch test). Verified with unit tests plus a rendered screenshot.
+  Deployed to live (branch dispatch, sha `f014423`) and PR opened: https://github.com/GabZech/reader/pull/53. Awaiting the client's live sign-off before merge.
 
 ## Stacked awaiting deploy
 
