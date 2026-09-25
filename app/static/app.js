@@ -501,6 +501,45 @@
       location.href = `${location.pathname}/highlights/${mark.dataset.highlightId}`;
     });
 
+    // A double-click/tap on an image highlights just that image, with no
+    // text selection needed. Only an image that is its own top-level block
+    // (no text alongside it) can be targeted this way - the block/offset
+    // model has nothing to point at an inline image sharing a block with
+    // real text. An already-highlighted image opens its highlight instead
+    // of saving again, matching the click-a-mark behaviour above.
+    body.addEventListener("dblclick", (event) => {
+      const img = event.target.closest("img");
+      if (!img || !body.contains(img)) return;
+      if (img.dataset.highlightId) {
+        location.href = `${location.pathname}/highlights/${img.dataset.highlightId}`;
+        return;
+      }
+      const blockIndex = blockIndexOf(img);
+      if (blockIndex < 0 || !isImageOnly(blocks[blockIndex])) return;
+
+      const data = new URLSearchParams({
+        start_block: String(blockIndex),
+        start_offset: "0",
+        end_block: String(blockIndex),
+        end_offset: "0",
+        text: "",
+      });
+      fetch(saveUrl, { method: "POST", body: data })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((result) => {
+          if (!result) return;
+          wrapHighlight(blockIndex, 0, blockIndex, 0, result.id, result.has_title);
+          known.push({
+            id: result.id,
+            start_block: blockIndex,
+            start_offset: 0,
+            end_block: blockIndex,
+            end_offset: 0,
+          });
+        })
+        .catch(() => {});
+    });
+
     const handleFinishedSelection = () => {
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed) return;

@@ -157,6 +157,45 @@ def test_saved_highlight_over_an_image_marks_it_on_reload(
         assert _outlined(browser_page) == 1
 
 
+@pytest.mark.parametrize(
+    "body", [IMAGE_BODY, BARE_IMAGE_BODY], ids=["wrapped-img", "bare-img-block"]
+)
+def test_double_clicking_an_image_highlights_it_without_selecting_text(
+    monkeypatch, tmp_path, browser_page, body
+):
+    with _opened(browser_page, monkeypatch, tmp_path, body):
+        assert _outlined(browser_page) == 0
+        browser_page.dblclick(".article-body img")
+        browser_page.wait_for_selector(".article-body img.hl-image", timeout=5000)
+        assert _outlined(browser_page) == 1
+        assert _stored_images(tmp_path) == [["/static/favicon.svg"]]
+
+
+def test_double_clicking_an_already_highlighted_image_opens_its_detail_page(
+    monkeypatch, tmp_path, browser_page
+):
+    with _opened(browser_page, monkeypatch, tmp_path, IMAGE_BODY) as (client, item_id):
+        highlight_id = _save_highlight(
+            client, item_id, start_block=1, start_offset=0, end_block=1, end_offset=0, text=""
+        )
+        browser_page.goto(f"{ORIGIN}/items/{item_id}")
+        browser_page.dblclick(".article-body img")
+        browser_page.wait_for_url(f"{ORIGIN}/items/{item_id}/highlights/{highlight_id}")
+        # No duplicate highlight was created by the double-click.
+        assert len(_stored_images(tmp_path)) == 1
+
+
+def test_double_clicking_an_image_beside_text_in_its_block_does_nothing(
+    monkeypatch, tmp_path, browser_page
+):
+    body = "<p>Caption text <img src=\"/static/favicon.svg\" alt=\"chart\"></p>"
+    with _opened(browser_page, monkeypatch, tmp_path, body):
+        browser_page.dblclick(".article-body img")
+        browser_page.wait_for_timeout(200)
+        assert _outlined(browser_page) == 0
+        assert _stored_images(tmp_path) == []
+
+
 LIST_BODY = (
     "<p>Two thresholds.</p>"
     "<ul>\n<li>Minimum viable</li>\n<li><em>Maximum</em> necessary</li>\n</ul>"
