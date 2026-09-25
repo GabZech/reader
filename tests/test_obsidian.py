@@ -71,12 +71,37 @@ def test_build_note_markdown_includes_image_lines_under_the_bullet():
     ]
     md = build_note_markdown(_item(), highlights)
     lines = [line for line in md.splitlines() if line]
-    assert "![](https://example.test/a.png)" not in "\n".join(
+    assert "  - ![](https://example.test/a.png)" not in "\n".join(
         lines[: lines.index("- Spans an image.")]
     )
     idx = lines.index("- Spans an image.")
-    assert lines[idx + 1] == "![](https://example.test/a.png)"
-    assert lines[idx + 2] == "![](https://example.test/b.png)"
+    assert lines[idx + 1] == "  - ![](https://example.test/a.png)"
+    assert lines[idx + 2] == "  - ![](https://example.test/b.png)"
+
+
+def test_build_note_markdown_turns_a_captured_list_into_a_sublist():
+    # A highlight spanning a <ul>/<ol> arrives with each item on its own
+    # line (the browser's range.toString() inserts a newline at each block
+    # boundary) - those should become an indented sublist, not a garbled
+    # single bullet with raw newlines in it.
+    highlight = _highlight("\nMinimum viable\nMaximum necessary\n")
+    md = build_note_markdown(_item(), [highlight])
+    lines = [line for line in md.splitlines() if line]
+    idx = lines.index("- Minimum viable")
+    assert lines[idx + 1] == "  - Maximum necessary"
+    assert "\nMinimum viable\nMaximum necessary\n" not in md
+
+
+def test_build_note_markdown_nests_images_after_multiline_text():
+    highlight = _highlight(
+        "Lead-in text.\nSecond line.",
+        image_urls=["https://example.test/a.png"],
+    )
+    md = build_note_markdown(_item(), [highlight])
+    lines = [line for line in md.splitlines() if line]
+    idx = lines.index("- Lead-in text.")
+    assert lines[idx + 1] == "  - Second line."
+    assert lines[idx + 2] == "  - ![](https://example.test/a.png)"
 
 
 def test_build_note_markdown_groups_by_sticky_section_title():

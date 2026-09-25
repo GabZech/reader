@@ -72,11 +72,24 @@ def build_note_markdown(item, highlights) -> str:
             current_subsection = subsection_title
             lines.append(f"#### {current_subsection}")
         lines.append("")
-        lines.append(f"- {highlight['text']}")
-        for url in _image_urls(highlight):
-            lines.append(f"![]({url})")
+        lines.extend(_highlight_lines(highlight))
 
     return "\n".join(lines) + "\n"
+
+
+def _highlight_lines(highlight) -> list[str]:
+    # A highlight spanning a <ul>/<ol> (or several blocks) arrives with each
+    # item on its own line - the browser's range.toString() inserts a
+    # newline at each block boundary. Keep the first line as the bullet's
+    # own text and nest the rest, images included, as a sublist so the
+    # structure survives instead of raw newlines breaking the bullet.
+    text_lines = [line for line in highlight["text"].split("\n") if line.strip()]
+    if not text_lines:
+        text_lines = [""]
+    lines = [f"- {text_lines[0]}"]
+    lines.extend(f"  - {line}" for line in text_lines[1:])
+    lines.extend(f"  - ![]({url})" for url in _image_urls(highlight))
+    return lines
 
 
 def _image_urls(highlight) -> list[str]:
