@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from urllib.parse import quote
 
 import httpx
+from lxml.html import fromstring
 
 from app.config import obsidian_github_token
 
@@ -72,24 +73,107 @@ def build_note_markdown(item, highlights) -> str:
             current_subsection = subsection_title
             lines.append(f"#### {current_subsection}")
         lines.append("")
-        lines.extend(_highlight_lines(highlight))
+        lines.extend(_highlight_lines(highlight, item["body_html"]))
 
     return "\n".join(lines) + "\n"
 
 
-def _highlight_lines(highlight) -> list[str]:
+def _highlight_lines(highlight, body_html) -> list[str]:
     # A highlight spanning a <ul>/<ol> (or several blocks) arrives with each
     # item on its own line - the browser's range.toString() inserts a
-    # newline at each block boundary. Keep the first line as the bullet's
-    # own text and nest the rest, images included, as a sublist so the
-    # structure survives instead of raw newlines breaking the bullet.
+    # newline at each block boundary. The raw newlines carry no depth or
+    # list-type information though, so reconstruct that from the item's own
+    # body_html instead of guessing from the flat text.
     text_lines = [line for line in highlight["text"].split("\n") if line.strip()]
     if not text_lines:
         text_lines = [""]
+
+    try:
+        start_block = highlight["start_block"]
+        end_block = highlight["end_block"]
+    except (KeyError, IndexError):
+        start_block = end_block = None
+    shapes = (
+        _block_range_shapes(body_html, start_block, end_block)
+        if start_block is not None
+        else None
+    )
+    if shapes is not None and len(shapes) == len(text_lines) and any(shapes):
+        return _shaped_highlight_lines(highlight, text_lines, shapes)
+
+    # Fallback: no reliable shape (missing body_html, or a structure whose
+    # line count doesn't line up with what the browser captured, such as a
+    # blockquote holding more than one paragraph). Keep the first line as
+    # the bullet's own text and nest the rest flat, images included, as a
+    # sublist so the structure survives instead of raw newlines breaking
+    # the bullet.
     lines = [f"- {text_lines[0]}"]
     lines.extend(f"  - {line}" for line in text_lines[1:])
     lines.extend(f"  - ![]({url})" for url in _image_urls(highlight))
     return lines
+
+
+def _shaped_highlight_lines(highlight, text_lines, shapes) -> list[str]:
+    lines = []
+    start = 0
+    if shapes[0] is None:
+        lines.append(f"- {text_lines[0]}")
+        start = 1
+    else:
+        lines.append("-")
+    for index in range(start, len(text_lines)):
+        shape = shapes[index]
+        line = text_lines[index]
+        if shape is None:
+            lines.append(f"  - {line}")
+        else:
+            depth, marker = shape
+            lines.append(f"{'  ' * depth}{marker} {line}")
+    lines.extend(f"  - ![]({url})" for url in _image_urls(highlight))
+    return lines
+
+
+def _block_range_shapes(
+    body_html: str | None, start_block: int | None, end_block: int | None
+) -> list[tuple[int, str] | None] | None:
+    """One entry per top-level "line" a captured highlight's text would
+    carry for the blocks in [start_block, end_block]: None for a plain
+    block, or (depth, marker) for each <li> in a <ul>/<ol> block, in
+    document order - the same order the browser's range.toString() walks
+    when it flattens the same blocks into newline-separated text.
+    """
+    if not body_html or start_block is None or end_block is None or end_block < start_block:
+        return None
+    container = fromstring(f"<div>{body_html}</div>")
+    blocks = list(container)[start_block : end_block + 1]
+    if not blocks:
+        return None
+    shapes: list[tuple[int, str] | None] = []
+    for block in blocks:
+        if block.tag in ("ul", "ol"):
+            shapes.extend(_list_item_shapes(block, 1))
+        else:
+            shapes.append(None)
+    return shapes
+
+
+def _list_item_shapes(list_el, depth: int) -> list[tuple[int, str]]:
+    is_ordered = list_el.tag == "ol"
+    try:
+        ordinal = int(list_el.get("start", "1"))
+    except ValueError:
+        ordinal = 1
+    shapes: list[tuple[int, str]] = []
+    for item in list_el:
+        if item.tag != "li":
+            continue
+        shapes.append((depth, f"{ordinal}." if is_ordered else "-"))
+        if is_ordered:
+            ordinal += 1
+        for child in item:
+            if child.tag in ("ul", "ol"):
+                shapes.extend(_list_item_shapes(child, depth + 1))
+    return shapes
 
 
 def _image_urls(highlight) -> list[str]:
