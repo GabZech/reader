@@ -1469,6 +1469,18 @@ def test_images_in_block_range_returns_empty_for_missing_body_html():
     assert dbmod.images_in_block_range(None, 0, 2) == []
 
 
+def test_images_in_block_range_covers_a_single_image_only_block():
+    # A double-click highlight targets just the image's own block, with no
+    # boundary text block on either side.
+    body = '<p>First</p><img src="https://example.test/a.png"><p>Second</p>'
+    assert dbmod.images_in_block_range(body, 1, 1) == ["https://example.test/a.png"]
+
+
+def test_images_in_block_range_skips_a_single_text_block():
+    body = "<p>First</p>"
+    assert dbmod.images_in_block_range(body, 0, 0) == []
+
+
 def test_saving_a_highlight_spanning_an_interior_image_block_stores_its_url(
     monkeypatch, tmp_path
 ):
@@ -1515,6 +1527,50 @@ def test_saving_a_highlight_that_ends_on_the_image_block_stores_it(
         finally:
             conn.close()
         assert json.loads(row["image_urls"]) == ["https://example.test/a.png"]
+
+
+def test_saving_a_lone_image_block_highlight_stores_its_url(monkeypatch, tmp_path):
+    # A double-click highlight: no text, the range collapsed onto the
+    # image's own block.
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _set_body_html(
+            tmp_path,
+            item_id,
+            '<p>First</p><img src="https://example.test/a.png"><p>Second</p>',
+        )
+
+        highlight_id = _save_highlight(
+            client, item_id, start_block=1, start_offset=0, end_block=1, end_offset=0, text=""
+        )
+
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            row = dbmod.get_highlight(conn, item_id, highlight_id)
+        finally:
+            conn.close()
+        assert json.loads(row["image_urls"]) == ["https://example.test/a.png"]
+
+
+def test_saving_an_empty_text_block_highlight_is_rejected(monkeypatch, tmp_path):
+    # No text and no image: nothing worth saving.
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _set_body_html(tmp_path, item_id, "<p>First</p>")
+
+        response = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "0",
+                "text": "",
+            },
+        )
+        assert response.status_code == 400
 
 
 def test_merging_a_highlight_across_an_image_recomputes_instead_of_concatenating(
