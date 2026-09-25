@@ -617,6 +617,9 @@ body {
 .article-body img {
   max-width: 100%;
   height: auto;
+  /* Lets a double-tap reach the page as a dblclick promptly, instead of
+     racing the browser's own double-tap-to-zoom gesture on the image. */
+  touch-action: manipulation;
 }
 
 .article-body .hl-title-marker::before {
