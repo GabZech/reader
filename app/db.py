@@ -448,14 +448,20 @@ def images_in_block_range(body_html: str | None, start_block: int, end_block: in
     block that holds no text, since a selection only starts or ends inside
     such a block when it covers the image (the client moves a boundary that
     merely touches one onto the neighbouring text). A text boundary block's
-    inline images stay out: the selection may cover only part of it. Mirrors
-    the block indexing `app/static/app.js`'s `blocks = Array.from(body.children)`
+    inline images stay out: the selection may cover only part of it. A
+    collapsed range (start_block == end_block) is the double-click case: it
+    covers that one block's images when the block holds no text. Mirrors the
+    block indexing `app/static/app.js`'s `blocks = Array.from(body.children)`
     uses, so a block index here means the same thing it means client-side.
     """
-    if not body_html or end_block <= start_block:
+    if not body_html or end_block < start_block:
         return []
     container = fromstring(f"<div>{body_html}</div>")
     blocks = list(container)
+    if end_block == start_block:
+        if start_block >= len(blocks) or blocks[start_block].text_content().strip():
+            return []
+        return [src for img in blocks[start_block].iter("img") if (src := img.get("src"))]
     urls = []
     for index, block in enumerate(blocks[start_block : end_block + 1], start_block):
         interior = start_block < index < end_block

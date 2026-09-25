@@ -1186,7 +1186,7 @@ async def item_add_highlight(item_id: int, request: Request):
     except ValueError:
         raise HTTPException(status_code=400)
     text = str(form.get("text") or "")
-    if not text or (end_block, end_offset) <= (start_block, start_offset):
+    if (end_block, end_offset) < (start_block, start_offset):
         raise HTTPException(status_code=400)
     try:
         merge_ids = [int(v) for v in form.getlist("merge_id")]
@@ -1198,6 +1198,18 @@ async def item_add_highlight(item_id: int, request: Request):
         item = get_item(conn, item_id)
         if item is None:
             raise HTTPException(status_code=404)
+
+        # Recomputed fresh from the final range every time, merge or not -
+        # never a union of the merged rows' own image_urls, since a wider
+        # range can span an image none of the narrower rows did. Also what
+        # makes a double-click's empty-text, collapsed range (the block is
+        # just an image) a real highlight rather than nothing worth saving:
+        # a collapsed range or empty text is only acceptable when it still
+        # resolves to at least one image.
+        image_urls = images_in_block_range(item["body_html"], start_block, end_block)
+        collapsed = (end_block, end_offset) == (start_block, start_offset)
+        if not image_urls and (not text or collapsed):
+            raise HTTPException(status_code=400)
 
         # One query: everything the new range actually overlaps, regardless
         # of what the client claims. A claimed merge_id that isn't in this
@@ -1237,10 +1249,6 @@ async def item_add_highlight(item_id: int, request: Request):
         if merging:
             delete_highlights(conn, [row["id"] for row in merging])
 
-        # Recomputed fresh from the final range every time, merge or not -
-        # never a union of the merged rows' own image_urls, since a wider
-        # range can span an image none of the narrower rows did.
-        image_urls = images_in_block_range(item["body_html"], start_block, end_block)
         highlight_id = add_highlight(
             conn,
             item_id,
