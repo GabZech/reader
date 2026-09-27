@@ -15,17 +15,27 @@ def _item(**overrides):
         "published_at": "2026-08-13T00:00:00+00:00",
         "seen_at": None,
         "url": "https://x.com/JoshARosen/status/2087944178558791874",
+        "body_html": None,
     }
     base.update(overrides)
     return base
 
 
-def _highlight(text, section_title=None, subsection_title=None, image_urls=None):
+def _highlight(
+    text,
+    section_title=None,
+    subsection_title=None,
+    image_urls=None,
+    start_block=0,
+    end_block=0,
+):
     return {
         "text": text,
         "section_title": section_title,
         "subsection_title": subsection_title,
         "image_urls": json.dumps(image_urls) if image_urls else None,
+        "start_block": start_block,
+        "end_block": end_block,
     }
 
 
@@ -71,12 +81,122 @@ def test_build_note_markdown_includes_image_lines_under_the_bullet():
     ]
     md = build_note_markdown(_item(), highlights)
     lines = [line for line in md.splitlines() if line]
-    assert "![](https://example.test/a.png)" not in "\n".join(
+    assert "  - ![](https://example.test/a.png)" not in "\n".join(
         lines[: lines.index("- Spans an image.")]
     )
     idx = lines.index("- Spans an image.")
-    assert lines[idx + 1] == "![](https://example.test/a.png)"
-    assert lines[idx + 2] == "![](https://example.test/b.png)"
+    assert lines[idx + 1] == "  - ![](https://example.test/a.png)"
+    assert lines[idx + 2] == "  - ![](https://example.test/b.png)"
+
+
+def test_build_note_markdown_turns_a_captured_list_into_a_sublist():
+    # A highlight spanning a <ul>/<ol> arrives with each item on its own
+    # line (the browser's range.toString() inserts a newline at each block
+    # boundary) - those should become an indented sublist, not a garbled
+    # single bullet with raw newlines in it.
+    highlight = _highlight("\nMinimum viable\nMaximum necessary\n")
+    md = build_note_markdown(_item(), [highlight])
+    lines = [line for line in md.splitlines() if line]
+    idx = lines.index("- Minimum viable")
+    assert lines[idx + 1] == "  - Maximum necessary"
+    assert "\nMinimum viable\nMaximum necessary\n" not in md
+
+
+def test_build_note_markdown_nests_images_after_multiline_text():
+    highlight = _highlight(
+        "Lead-in text.\nSecond line.",
+        image_urls=["https://example.test/a.png"],
+    )
+    md = build_note_markdown(_item(), [highlight])
+    lines = [line for line in md.splitlines() if line]
+    idx = lines.index("- Lead-in text.")
+    assert lines[idx + 1] == "  - Second line."
+    assert lines[idx + 2] == "  - ![](https://example.test/a.png)"
+
+
+def test_build_note_markdown_preserves_nested_unordered_sublist_depth():
+    body_html = (
+        "<ul>\n<li>Outer one\n<ul>\n<li>Inner a</li>\n<li>Inner b</li>\n</ul>\n</li>\n"
+        "<li>Outer two</li>\n</ul>"
+    )
+    highlight = _highlight(
+        "\nOuter one\n\nInner a\nInner b\n\n\nOuter two\n",
+        start_block=0,
+        end_block=0,
+    )
+    md = build_note_markdown(_item(body_html=body_html), [highlight])
+    lines = [line for line in md.splitlines() if line]
+    idx = lines.index("-")
+    assert lines[idx + 1 : idx + 5] == [
+        "  - Outer one",
+        "    - Inner a",
+        "    - Inner b",
+        "  - Outer two",
+    ]
+
+
+def test_build_note_markdown_renders_an_ordered_list_with_its_own_numbering():
+    body_html = '<ol start="3">\n<li>Third step</li>\n<li>Fourth step</li>\n</ol>'
+    highlight = _highlight("\nThird step\nFourth step\n", start_block=0, end_block=0)
+    md = build_note_markdown(_item(body_html=body_html), [highlight])
+    lines = [line for line in md.splitlines() if line]
+    idx = lines.index("-")
+    assert lines[idx + 1 : idx + 3] == ["  3. Third step", "  4. Fourth step"]
+
+
+def test_build_note_markdown_mixes_ordered_and_nested_unordered_markers():
+    body_html = (
+        "<ol>\n<li>Step one\n<ul>\n<li>Detail a</li>\n<li>Detail b</li>\n</ul>\n</li>\n"
+        "<li>Step two</li>\n</ol>"
+    )
+    highlight = _highlight(
+        "\nStep one\n\nDetail a\nDetail b\n\n\nStep two\n",
+        start_block=0,
+        end_block=0,
+    )
+    md = build_note_markdown(_item(body_html=body_html), [highlight])
+    lines = [line for line in md.splitlines() if line]
+    idx = lines.index("-")
+    assert lines[idx + 1 : idx + 5] == [
+        "  1. Step one",
+        "    - Detail a",
+        "    - Detail b",
+        "  2. Step two",
+    ]
+
+
+def test_build_note_markdown_nests_a_bare_bullet_when_the_highlight_starts_inside_the_list():
+    body_html = "<ul>\n<li>Bullet one</li>\n<li>Bullet two</li>\n</ul>"
+    highlight = _highlight("\nBullet one\nBullet two\n", start_block=0, end_block=0)
+    md = build_note_markdown(_item(body_html=body_html), [highlight])
+    lines = [line for line in md.splitlines() if line]
+    idx = lines.index("-")
+    assert lines[idx + 1 : idx + 3] == ["  - Bullet one", "  - Bullet two"]
+
+
+def test_build_note_markdown_keeps_lead_in_text_before_a_captured_list():
+    body_html = "<p>Notes:</p>\n<ul>\n<li>Bullet one</li>\n<li>Bullet two</li>\n</ul>"
+    highlight = _highlight(
+        "Notes:\n\nBullet one\nBullet two\n", start_block=0, end_block=1
+    )
+    md = build_note_markdown(_item(body_html=body_html), [highlight])
+    lines = [line for line in md.splitlines() if line]
+    idx = lines.index("- Notes:")
+    assert lines[idx + 1 : idx + 3] == ["  - Bullet one", "  - Bullet two"]
+
+
+def test_build_note_markdown_falls_back_when_shape_and_text_line_counts_disagree():
+    # A single top-level blockquote block holding two paragraphs captures as
+    # two text lines but only counts as one (non-list) shape entry - the
+    # mismatch must fall back to the flat rendering rather than guess.
+    body_html = "<blockquote>\n<p>Quoted first</p>\n<p>Quoted second</p>\n</blockquote>"
+    highlight = _highlight(
+        "\nQuoted first\nQuoted second\n", start_block=0, end_block=0
+    )
+    md = build_note_markdown(_item(body_html=body_html), [highlight])
+    lines = [line for line in md.splitlines() if line]
+    idx = lines.index("- Quoted first")
+    assert lines[idx + 1] == "  - Quoted second"
 
 
 def test_build_note_markdown_groups_by_sticky_section_title():
