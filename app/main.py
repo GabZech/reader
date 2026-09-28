@@ -78,6 +78,7 @@ from app.ingest import (
     ingest_url,
     normalize_user_url,
     source_kind_for,
+    youtube_video_id,
 )
 from app.mail import ingest_mail
 from app.obsidian import export_note
@@ -1088,6 +1089,7 @@ def item_page(
         {
             "nav": "home",
             "item": item,
+            "video_id": youtube_video_id(item["url"]),
             "back": back,
             "in_read_later": in_read_later,
             "later_action": f"/items/{item_id}/later{context_query}",

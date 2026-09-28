@@ -20,6 +20,11 @@
           <button type="submit"{% if in_read_later %} class="is-active"{% endif %}>{{ "Saved to Read later" if in_read_later else "Read later" }}</button>
         </form>
       </div>
+      {% if video_id %}
+      <div class="video-frame">
+        <iframe src="https://www.youtube-nocookie.com/embed/{{ video_id }}" title="{{ item.title }}" loading="lazy" allow="fullscreen; picture-in-picture; encrypted-media" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      </div>
+      {% endif %}
       <script type="application/json" id="highlights-data">{{ highlights_json | safe }}</script>
       <div class="article-body" data-progress-action="{{ progress_action }}" data-highlight-action="{{ highlight_action }}"{% if item.progress_index is not none %} data-progress-index="{{ item.progress_index }}"{% endif %}>
         {% if item.body_html %}

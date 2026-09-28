@@ -2263,3 +2263,46 @@ def test_merge_that_omits_a_second_overlapping_highlight_is_rejected(
 
         assert client.get(f"/items/{item_id}/highlights/{first_id}").status_code == 200
         assert client.get(f"/items/{item_id}/highlights/{second_id}").status_code == 200
+
+
+def _set_first_item_url(tmp_path, url):
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        item_id = dbmod.items_for_list(conn, "news")[0]["id"]
+        conn.execute("UPDATE items SET url = ? WHERE id = ?", (url, item_id))
+        conn.commit()
+        return item_id
+    finally:
+        conn.close()
+
+
+def test_youtube_item_page_embeds_the_video_below_the_buttons(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _set_first_item_url(
+            tmp_path, "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        )
+        page = client.get(f"/items/{item_id}").text
+        assert 'src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"' in page
+        assert page.index("Open original") < page.index("<iframe")
+        assert page.index("Read later") < page.index("<iframe")
+        assert page.index("<iframe") < page.index('class="article-body"')
+
+
+def test_non_youtube_item_page_has_no_player(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        assert "<iframe" not in client.get(f"/items/{item_id}").text
+
+
+def test_malformed_youtube_url_shows_no_player_but_keeps_open_original(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        bad = "https://www.youtube.com/watch?v=bad%22%3E%3Cscript%3E"
+        item_id = _set_first_item_url(tmp_path, bad)
+        page = client.get(f"/items/{item_id}").text
+        assert "<iframe" not in page
+        assert "Open original" in page

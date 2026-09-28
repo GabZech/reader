@@ -7,7 +7,7 @@ from datetime import UTC
 from html.parser import HTMLParser
 from itertools import groupby
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import feedparser
 import httpx
@@ -820,6 +820,24 @@ class DiscoveredFeed:
 
 def source_kind_for(feed_url: str) -> str:
     return "youtube" if "youtube.com/feeds/videos.xml" in feed_url else "rss"
+
+
+YOUTUBE_VIDEO_ID = re.compile(r"[A-Za-z0-9_-]{6,20}")
+YOUTUBE_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com"}
+
+
+def youtube_video_id(url: str | None) -> str | None:
+    if not url:
+        return None
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if host == "youtu.be":
+        candidate = parsed.path.lstrip("/")
+    elif host in YOUTUBE_HOSTS and parsed.path == "/watch":
+        candidate = (parse_qs(parsed.query).get("v") or [""])[0]
+    else:
+        return None
+    return candidate if YOUTUBE_VIDEO_ID.fullmatch(candidate) else None
 
 
 def normalize_user_url(raw: str) -> str | None:

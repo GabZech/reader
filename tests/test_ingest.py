@@ -22,6 +22,7 @@ from app.ingest import (
     ingest_all_sources,
     ingest_xml,
     parse_feed,
+    youtube_video_id,
 )
 
 FIXTURE = Path(__file__).parent / "fixtures" / "feed.xml"
@@ -683,3 +684,20 @@ def test_capture_article_is_idempotent_per_url(tmp_path):
     assert first_id == second_id
     count = conn.execute("SELECT COUNT(*) AS n FROM items WHERE url = ?", (url,)).fetchone()
     assert count["n"] == 1
+
+
+def test_youtube_video_id_reads_watch_and_short_links():
+    assert youtube_video_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ") == "dQw4w9WgXcQ"
+    assert youtube_video_id("https://youtube.com/watch?v=dQw4w9WgXcQ&t=30s") == "dQw4w9WgXcQ"
+    assert youtube_video_id("https://m.youtube.com/watch?v=dQw4w9WgXcQ") == "dQw4w9WgXcQ"
+    assert youtube_video_id("https://youtu.be/dQw4w9WgXcQ?si=abc") == "dQw4w9WgXcQ"
+
+
+def test_youtube_video_id_is_none_for_anything_else():
+    assert youtube_video_id(None) is None
+    assert youtube_video_id("") is None
+    assert youtube_video_id("https://example.test/watch?v=dQw4w9WgXcQ") is None
+    assert youtube_video_id("https://www.youtube.com/@testchannel") is None
+    assert youtube_video_id("https://www.youtube.com/watch?v=") is None
+    assert youtube_video_id("https://www.youtube.com/watch?v=bad id<script>") is None
+    assert youtube_video_id("https://notyoutube.com/watch?v=dQw4w9WgXcQ") is None
