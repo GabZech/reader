@@ -148,4 +148,4 @@ The first thing to build is **Manage lists**, then **Manage sources**. The rest 
 
 ## Later
 
-These stay out, as already agreed: more than one user, saving YouTube videos locally and auto-transcribing them, ad-free YouTube playback, the evening video session and filtering Shorts, matching every feature of the current reading app, built-in questioning of your library with an LLM, perfect in-app reading for every site on the web, and going through a publisher paywall without access.
+These stay out, as already agreed: more than one user, saving YouTube videos locally and auto-transcribing them, the evening video session and filtering Shorts, matching every feature of the current reading app, built-in questioning of your library with an LLM, perfect in-app reading for every site on the web, and going through a publisher paywall without access.

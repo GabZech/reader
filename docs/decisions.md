@@ -4,13 +4,13 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
-## 2026-09-28: Ad-free playback and the Evening Video Triage epic are dropped
+## 2026-09-28: Evening Video Triage is dropped; videos play in the embedded player (#56)
 
-**Decision:** The app will not build ad-free YouTube playback or the rest of Evening Video Triage (an evening session, filtering Shorts); the epic and its journey are removed from the vision docs. Videos play only through the embedded player added in #56, so ads play as YouTube serves them.
+**Decision:** The app will not build the rest of Evening Video Triage (an evening session, filtering Shorts); the epic and its journey are removed from the vision docs. Videos play only through YouTube's embedded player, added in #56.
 
-**Why:** In-app watching was the part that mattered, and it is done; ad-free playback needs a stream extractor that breaks with YouTube changes, is likely blocked from Fly's network, and goes against YouTube's terms.
+**Why:** In-app watching was the part that mattered, and it is done.
 
-**Rejected:** Extracting the stream with `yt-dlp` and playing it through the server: fragile, terms-of-service risk, capped quality, video bandwidth through Fly. Keeping the epic as deferred: nothing is planned to bring it back.
+**Rejected:** Keeping the epic as deferred: nothing is planned to bring it back.
 
 **Revisit when:** Not planned; only if the client asks for it again.
 
