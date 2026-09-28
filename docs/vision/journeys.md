@@ -88,26 +88,6 @@ The lists in the picture now are **News**, **Read later**, and **Favourite chann
 
 **Wanted:** Highlight on the original article on first open, without parking on Read later only to highlight. Sticky section titles: a section title applies to following highlights until the next section title, instead of a note on a single highlight.
 
-## Evening Video Triage
-
-**Actor:** [The Solo Reader](personas.md#the-solo-reader)
-
-**Goal:** Use free evening time to watch what looks interesting from favourite channels, without treating the list as a must-watch queue.
-
-**Trigger:** Entertainment, opening Favourite channels. This session is primarily on the computer.
-
-**Steps today:**
-1. Browse the latest items.
-2. If interesting, click and watch inside the reading app.
-3. If not worth watching, delete without opening.
-4. If unsure or maybe later, leave the item untouched.
-
-**Outcome:** Some videos watched, some discarded, some still sitting. No local save and no transcription.
-
-**Costly edges:** None named beyond the Kickoff non-goal of local video save and auto-transcription, which stays out. See [constraints](constraints.md).
-
-**Wanted:** Show only full videos. Filter out Shorts.
-
 ## Bring the Library Over
 
 **Actor:** [The Solo Reader](personas.md#the-solo-reader)

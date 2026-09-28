@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
+## 2026-09-28: Evening Video Triage is dropped; videos play in the embedded player (#56)
+
+**Decision:** The app will not build the rest of Evening Video Triage (an evening session, filtering Shorts); the epic and its journey are removed from the vision docs. Videos play only through YouTube's embedded player, added in #56.
+
+**Why:** In-app watching was the part that mattered, and it is done.
+
+**Rejected:** Keeping the epic as deferred: nothing is planned to bring it back.
+
+**Revisit when:** Not planned; only if the client asks for it again.
+
 ## 2026-09-23: Decision entries are slim, with the full story in the PR
 
 **Decision:** Each entry keeps its Decision, a one-sentence Why, Rejected, and Revisit when, and links the PR that made the choice. Every existing entry was rewritten to this shape once, as a deliberate exception to append-only.

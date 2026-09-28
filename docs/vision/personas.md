@@ -13,7 +13,6 @@ The portrait lives here. What they do end to end lives in [journeys](journeys.md
 - Stay current on a small morning news set: [Morning News Pass](journeys.md#morning-news-pass)
 - Work through parked articles when there is time: [Read-Later Pass](journeys.md#read-later-pass)
 - Keep passages that matter in an Obsidian vault: [Park, Highlight, and Land in Obsidian](journeys.md#park-highlight-and-land-in-obsidian)
-- Use the same hub later for video: [Evening Video Triage](journeys.md#evening-video-triage)
 
 **Context:** Morning News is on the phone, usually home Wi-Fi unless the reader is not at home. Other reading, including Read later, is mostly on the phone and sometimes on the computer. Favourite channels is primarily on the computer. Lists are chosen by moment, not only by recency. The lists in the picture now are News, Read later, and Favourite channels.
 

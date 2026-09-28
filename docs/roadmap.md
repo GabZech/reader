@@ -23,6 +23,7 @@ Session logs from this phase, and the working files from an earlier per-epic way
 - **Read later:** a link can be sent to Read Later while browsing. Saved articles sit in a library, move to an archive once finished (and back again if that was a mistake), resume from wherever reading was left off, and can be removed outright.
 - **Reading progress:** every list except Read Later (which has its own Library/Archive and Started/Unstarted state) splits items into Unread and Read, with a "Mark as read" action on the article and automatic tracking as items are opened, so the Home screen shows only what's unread. Swiping a row right to left moves it straight to the other tab (read or unread, archive or library, on Home too), and swiping left to right deletes it after a confirmation.
 - **Highlighting and Obsidian export:** passages can be highlighted on first opening an article, including any image the selection covers; a standalone image can also be highlighted on its own with a double-click or double-tap, no surrounding text needed. Either way the image gets an outline in the highlight colour and travels into the export, with section titles that stick to the highlights below them and can be deleted along with them; a highlight carrying a title shows a small `§` before it in the article. Highlights land as a note in a private Obsidian vault, in the agreed format, kept to roughly one commit per article via an archive/mark-as-read trigger with a daily 5am (Brasilia time) fallback.
+- **Watching videos:** a YouTube item plays inside its own page, below the Open original and Read later buttons, using YouTube's embedded player. Other items are unchanged.
 
 ## What's next
 
@@ -40,7 +41,6 @@ Session logs from this phase, and the working files from an earlier per-epic way
 Choices explicitly put off for later, each with a real trigger to revisit. Removed once acted on.
 
 - Bring the Library Over: importing sources from the subscriptions export (OPML), and saved items from the CSV and from the folder of files, so switching off the current reading app doesn't mean rebuilding by hand. Revisit when ready to actually switch off the current reading app
-- Evening Video Triage: watching inside the app, the evening session, and filtering Shorts wait. Removing a video from Favourite channels does not wait; it works like removing any other list item
 - Keep the GitHub repo name and the Fly URL `reader-skeleton.fly.dev` through feature work. Before the MVP is put on the phone as the lasting URL, rename the repo, stand up a new Fly app name (Fly cannot rename in place), and add a home-screen logo that shows when the site is installed
 - One Fly app serves both trying and living. During a change, the live app briefly runs an unmerged branch against the real library. Splitting into separate dev and prod Fly apps is the real fix; revisit once local testing is viable again
 - Once the MVP is up, back up the Fly volume's SQLite library regularly (roughly weekly); sources and articles live only on Fly and are never committed to the repo

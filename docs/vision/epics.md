@@ -36,7 +36,7 @@ Epics are listed in the order you need them: setup and lists before sources, sou
 
 **In / out:**
 - **In:** add a newsletter, feed, or YouTube channel; choose a list; set a recency window when the list is timed; notice when a source is already there; see items of this source; delete the source; add an existing source to a list from that source’s screen; rename a source’s display name. Creating a list during add uses **Manage lists**. Isolated mailbox for newsletters.
-- **Out:** morning reading, Read later, highlighting, watching videos inside the app, removing a single item from a list, Home Edit, creating or renaming or deleting lists as their own job
+- **Out:** morning reading, Read later, highlighting, removing a single item from a list, Home Edit, creating or renaming or deleting lists as their own job
 
 **Depends on:** [Manage lists](#manage-lists)
 
@@ -108,26 +108,6 @@ Epics are listed in the order you need them: setup and lists before sources, sou
 
 **Mockup:** yes. What we need to find out: selecting text highlights it; tapping a highlight lets you add a section title or delete it. The dummy does not show the note arriving in the vault.
 
-## Evening Video Triage
-
-**Capability:** Use evening computer time to watch what looks interesting from favourite channels, without treating the list as a must-watch queue. Full videos only; Shorts filtered out. No local save and no transcription.
-
-**Done when:** You can use evening computer time to watch full videos from favourite channels inside the app, skip Shorts, and leave the list as a browse rather than a must-watch queue.
-
-**In / out:**
-- **In (later):** watching inside the app; the evening session; filtering Shorts
-- **Out of this wait:** adding a YouTube channel ([Manage sources](#manage-sources)); removing a YouTube item from a list (same as removing any other list item)
-
-**Depends on:** [Manage sources](#manage-sources)
-
-**Journeys:** [Evening Video Triage](journeys.md#evening-video-triage)
-
-**Persona:** [The Solo Reader](personas.md#the-solo-reader)
-
-**MVP or later:** later for watching videos inside the app, the evening session, and filtering Shorts. Removing a YouTube item from a list does not wait; it works the same as removing any other list item.
-
-**Mockup:** yes, in part. Favourite channels appears on the home page, and you can remove an item from it like any other list. Watching inside the app, the evening session, and filtering Shorts are not in the dummy.
-
 ## Improve UI
 
 **Capability:** Bring the real UI's look and feel beyond the mockup-era guidelines: icons, colour, and richer visual language wherever they help, applied once the rest of the MVP is built and there is a full app to restyle.
@@ -154,7 +134,7 @@ The HTML dummy is there to find out two things: whether choosing a time window w
 
 It also shows the home page and the basic workings of the app: the lists in the picture (News, Read later, Favourite channels), a list of all sources, moving between those parts, and removing any item from the list it is on. A YouTube item is not treated as a special case. A list’s Edit can rename or delete that list. Home Edit (which lists appear, and in what order) is in the dummy; it is not in **Manage lists**.
 
-You can click through the morning newsletter session and Read Later so sending a link from News to Read later makes sense as one story. Watching videos inside the app and filtering Shorts are not in the dummy. The dummy does not show the highlight note arriving in the vault.
+You can click through the morning newsletter session and Read Later so sending a link from News to Read later makes sense as one story. The dummy does not show the highlight note arriving in the vault.
 
 The dummy cannot prove that morning newsletters are already in News once the source has sent, that articles you actually read stay readable inside the app, that operating cost stays at or under $10 USD/month, or that adding a newsletter can finish before the first email arrives. We accept those as open risks; they do not change what belongs in the MVP.
 
@@ -162,12 +142,10 @@ The dummy cannot prove that morning newsletters are already in News once the sou
 
 The MVP has to be usable as a whole: you can manage lists besides the three that are already there, sources land on lists (including YouTube channels) and can be removed, the existing library can be brought over, any item can be removed from the list it is on, a link can be sent to Read later while browsing, parked articles can be worked through, and passages land in the vault.
 
-That is **Manage lists**, **Manage sources**, **Bring the Library Over**, **Read Later**, **Highlight and Land in Obsidian**, and **Improve UI**, plus removing an item from any list. Leave one of those out and the MVP is not worth using. **Evening Video Triage** waits for watching inside the app, the evening session, and filtering Shorts.
+That is **Manage lists**, **Manage sources**, **Bring the Library Over**, **Read Later**, **Highlight and Land in Obsidian**, and **Improve UI**, plus removing an item from any list. Leave one of those out and the MVP is not worth using.
 
 The first thing to build is **Manage lists**, then **Manage sources**. The rest of the MVP does not work without those. **Improve UI** goes last: it needs a full built app to restyle.
 
 ## Later
 
-**Evening Video Triage** waits: watching inside the app, the evening computer session, and filtering Shorts. Adding a YouTube channel and removing a video from a list do not wait.
-
-These stay out, as already agreed: more than one user, saving YouTube videos locally and auto-transcribing them, matching every feature of the current reading app, built-in questioning of your library with an LLM, perfect in-app reading for every site on the web, and going through a publisher paywall without access.
+These stay out, as already agreed: more than one user, saving YouTube videos locally and auto-transcribing them, the evening video session and filtering Shorts, matching every feature of the current reading app, built-in questioning of your library with an LLM, perfect in-app reading for every site on the web, and going through a publisher paywall without access.
