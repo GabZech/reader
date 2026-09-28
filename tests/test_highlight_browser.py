@@ -15,6 +15,7 @@ from test_app import (
 )
 
 from app import db as dbmod
+from app.ingest import sanitize_html
 
 ORIGIN = "http://reader.test"
 IMAGE_BODY = (
@@ -168,6 +169,23 @@ def test_double_clicking_an_image_highlights_it_without_selecting_text(
         browser_page.dblclick(".article-body img")
         browser_page.wait_for_selector(".article-body img.hl-image", timeout=5000)
         assert _outlined(browser_page) == 1
+        assert _stored_images(tmp_path) == [["/static/favicon.svg"]]
+
+
+def test_double_clicking_an_image_wrapped_in_a_link_highlights_it_instead_of_following_it(
+    monkeypatch, tmp_path, browser_page
+):
+    # Substack wraps every article image in a link to the full-size file; the
+    # first tap of a double-tap must not navigate away to it.
+    body = sanitize_html(
+        '<p>First paragraph</p><figure><a href="/static/other.svg">'
+        '<div><picture><img src="/static/favicon.svg" alt=""></picture></div>'
+        "</a></figure><p>Second paragraph</p>"
+    )
+    with _opened(browser_page, monkeypatch, tmp_path, body) as (_client, item_id):
+        browser_page.dblclick(".article-body img")
+        browser_page.wait_for_selector(".article-body img.hl-image", timeout=5000)
+        assert browser_page.url == f"{ORIGIN}/items/{item_id}"
         assert _stored_images(tmp_path) == [["/static/favicon.svg"]]
 
 

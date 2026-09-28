@@ -507,6 +507,13 @@
     // model has nothing to point at an inline image sharing a block with
     // real text. An already-highlighted image opens its highlight instead
     // of saving again, matching the click-a-mark behaviour above.
+    // Sites like Substack wrap each image in a link to the full-size file;
+    // following it on the first tap would leave the page before the second
+    // tap can land, so an image never navigates from here.
+    body.addEventListener("click", (event) => {
+      if (event.target.closest("a img")) event.preventDefault();
+    });
+
     body.addEventListener("dblclick", (event) => {
       const img = event.target.closest("img");
       if (!img || !body.contains(img)) return;
