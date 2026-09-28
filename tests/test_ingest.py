@@ -50,6 +50,28 @@ def test_parse_feed_reads_items():
     assert "Hello from the fixture feed" in entries[0]["body_html"]
 
 
+def test_parse_feed_prefers_full_content_over_short_description():
+    # Substack puts only the subtitle in <description> and the whole post in
+    # <content:encoded>; reading just the description leaves a one-line item.
+    xml = """<?xml version="1.0" encoding="utf-8"?>
+    <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel><title>Substack</title>
+      <item>
+        <title>Cheaper AI</title>
+        <link>https://example.substack.com/p/cheaper-ai</link>
+        <guid>https://example.substack.com/p/cheaper-ai</guid>
+        <pubDate>Wed, 05 Aug 2026 08:00:00 +0000</pubDate>
+        <description>The price is falling 13x year over year</description>
+        <content:encoded><![CDATA[<p>The price is falling 13x year over year</p>
+        <p>The full article body.</p><h2>A section</h2><p>More detail.</p>]]></content:encoded>
+      </item>
+    </channel></rss>"""
+    (entry,) = parse_feed(xml, SOURCE_ID)
+    assert "The full article body." in entry["body_html"]
+    assert "<h2>A section</h2>" in entry["body_html"]
+    assert entry["word_count"] > 10
+
+
 def test_ingest_xml_stores_news_items(tmp_path):
     conn = connect(tmp_path / "reader.db")
     init_db(conn)

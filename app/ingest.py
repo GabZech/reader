@@ -343,6 +343,15 @@ def word_count(html: str) -> int:
     return len(words)
 
 
+def _entry_html(entry) -> str:
+    """The fullest body a feed entry carries. Substack (and others) put only a
+    subtitle in <description> and the whole post in <content:encoded>, so the
+    longest of the two wins rather than the description always."""
+    candidates = [block.get("value") or "" for block in entry.get("content") or []]
+    candidates.append(entry.get("summary") or entry.get("description") or "")
+    return max(candidates, key=len)
+
+
 def parse_feed(xml: str, source_id: str) -> list[dict[str, Any]]:
     parsed = feedparser.parse(xml)
     feed_title = parsed.feed.get("title") or "RSS"
@@ -351,8 +360,7 @@ def parse_feed(xml: str, source_id: str) -> list[dict[str, Any]]:
         guid = entry.get("id") or entry.get("link") or entry.get("title")
         if not guid:
             continue
-        html = entry.get("summary") or entry.get("description") or ""
-        body = sanitize_html(html)
+        body = sanitize_html(_entry_html(entry))
         image = _entry_image(entry)
         published = _entry_published(entry)
         author = entry.get("author")
