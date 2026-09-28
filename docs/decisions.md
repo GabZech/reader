@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
+## 2026-09-28: Videos play in YouTube's embedded player, and ads are not skipped
+
+**Decision:** A YouTube item plays through YouTube's own embed (`youtube-nocookie.com`) on its item page. The app does not extract, proxy, or otherwise fetch the video stream, so ads play as YouTube serves them.
+
+**Why:** The embed is supported and reliable, while ad-free playback needs a stream extractor that breaks with YouTube changes, is likely blocked from Fly's network, and goes against YouTube's terms.
+
+**Rejected:** Extracting the stream with `yt-dlp` and playing it in a `<video>` element through the server: fragile, terms-of-service risk, capped quality, and video bandwidth through the Fly app.
+
+**Revisit when:** Ads become the main reason videos are not watched in the app, and the cost of a stream extractor is worth paying.
+
 ## 2026-09-23: Decision entries are slim, with the full story in the PR
 
 **Decision:** Each entry keeps its Decision, a one-sentence Why, Rejected, and Revisit when, and links the PR that made the choice. Every existing entry was rewritten to this shape once, as a deliberate exception to append-only.

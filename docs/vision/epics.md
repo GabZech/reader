@@ -115,7 +115,8 @@ Epics are listed in the order you need them: setup and lists before sources, sou
 **Done when:** You can use evening computer time to watch full videos from favourite channels inside the app, skip Shorts, and leave the list as a browse rather than a must-watch queue.
 
 **In / out:**
-- **In (later):** watching inside the app; the evening session; filtering Shorts
+- **Built:** watching inside the app, through YouTube's embedded player (ads still play)
+- **In (later):** the evening session; filtering Shorts
 - **Out of this wait:** adding a YouTube channel ([Manage sources](#manage-sources)); removing a YouTube item from a list (same as removing any other list item)
 
 **Depends on:** [Manage sources](#manage-sources)
@@ -124,7 +125,7 @@ Epics are listed in the order you need them: setup and lists before sources, sou
 
 **Persona:** [The Solo Reader](personas.md#the-solo-reader)
 
-**MVP or later:** later for watching videos inside the app, the evening session, and filtering Shorts. Removing a YouTube item from a list does not wait; it works the same as removing any other list item.
+**MVP or later:** watching videos inside the app is built. Later for the evening session and filtering Shorts. Removing a YouTube item from a list does not wait; it works the same as removing any other list item.
 
 **Mockup:** yes, in part. Favourite channels appears on the home page, and you can remove an item from it like any other list. Watching inside the app, the evening session, and filtering Shorts are not in the dummy.
 
@@ -162,12 +163,12 @@ The dummy cannot prove that morning newsletters are already in News once the sou
 
 The MVP has to be usable as a whole: you can manage lists besides the three that are already there, sources land on lists (including YouTube channels) and can be removed, the existing library can be brought over, any item can be removed from the list it is on, a link can be sent to Read later while browsing, parked articles can be worked through, and passages land in the vault.
 
-That is **Manage lists**, **Manage sources**, **Bring the Library Over**, **Read Later**, **Highlight and Land in Obsidian**, and **Improve UI**, plus removing an item from any list. Leave one of those out and the MVP is not worth using. **Evening Video Triage** waits for watching inside the app, the evening session, and filtering Shorts.
+That is **Manage lists**, **Manage sources**, **Bring the Library Over**, **Read Later**, **Highlight and Land in Obsidian**, and **Improve UI**, plus removing an item from any list. Leave one of those out and the MVP is not worth using. **Evening Video Triage** waits for the evening session and filtering Shorts; watching inside the app is already built.
 
 The first thing to build is **Manage lists**, then **Manage sources**. The rest of the MVP does not work without those. **Improve UI** goes last: it needs a full built app to restyle.
 
 ## Later
 
-**Evening Video Triage** waits: watching inside the app, the evening computer session, and filtering Shorts. Adding a YouTube channel and removing a video from a list do not wait.
+**Evening Video Triage** waits: the evening computer session and filtering Shorts. Watching inside the app is built. Adding a YouTube channel and removing a video from a list do not wait.
 
 These stay out, as already agreed: more than one user, saving YouTube videos locally and auto-transcribing them, matching every feature of the current reading app, built-in questioning of your library with an LLM, perfect in-app reading for every site on the web, and going through a publisher paywall without access.
