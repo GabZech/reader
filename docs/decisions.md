@@ -4,7 +4,7 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
-## 2026-09-28: Videos play in YouTube's embedded player, and ads are not skipped
+## 2026-09-28: Videos play in YouTube's embedded player, and ads are not skipped (#56)
 
 **Decision:** A YouTube item plays through YouTube's own embed (`youtube-nocookie.com`) on its item page. The app does not extract, proxy, or otherwise fetch the video stream, so ads play as YouTube serves them.
 
