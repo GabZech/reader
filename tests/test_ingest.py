@@ -26,6 +26,7 @@ from app.ingest import (
     ingest_url,
     ingest_xml,
     parse_feed,
+    parse_youtube_durations,
     youtube_video_id,
 )
 
@@ -1006,3 +1007,50 @@ def test_a_name_the_client_chose_survives_a_channel_sync(monkeypatch, tmp_path):
     ingest_url(conn, CHANNEL_FEED_URL, "yt-channel", limit=5)
     conn.commit()
     assert _source_titles(conn, "yt-channel") == ("Science videos", CHANNEL_NAME)
+
+
+# --- YouTube video lengths ------------------------------------------------
+# channel_videos.html is a real excerpt of a channel's /videos page: the first
+# six videos, each with its length in a thumbnail badge.
+
+
+def test_parse_youtube_durations_pairs_each_length_with_its_own_video():
+    html = _youtube_fixture("channel_videos.html")
+    durations = parse_youtube_durations(html)
+    assert durations == {
+        "QW_jlUn4gA8": 14 * 60 + 12,
+        "0NY2gAftzJE": 15 * 60 + 14,
+        "Cyl3X88KEgg": 14 * 60 + 8,
+        "PqtggjVAi8M": 13 * 60 + 56,
+        "8qQW4LTWgtc": 14 * 60 + 53,
+        "TYhNHX372ek": 15 * 60 + 53,
+    }
+    assert len(durations) == 6
+
+
+def _badge(video_id: str, text: str) -> str:
+    return (
+        f'{{"thumbnailBadgeViewModel":{{"text":"{text}",'
+        f'"badgeStyle":"THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT",'
+        f'"animationActivationTargetId":"{video_id}"}}}}'
+    )
+
+
+def test_parse_youtube_durations_reads_hours_and_skips_non_times():
+    html = "".join(
+        [
+            _badge("aaaaaaaaaaa", "1:02:03"),
+            _badge("bbbbbbbbbbb", "0:45"),
+            _badge("ccccccccccc", "LIVE"),
+            _badge("ddddddddddd", "UPCOMING"),
+        ]
+    )
+    assert parse_youtube_durations(html) == {
+        "aaaaaaaaaaa": 3723,
+        "bbbbbbbbbbb": 45,
+    }
+
+
+def test_parse_youtube_durations_is_empty_for_a_page_without_badges():
+    assert parse_youtube_durations("") == {}
+    assert parse_youtube_durations("<html><body>captcha</body></html>") == {}

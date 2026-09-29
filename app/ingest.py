@@ -1015,3 +1015,25 @@ def _entry_image(entry: Any) -> str | None:
         if href and typ.startswith("image/"):
             return href
     return None
+
+
+_DURATION_BADGE = re.compile(
+    r'"thumbnailBadgeViewModel":\{"text":"(?P<text>[^"]+)",'
+    r'"badgeStyle":"[^"]+","animationActivationTargetId":"(?P<id>[\w-]{11})"'
+)
+_CLOCK_TIME = re.compile(r"(?:(\d{1,2}):)?(\d{1,2}):(\d{2})")
+
+
+def parse_youtube_durations(html: str) -> dict[str, int]:
+    """Each video's length in seconds from a channel's /videos page. A badge
+    names its own video, so pair by that ID, never by position. Badges that are
+    not a clock time (LIVE, UPCOMING) are skipped."""
+    durations: dict[str, int] = {}
+    for badge in _DURATION_BADGE.finditer(html):
+        clock = _CLOCK_TIME.fullmatch(badge["text"])
+        if clock:
+            hours, minutes, seconds = clock.groups()
+            durations[badge["id"]] = (
+                int(hours or 0) * 3600 + int(minutes) * 60 + int(seconds)
+            )
+    return durations
