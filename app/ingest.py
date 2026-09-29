@@ -353,9 +353,18 @@ def _entry_html(entry) -> str:
     return max(candidates, key=len)
 
 
+def _feed_title(parsed: Any) -> str:
+    """A YouTube playlist feed, such as a channel's long-form one, is titled just
+    "Videos"; the channel's name is the feed's author."""
+    title = parsed.feed.get("title") or "RSS"
+    if str(parsed.feed.get("id") or "").startswith("yt:playlist:"):
+        return parsed.feed.get("author") or title
+    return title
+
+
 def parse_feed(xml: str, source_id: str) -> list[dict[str, Any]]:
     parsed = feedparser.parse(xml)
-    feed_title = parsed.feed.get("title") or "RSS"
+    feed_title = _feed_title(parsed)
     entries = []
     for entry in parsed.entries:
         guid = entry.get("id") or entry.get("link") or entry.get("title")

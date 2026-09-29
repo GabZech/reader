@@ -937,3 +937,72 @@ def test_adding_a_channel_counts_without_shorts_when_long_form_is_unreachable(
     found = discover_feed(CHANNEL_FEED_URL)
     assert found is not None
     assert found.item_count == 3
+
+
+# The long-form feed is titled just "Videos"; the channel's name is only in its
+# feed-level author. A sync must never rename a source to "Videos".
+CHANNEL_NAME = "Kurzgesagt – In a Nutshell"
+
+
+def _source_titles(conn, source_id: str) -> tuple[str, str]:
+    row = conn.execute(
+        "SELECT title, auto_title FROM sources WHERE id = ?", (source_id,)
+    ).fetchone()
+    return row["title"], row["auto_title"]
+
+
+def test_parse_feed_names_a_long_form_feed_after_its_channel():
+    entries = parse_feed(_youtube_fixture("longform_feed.xml"), "yt-channel")
+    assert {entry["feed_title"] for entry in entries} == {CHANNEL_NAME}
+
+
+def test_syncing_a_channel_keeps_the_channel_name(monkeypatch, tmp_path):
+    _serve_youtube(monkeypatch, longform=_youtube_fixture("longform_feed.xml"))
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    insert_source(
+        conn,
+        source_id="yt-channel",
+        kind="youtube",
+        title=CHANNEL_NAME,
+        feed_url=CHANNEL_FEED_URL,
+        backfill=5,
+    )
+    ingest_url(conn, CHANNEL_FEED_URL, "yt-channel", limit=5)
+    conn.commit()
+    assert _source_titles(conn, "yt-channel") == (CHANNEL_NAME, CHANNEL_NAME)
+
+
+def test_a_channel_already_renamed_videos_gets_its_name_back(monkeypatch, tmp_path):
+    _serve_youtube(monkeypatch, longform=_youtube_fixture("longform_feed.xml"))
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    insert_source(
+        conn,
+        source_id="yt-channel",
+        kind="youtube",
+        title="Videos",
+        feed_url=CHANNEL_FEED_URL,
+        backfill=5,
+    )
+    ingest_url(conn, CHANNEL_FEED_URL, "yt-channel", limit=5)
+    conn.commit()
+    assert _source_titles(conn, "yt-channel") == (CHANNEL_NAME, CHANNEL_NAME)
+
+
+def test_a_name_the_client_chose_survives_a_channel_sync(monkeypatch, tmp_path):
+    _serve_youtube(monkeypatch, longform=_youtube_fixture("longform_feed.xml"))
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    insert_source(
+        conn,
+        source_id="yt-channel",
+        kind="youtube",
+        title="Science videos",
+        feed_url=CHANNEL_FEED_URL,
+        backfill=5,
+        auto_title=CHANNEL_NAME,
+    )
+    ingest_url(conn, CHANNEL_FEED_URL, "yt-channel", limit=5)
+    conn.commit()
+    assert _source_titles(conn, "yt-channel") == ("Science videos", CHANNEL_NAME)
