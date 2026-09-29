@@ -14,12 +14,16 @@ from app.db import (
     is_item_in_list,
     item_in_window,
     items_for_list,
+    upsert_item,
 )
 from app.ingest import (
     _image_candidates,
     _recover_missing_images,
     capture_article,
+    discover_feed,
+    fetch_feed_xml,
     ingest_all_sources,
+    ingest_url,
     ingest_xml,
     parse_feed,
     youtube_video_id,
@@ -27,7 +31,14 @@ from app.ingest import (
 
 FIXTURE = Path(__file__).parent / "fixtures" / "feed.xml"
 CAPTURE_FIXTURES = Path(__file__).parent / "fixtures" / "capture"
+YOUTUBE_FIXTURES = Path(__file__).parent / "fixtures" / "youtube"
 SOURCE_ID = "fixture-rss"
+CHANNEL_FEED_URL = (
+    "https://www.youtube.com/feeds/videos.xml?channel_id=UCsXVk37bltHxD1rDPwtNM8Q"
+)
+LONGFORM_FEED_URL = (
+    "https://www.youtube.com/feeds/videos.xml?playlist_id=UULFsXVk37bltHxD1rDPwtNM8Q"
+)
 
 
 def _source(conn, window: str | None = "week") -> None:
@@ -723,3 +734,206 @@ def test_youtube_video_id_is_none_for_anything_else():
     assert youtube_video_id("https://www.youtube.com/watch?v=") is None
     assert youtube_video_id("https://www.youtube.com/watch?v=bad id<script>") is None
     assert youtube_video_id("https://notyoutube.com/watch?v=dQw4w9WgXcQ") is None
+
+
+# --- YouTube Shorts -------------------------------------------------------
+# The two fixtures are real Kurzgesagt feeds: the channel feed (12 of its 15
+# entries are Shorts, linked as /shorts/...) and the long-form-only playlist
+# feed for the same channel (15 regular videos).
+
+
+def _youtube_fixture(name: str) -> str:
+    return (YOUTUBE_FIXTURES / name).read_text(encoding="utf-8")
+
+
+def _youtube_source(conn, backfill: int | None = 5) -> str:
+    insert_source(
+        conn,
+        source_id="yt-channel",
+        kind="youtube",
+        title="Kurzgesagt",
+        feed_url=CHANNEL_FEED_URL,
+        backfill=backfill,
+    )
+    return "yt-channel"
+
+
+def _stored_urls(conn, source_id: str) -> list[str]:
+    return [
+        row["url"]
+        for row in conn.execute(
+            "SELECT url FROM items WHERE source_id = ? ORDER BY published_at DESC",
+            (source_id,),
+        )
+    ]
+
+
+def _serve_youtube(monkeypatch, *, longform: str | Exception | None):
+    """Stand in for YouTube: the channel feed always answers; the long-form
+    feed answers with `longform` (text) or raises it (an exception)."""
+    requested: list[str] = []
+
+    def fake_fetch_url(url: str, timeout: float = 8.0):
+        requested.append(url)
+        if url == CHANNEL_FEED_URL:
+            return url, _youtube_fixture("channel_feed.xml")
+        if url == LONGFORM_FEED_URL:
+            if isinstance(longform, Exception):
+                raise longform
+            return url, longform
+        raise AssertionError(f"unexpected fetch: {url}")
+
+    monkeypatch.setattr("app.ingest.fetch_url", fake_fetch_url)
+    return requested
+
+
+def test_parse_feed_drops_youtube_shorts():
+    entries = parse_feed(_youtube_fixture("channel_feed.xml"), "yt-channel")
+    urls = [entry["url"] for entry in entries]
+    assert urls
+    assert not any("/shorts/" in url for url in urls)
+    assert sorted(urls) == [
+        "https://www.youtube.com/watch?v=0NY2gAftzJE",
+        "https://www.youtube.com/watch?v=Cyl3X88KEgg",
+        "https://www.youtube.com/watch?v=QW_jlUn4gA8",
+    ]
+
+
+def test_ingest_xml_stores_no_shorts_when_taking_the_latest_five(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _youtube_source(conn)
+    result = ingest_xml(
+        conn, _youtube_fixture("channel_feed.xml"), source_id, limit=5
+    )
+    conn.commit()
+    assert result["feed_total"] == 3
+    assert result["kept"] == 3
+    assert not any("/shorts/" in url for url in _stored_urls(conn, source_id))
+
+
+def _short_already_stored(conn, source_id: str) -> str:
+    url = "https://www.youtube.com/shorts/b1EMX3wyqCY"
+    upsert_item(
+        conn,
+        source_id=source_id,
+        guid="yt:video:b1EMX3wyqCY",
+        title="Your Brain on Magic Mushrooms",
+        author=None,
+        url=url,
+        published_at="2026-09-28T14:00:34+00:00",
+        body_html="",
+        image_url=None,
+        word_count=None,
+    )
+    return url
+
+
+def test_a_short_stored_before_the_filter_is_removed_on_a_limited_sync(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _youtube_source(conn, backfill=5)
+    short = _short_already_stored(conn, source_id)
+    ingest_xml(conn, _youtube_fixture("channel_feed.xml"), source_id, limit=5)
+    conn.commit()
+    assert short not in _stored_urls(conn, source_id)
+
+
+def test_a_short_stored_before_the_filter_is_removed_when_taking_everything(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _youtube_source(conn, backfill=None)
+    short = _short_already_stored(conn, source_id)
+    ingest_xml(conn, _youtube_fixture("channel_feed.xml"), source_id, limit=None)
+    conn.commit()
+    urls = _stored_urls(conn, source_id)
+    assert short not in urls
+    assert len(urls) == 3
+
+
+def test_a_channel_feed_is_fetched_as_its_long_form_feed(monkeypatch):
+    requested = _serve_youtube(
+        monkeypatch, longform=_youtube_fixture("longform_feed.xml")
+    )
+    xml = fetch_feed_xml(CHANNEL_FEED_URL)
+    assert requested == [LONGFORM_FEED_URL]
+    assert len(parse_feed(xml, "yt-channel")) == 15
+
+
+def test_latest_five_of_a_channel_are_five_regular_videos(monkeypatch, tmp_path):
+    _serve_youtube(monkeypatch, longform=_youtube_fixture("longform_feed.xml"))
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _youtube_source(conn)
+    result = ingest_url(conn, CHANNEL_FEED_URL, source_id, limit=5)
+    conn.commit()
+    urls = _stored_urls(conn, source_id)
+    assert result["kept"] == 5
+    assert len(urls) == 5
+    assert not any("/shorts/" in url for url in urls)
+
+
+def test_a_channel_falls_back_to_its_own_feed_when_long_form_is_unreachable(
+    monkeypatch, tmp_path
+):
+    requested = _serve_youtube(monkeypatch, longform=RuntimeError("no such feed"))
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _youtube_source(conn)
+    ingest_url(conn, CHANNEL_FEED_URL, source_id, limit=5)
+    conn.commit()
+    assert requested == [LONGFORM_FEED_URL, CHANNEL_FEED_URL]
+    urls = _stored_urls(conn, source_id)
+    assert len(urls) == 3
+    assert not any("/shorts/" in url for url in urls)
+
+
+def test_a_channel_falls_back_to_its_own_feed_when_long_form_is_empty(
+    monkeypatch, tmp_path
+):
+    empty = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<feed xmlns="http://www.w3.org/2005/Atom"><title>Empty</title></feed>'
+    )
+    requested = _serve_youtube(monkeypatch, longform=empty)
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _youtube_source(conn)
+    ingest_url(conn, CHANNEL_FEED_URL, source_id, limit=5)
+    conn.commit()
+    assert requested == [LONGFORM_FEED_URL, CHANNEL_FEED_URL]
+    assert len(_stored_urls(conn, source_id)) == 3
+
+
+def test_feeds_that_are_not_a_youtube_channel_are_fetched_as_given(monkeypatch):
+    requested: list[str] = []
+
+    def fake_fetch_url(url: str, timeout: float = 8.0):
+        requested.append(url)
+        return url, FIXTURE.read_text(encoding="utf-8")
+
+    monkeypatch.setattr("app.ingest.fetch_url", fake_fetch_url)
+    playlist = "https://www.youtube.com/feeds/videos.xml?playlist_id=PLabc123"
+    for url in ("https://example.test/feed.xml", playlist):
+        fetch_feed_xml(url)
+    assert requested == ["https://example.test/feed.xml", playlist]
+
+
+def test_adding_a_channel_counts_its_regular_videos_not_its_shorts(monkeypatch):
+    requested = _serve_youtube(
+        monkeypatch, longform=_youtube_fixture("longform_feed.xml")
+    )
+    found = discover_feed(CHANNEL_FEED_URL)
+    assert found is not None
+    assert found.feed_url == CHANNEL_FEED_URL
+    assert found.item_count == 15
+    assert LONGFORM_FEED_URL in requested
+
+
+def test_adding_a_channel_counts_without_shorts_when_long_form_is_unreachable(
+    monkeypatch,
+):
+    _serve_youtube(monkeypatch, longform=RuntimeError("no such feed"))
+    found = discover_feed(CHANNEL_FEED_URL)
+    assert found is not None
+    assert found.item_count == 3

@@ -22,14 +22,9 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 ## In flight
 
-- **Queued, not started:** commit message `add note:` for a new file, `update note:` for an existing one — awaiting client go-ahead.
-
-- **Change:** preserve full list nesting depth and ordered/unordered list type when a highlight spans a list, on export. Kind: behaviour. Branch: `claude/highlights-export-formatting-3swqvt`. Builds on the already-shipped flat sublist fix (commit `26a1efd`).
-  Shape: server-only — reconstruct structure from `item['body_html']` + the highlight's stored block range at export time (same pattern as `images_in_block_range`); no changes to `app.js`, the save path, or the schema. Falls back to today's shipped flat behaviour whenever the HTML-derived shape doesn't cleanly line up with the captured text (missing `body_html`, or an edge case like list-items-containing-paragraphs).
-  ### Planned
-  - [x] Slice 1: shape extraction — pure function walking `body_html`'s blocks in a highlight's range, returning per-line `None` (plain) or `(depth, marker)` for each `<li>` (nesting depth, `-`/`N.` marker honoring `<ol start>`). Verified with unit tests only (flat list, nested list, ordered list, mixed nesting, plain paragraphs, missing `body_html`).
-  - [x] Slice 2: wire into `build_note_markdown` — use shapes to indent/mark each line when they align with the captured text; fall back to the flat rendering otherwise (proven with a blockquote-holding-two-paragraphs mismatch test). Verified with unit tests plus a rendered screenshot.
-  Deployed to live (branch dispatch, sha `f014423`) and PR opened: https://github.com/GabZech/reader/pull/53. Awaiting the client's live sign-off before merge.
+- **Change:** keep YouTube Shorts out of channel sources: on adding a channel (latest N) and on every later sync. Kind: behaviour + external system. Branch: `dev/skip-youtube-shorts`. Small change, Shape agreed in chat.
+  Shape: a channel feed is read from YouTube's hidden long-form playlist feed (`UULF` + channel ID without `UC`), falling back to the channel's own feed when that is unreachable or empty; `parse_feed` drops any `/shorts/` link either way; each sync deletes already-stored Shorts for the source; the add flow's item count comes from the same feed. Leaves alone: stored `feed_url`s, schema, UI, non-YouTube feeds.
+  Built and committed; real feeds saved as fixtures in `tests/fixtures/youtube/`; ran once end to end against live Kurzgesagt (five regular videos). Not yet deployed. Next: client says deploy or keep building; then live sign-off, then Ship (roadmap line, `docs/decisions.md` entry reversing 2026-09-28's "no Shorts filtering", `docs/architecture.md` YouTube line).
 
 ## Stacked awaiting deploy
 
