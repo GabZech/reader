@@ -125,6 +125,8 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE items ADD COLUMN seen_at TEXT")
     if "progress_index" not in items_columns:
         conn.execute("ALTER TABLE items ADD COLUMN progress_index INTEGER")
+    if "duration_seconds" not in items_columns:
+        conn.execute("ALTER TABLE items ADD COLUMN duration_seconds INTEGER")
     if "highlights_touched_at" not in items_columns:
         conn.execute("ALTER TABLE items ADD COLUMN highlights_touched_at TEXT")
     if "highlights_exported_at" not in items_columns:
@@ -932,6 +934,29 @@ def delete_items_except_guids(
     conn.execute(
         f"DELETE FROM items WHERE source_id = ? AND guid NOT IN ({placeholders})",
         (source_id, *guids),
+    )
+
+
+def newest_items_without_duration(
+    conn: sqlite3.Connection, source_id: str, newest: int = 30
+) -> list[sqlite3.Row]:
+    """Of a source's `newest` most recent items, those with no known length."""
+    return conn.execute(
+        """
+        SELECT id, url FROM (
+            SELECT id, url, duration_seconds FROM items
+            WHERE source_id = ?
+            ORDER BY published_at DESC, id DESC
+            LIMIT ?
+        ) WHERE duration_seconds IS NULL
+        """,
+        (source_id, newest),
+    ).fetchall()
+
+
+def set_item_duration(conn: sqlite3.Connection, item_id: int, seconds: int) -> None:
+    conn.execute(
+        "UPDATE items SET duration_seconds = ? WHERE id = ?", (seconds, item_id)
     )
 
 

@@ -769,12 +769,36 @@ def _stored_urls(conn, source_id: str) -> list[str]:
     ]
 
 
-def _serve_youtube(monkeypatch, *, longform: str | Exception | None):
+VIDEOS_PAGE_URL = "https://www.youtube.com/channel/UCsXVk37bltHxD1rDPwtNM8Q/videos"
+
+
+class _Served(list):
+    """The feed URLs requested; `pages` holds the /videos page requests."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.pages: list[str] = []
+
+
+def _serve_youtube(
+    monkeypatch,
+    *,
+    longform: str | Exception | None,
+    videos_page: str | Exception | None = None,
+):
     """Stand in for YouTube: the channel feed always answers; the long-form
-    feed answers with `longform` (text) or raises it (an exception)."""
-    requested: list[str] = []
+    feed and the channel's /videos page answer with the given text, or raise
+    the given exception (the /videos page is unreachable when left as None)."""
+    requested = _Served()
 
     def fake_fetch_url(url: str, timeout: float = 8.0):
+        if url == VIDEOS_PAGE_URL:
+            requested.pages.append(url)
+            if videos_page is None:
+                raise RuntimeError("videos page unreachable")
+            if isinstance(videos_page, Exception):
+                raise videos_page
+            return url, videos_page
         requested.append(url)
         if url == CHANNEL_FEED_URL:
             return url, _youtube_fixture("channel_feed.xml")
@@ -1054,3 +1078,110 @@ def test_parse_youtube_durations_reads_hours_and_skips_non_times():
 def test_parse_youtube_durations_is_empty_for_a_page_without_badges():
     assert parse_youtube_durations("") == {}
     assert parse_youtube_durations("<html><body>captcha</body></html>") == {}
+
+
+def _durations(conn, source_id: str) -> dict[str, int | None]:
+    return {
+        row["url"].rsplit("=", 1)[-1]: row["duration_seconds"]
+        for row in conn.execute(
+            "SELECT url, duration_seconds FROM items WHERE source_id = ?",
+            (source_id,),
+        )
+    }
+
+
+def test_init_db_adds_the_duration_column_once_and_keeps_existing_items(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _youtube_source(conn)
+    _short_already_stored(conn, source_id)
+    conn.execute("ALTER TABLE items DROP COLUMN duration_seconds")
+    init_db(conn)
+    init_db(conn)
+    row = conn.execute("SELECT duration_seconds, title FROM items").fetchone()
+    assert row["duration_seconds"] is None
+    assert row["title"] == "Your Brain on Magic Mushrooms"
+
+
+def test_syncing_a_channel_stores_each_videos_length(monkeypatch, tmp_path):
+    _serve_youtube(
+        monkeypatch,
+        longform=_youtube_fixture("longform_feed.xml"),
+        videos_page=_youtube_fixture("channel_videos.html"),
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _youtube_source(conn)
+    ingest_url(conn, CHANNEL_FEED_URL, source_id, limit=5)
+    conn.commit()
+    assert _durations(conn, source_id) == {
+        "QW_jlUn4gA8": 14 * 60 + 12,
+        "0NY2gAftzJE": 15 * 60 + 14,
+        "Cyl3X88KEgg": 14 * 60 + 8,
+        "PqtggjVAi8M": 13 * 60 + 56,
+        "8qQW4LTWgtc": 14 * 60 + 53,
+    }
+
+
+def test_the_videos_page_is_fetched_only_while_a_length_is_missing(
+    monkeypatch, tmp_path
+):
+    served = _serve_youtube(
+        monkeypatch,
+        longform=_youtube_fixture("longform_feed.xml"),
+        videos_page=_youtube_fixture("channel_videos.html"),
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _youtube_source(conn)
+    ingest_url(conn, CHANNEL_FEED_URL, source_id, limit=5)
+    ingest_url(conn, CHANNEL_FEED_URL, source_id, limit=5)
+    assert served.pages == [VIDEOS_PAGE_URL]
+
+
+def test_a_channel_syncs_without_lengths_when_its_videos_page_is_unreachable(
+    monkeypatch, tmp_path
+):
+    _serve_youtube(
+        monkeypatch,
+        longform=_youtube_fixture("longform_feed.xml"),
+        videos_page=RuntimeError("blocked"),
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _youtube_source(conn)
+    result = ingest_url(conn, CHANNEL_FEED_URL, source_id, limit=5)
+    conn.commit()
+    assert result["created"] == 5
+    assert set(_durations(conn, source_id).values()) == {None}
+
+
+def test_a_captcha_page_leaves_lengths_blank(monkeypatch, tmp_path):
+    _serve_youtube(
+        monkeypatch,
+        longform=_youtube_fixture("longform_feed.xml"),
+        videos_page="<html>Our systems have detected unusual traffic</html>",
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _youtube_source(conn)
+    ingest_url(conn, CHANNEL_FEED_URL, source_id, limit=5)
+    conn.commit()
+    assert set(_durations(conn, source_id).values()) == {None}
+
+
+def test_a_feed_that_is_not_a_youtube_channel_never_asks_for_lengths(
+    monkeypatch, tmp_path
+):
+    requested: list[str] = []
+
+    def fake_fetch_url(url: str, timeout: float = 8.0):
+        requested.append(url)
+        return url, FIXTURE.read_text(encoding="utf-8")
+
+    monkeypatch.setattr("app.ingest.fetch_url", fake_fetch_url)
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    _source(conn)
+    ingest_url(conn, "https://example.test/feed.xml", SOURCE_ID)
+    assert requested == ["https://example.test/feed.xml"]

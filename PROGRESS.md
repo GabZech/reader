@@ -31,7 +31,7 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
   Fallback if it goes wrong: the new column is additive; revert the change and leave it unused. Copy the library off the volume and rehearse the migration on the copy before deploy.
   ### Planned
   - [x] Slice 1: read lengths: pure function from a channel `/videos` page to `{video_id: seconds}`; tested on a real excerpt saved as a fixture plus synthetic edge cases (hours, LIVE badge, no badges).
-  - [ ] Slice 2: store: nullable `items.duration_seconds` (re-runnable migration, existing rows blank); each sync fetches the channel's `/videos` page once, only when some of its items lack a length; any failure leaves lengths blank and never fails the sync.
+  - [x] Slice 2: store: nullable `items.duration_seconds` (re-runnable migration, existing rows blank); each sync fetches the channel's `/videos` page once, only when some of its items lack a length; any failure leaves lengths blank and never fails the sync.
   - [ ] Slice 3: show: YouTube items show the length as "N min" on the list card and the item page, nothing when unknown; other items unchanged. Live run against a real channel before sign-off.
 
 ## Stacked awaiting deploy

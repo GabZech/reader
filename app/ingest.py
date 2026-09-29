@@ -21,7 +21,9 @@ from app.db import (
     delete_items_except_guids,
     delete_youtube_shorts,
     find_item_id,
+    newest_items_without_duration,
     rss_sources,
+    set_item_duration,
     upsert_item,
 )
 
@@ -823,7 +825,32 @@ def ingest_url(
     conn, url: str, source_id: str, limit: int | None = None
 ) -> dict:
     xml = fetch_feed_xml(url)
-    return ingest_xml(conn, xml, source_id, limit=limit)
+    result = ingest_xml(conn, xml, source_id, limit=limit)
+    _store_youtube_durations(conn, url, source_id)
+    return result
+
+
+def _store_youtube_durations(conn, feed_url: str, source_id: str) -> None:
+    """Fill in video lengths from the channel's /videos page: one fetch, and
+    only while a recent video still lacks its length. Lengths are a nicety, so
+    a blocked or changed page leaves them blank and never fails the sync."""
+    channel_id = youtube_channel_id(feed_url)
+    if channel_id is None:
+        return
+    missing = newest_items_without_duration(conn, source_id)
+    if not missing:
+        return
+    try:
+        _final_url, page = fetch_url(
+            f"https://www.youtube.com/channel/{channel_id}/videos"
+        )
+    except Exception:  # noqa: BLE001 - see docstring
+        return
+    durations = parse_youtube_durations(page)
+    for row in missing:
+        seconds = durations.get(youtube_video_id(row["url"]) or "")
+        if seconds is not None:
+            set_item_duration(conn, row["id"], seconds)
 
 
 def ingest_all_sources(conn) -> dict:
@@ -877,18 +904,25 @@ def is_youtube_short(url: str | None) -> bool:
     )
 
 
-def longform_feed_url(feed_url: str) -> str | None:
-    """The feed of a channel's regular videos, without Shorts: YouTube keeps a
-    hidden playlist per channel, its ID the channel's own with `UC` swapped for
-    `UULF`. None for anything that is not a channel feed."""
+def youtube_channel_id(feed_url: str) -> str | None:
+    """The `UC...` channel ID of a YouTube channel feed URL, else None."""
     parsed = urlparse(feed_url)
     if (parsed.hostname or "").lower() not in YOUTUBE_HOSTS:
         return None
     if parsed.path != "/feeds/videos.xml":
         return None
     channel_id = (parse_qs(parsed.query).get("channel_id") or [""])[0]
-    if not YOUTUBE_CHANNEL_ID.fullmatch(channel_id):
+    return channel_id if YOUTUBE_CHANNEL_ID.fullmatch(channel_id) else None
+
+
+def longform_feed_url(feed_url: str) -> str | None:
+    """The feed of a channel's regular videos, without Shorts: YouTube keeps a
+    hidden playlist per channel, its ID the channel's own with `UC` swapped for
+    `UULF`. None for anything that is not a channel feed."""
+    channel_id = youtube_channel_id(feed_url)
+    if channel_id is None:
         return None
+    parsed = urlparse(feed_url)
     return (
         f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
         f"?playlist_id=UULF{channel_id[2:]}"
