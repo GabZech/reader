@@ -70,6 +70,7 @@ from app.db import (
     source_memberships,
     touch_item_highlights,
     unarchive_item_in_list,
+    video_length,
 )
 from app.ingest import (
     capture_article,
@@ -87,6 +88,18 @@ APP_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 templates.env.globals["format_when"] = format_when
 templates.env.globals["reading_length"] = reading_length
+
+
+def item_length(item) -> str:
+    """A video's own length, or a text item's reading time. A video whose length
+    is not known shows none, never a reading time for its description."""
+    if youtube_video_id(item["url"]):
+        seconds = item["duration_seconds"]
+        return video_length(seconds) if seconds else ""
+    return reading_length(item["word_count"])
+
+
+templates.env.globals["item_length"] = item_length
 
 
 def _sources_notice_pending() -> bool:

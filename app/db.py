@@ -986,6 +986,10 @@ def format_when(published_at: str | None, now: datetime | None = None) -> str:
     return stamp.strftime("%d/%m/%y")
 
 
+def video_length(duration_seconds: int) -> str:
+    return f"{max(1, round(duration_seconds / 60))} min"
+
+
 def reading_length(word_count: int | None) -> str:
     if not word_count:
         return ""
