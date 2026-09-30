@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
+## 2026-09-30: A video's length is read from its channel's /videos page (#58)
+
+**Decision:** Each sync reads the lengths of a channel's newest videos from the channel's `/videos` page and stores them on the item (`items.duration_seconds`). A YouTube item shows that length, or nothing when unknown, never a reading time guessed from its description.
+
+**Why:** The feeds carry no length, and YouTube's watch pages answer a cloud server with a "verify you're human" page, while the channel page loads and lists about 30 videos in one request.
+
+**Rejected:** One watch-page request per video: blocked from cloud addresses. The YouTube Data API: reliable, but needs a key the client would have to create; kept as the fallback.
+
+**Revisit when:** The live server's address is blocked or the page layout changes and lengths stay blank: switch to the YouTube Data API.
+
 ## 2026-09-30: YouTube Shorts are filtered out, reading channels from YouTube's unofficial long-form feed (#57)
 
 **Decision:** A YouTube channel is read from its long-form feed (playlist ID `UULF` plus the channel ID without `UC`), falling back to the channel's own feed, and every entry linking to `/shorts/` is dropped; each sync also deletes Shorts already stored. This supersedes the Shorts part of the 2026-09-28 entry below.
