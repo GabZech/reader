@@ -355,3 +355,147 @@ def test_highlight_across_a_block_structure_keeps_it_intact(
             ".article-body mark.hl", "els => els.map((e) => e.textContent).join('')"
         )
         assert "".join(marked.split()) == "".join(expected.split())
+
+
+SLOW_IMAGE = b'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="600"/>'
+LONG_BODY = '<p><img src="/slow.svg" alt="late"></p>' + "".join(
+    f"<p>Paragraph {i} " + "lorem ipsum dolor sit amet " * 12 + "</p>" for i in range(1, 81)
+)
+
+
+@contextmanager
+def _opened_with_late_image(page, monkeypatch, tmp_path, path_for):
+    """Open an article whose top image never arrives until `release()` is
+    called, waiting only for the text, like a slow connection does.
+
+    Scroll anchoring is switched off so the late image pushes the text down
+    the way it does in a browser without it.
+    """
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _set_body_html(tmp_path, item_id, LONG_BODY)
+        _serve_through(page, client)
+        held = []
+        page.route(f"{ORIGIN}/slow.svg", lambda route: held.append(route))
+
+        def release():
+            assert held, "the image was never requested"
+            held[0].fulfill(status=200, content_type="image/svg+xml", body=SLOW_IMAGE)
+
+        path = path_for(client, item_id)
+        page.goto(f"{ORIGIN}{path}", wait_until="domcontentloaded")
+        page.add_style_tag(content="html, body, .article-body { overflow-anchor: none; }")
+        yield client, item_id, release
+
+
+def _block_in_view(page, index):
+    return page.evaluate(
+        """(index) => {
+          const el = document.querySelector(".article-body").children[index];
+          const r = el.getBoundingClientRect();
+          return r.top >= 0 && r.top < window.innerHeight;
+        }""",
+        index,
+    )
+
+
+def _wait_for_block_in_view(page, index):
+    page.wait_for_function(
+        """(index) => {
+          const el = document.querySelector(".article-body").children[index];
+          const r = el.getBoundingClientRect();
+          return r.top >= 0 && r.top < window.innerHeight;
+        }""",
+        arg=index,
+        timeout=5000,
+    )
+
+
+def test_returning_from_a_highlight_lands_on_it_before_images_load(
+    monkeypatch, tmp_path, browser_page
+):
+    def path_for(client, item_id):
+        highlight_id = _save_highlight(
+            client, item_id, start_block=40, end_block=40, end_offset=12, text="Paragraph 40"
+        )
+        return f"/items/{item_id}#highlight-{highlight_id}"
+
+    with _opened_with_late_image(browser_page, monkeypatch, tmp_path, path_for) as (
+        _,
+        _,
+        release,
+    ):
+        _wait_for_block_in_view(browser_page, 40)
+        assert browser_page.evaluate("document.readyState") != "complete"
+        # Once the image arrives and pushes the text down, the page settles
+        # back onto the highlight.
+        release()
+        browser_page.wait_for_load_state("load")
+        _wait_for_block_in_view(browser_page, 40)
+
+
+def test_a_highlight_marker_beats_the_saved_reading_spot(
+    monkeypatch, tmp_path, browser_page
+):
+    def path_for(client, item_id):
+        highlight_id = _save_highlight(
+            client, item_id, start_block=40, end_block=40, end_offset=12, text="Paragraph 40"
+        )
+        client.post(f"/items/{item_id}/progress", data={"index": "10"})
+        return f"/items/{item_id}#highlight-{highlight_id}"
+
+    with _opened_with_late_image(browser_page, monkeypatch, tmp_path, path_for):
+        _wait_for_block_in_view(browser_page, 40)
+        assert not _block_in_view(browser_page, 10)
+
+
+def test_a_marker_for_a_missing_highlight_falls_back_to_the_reading_spot(
+    monkeypatch, tmp_path, browser_page
+):
+    def path_for(client, item_id):
+        client.post(f"/items/{item_id}/progress", data={"index": "50"})
+        return f"/items/{item_id}#highlight-999999"
+
+    with _opened_with_late_image(browser_page, monkeypatch, tmp_path, path_for):
+        _wait_for_block_in_view(browser_page, 50)
+
+
+def test_reopening_an_article_resumes_before_images_load(
+    monkeypatch, tmp_path, browser_page
+):
+    def path_for(client, item_id):
+        client.post(f"/items/{item_id}/progress", data={"index": "50"})
+        return f"/items/{item_id}"
+
+    with _opened_with_late_image(browser_page, monkeypatch, tmp_path, path_for) as (
+        _,
+        _,
+        release,
+    ):
+        _wait_for_block_in_view(browser_page, 50)
+        assert browser_page.evaluate("document.readyState") != "complete"
+        release()
+        browser_page.wait_for_load_state("load")
+        _wait_for_block_in_view(browser_page, 50)
+
+
+def test_scrolling_before_images_load_is_not_undone(monkeypatch, tmp_path, browser_page):
+    def path_for(client, item_id):
+        client.post(f"/items/{item_id}/progress", data={"index": "50"})
+        return f"/items/{item_id}"
+
+    with _opened_with_late_image(browser_page, monkeypatch, tmp_path, path_for) as (
+        _,
+        _,
+        release,
+    ):
+        _wait_for_block_in_view(browser_page, 50)
+        browser_page.mouse.move(200, 200)
+        browser_page.mouse.wheel(0, 1500)
+        browser_page.wait_for_timeout(300)
+        before = browser_page.evaluate("window.scrollY")
+        release()
+        browser_page.wait_for_load_state("load")
+        browser_page.wait_for_timeout(500)
+        assert browser_page.evaluate("window.scrollY") == before
