@@ -35,7 +35,7 @@ Data moves: browser opens the app → if online, the app syncs inbound sources i
 ## Outside connections
 
 - **RSS/Atom:** HTTP GET of the feed URL. We poll; there is no third-party feed service.
-- **YouTube:** public channel feed for list items. A video plays inside its item page through YouTube's own embedded player (`youtube-nocookie.com`); the app does not fetch or proxy the video stream.
+- **YouTube:** public channel feed for list items. A channel is read from YouTube's long-form feed (the channel's own ID with `UC` swapped for `UULF` in a playlist feed), which has no Shorts; if that feed is unreachable or empty the channel's own feed is used, and any entry linking to `/shorts/` is dropped either way. That playlist feed is not documented by YouTube. A video plays inside its item page through YouTube's own embedded player (`youtube-nocookie.com`); the app does not fetch or proxy the video stream.
 - **Newsletters:** the reader signs up from a dedicated alias, then forwards that mail to a separate mailbox used only for this app. The app holds credentials for that isolated mailbox only, never the personal mailbox. Mechanism: IMAP on sync. Without a domain, mail cannot land on a host we control.
 - **Obsidian:** markdown files, later. Manual, or when the vault is opened.
 

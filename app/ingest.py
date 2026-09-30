@@ -19,6 +19,7 @@ from app.db import (
     CAPTURED_SOURCE_ID,
     add_item_to_list,
     delete_items_except_guids,
+    delete_youtube_shorts,
     find_item_id,
     rss_sources,
     upsert_item,
@@ -352,13 +353,22 @@ def _entry_html(entry) -> str:
     return max(candidates, key=len)
 
 
+def _feed_title(parsed: Any) -> str:
+    """A YouTube playlist feed, such as a channel's long-form one, is titled just
+    "Videos"; the channel's name is the feed's author."""
+    title = parsed.feed.get("title") or "RSS"
+    if str(parsed.feed.get("id") or "").startswith("yt:playlist:"):
+        return parsed.feed.get("author") or title
+    return title
+
+
 def parse_feed(xml: str, source_id: str) -> list[dict[str, Any]]:
     parsed = feedparser.parse(xml)
-    feed_title = parsed.feed.get("title") or "RSS"
+    feed_title = _feed_title(parsed)
     entries = []
     for entry in parsed.entries:
         guid = entry.get("id") or entry.get("link") or entry.get("title")
-        if not guid:
+        if not guid or is_youtube_short(entry.get("link")):
             continue
         body = sanitize_html(_entry_html(entry))
         image = _entry_image(entry)
@@ -404,7 +414,26 @@ def fetch_url(url: str, timeout: float = 8.0) -> tuple[str, str]:
     return str(response.url), response.text
 
 
+def _fetch_longform_xml(feed_url: str, timeout: float = 8.0) -> str | None:
+    """The long-form feed of a YouTube channel feed, or None when `feed_url` is
+    not a channel or that feed is unreachable or empty."""
+    longform = longform_feed_url(feed_url)
+    if longform is None:
+        return None
+    try:
+        _final_url, text = fetch_url(longform, timeout=timeout)
+    except Exception:  # noqa: BLE001 - any failure falls back to the channel feed
+        return None
+    return text if feedparser.parse(text).entries else None
+
+
 def fetch_feed_xml(url: str, timeout: float = 8.0) -> str:
+    """A YouTube channel is read from its long-form feed, which has no Shorts, so
+    the newest few really are videos. If that feed is unreachable or empty, the
+    channel's own feed is used instead (parse_feed still drops its Shorts)."""
+    text = _fetch_longform_xml(url, timeout)
+    if text is not None:
+        return text
     _final_url, text = fetch_url(url, timeout=timeout)
     return text
 
@@ -782,6 +811,7 @@ def ingest_xml(
         delete_items_except_guids(
             conn, source_id, [entry["guid"] for entry in kept]
         )
+    delete_youtube_shorts(conn, source_id)
     return {
         "created": created,
         "kept": len(kept),
@@ -834,6 +864,37 @@ YOUTUBE_VIDEO_ID = re.compile(r"[A-Za-z0-9_-]{6,20}")
 YOUTUBE_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com"}
 
 
+YOUTUBE_CHANNEL_ID = re.compile(r"UC[A-Za-z0-9_-]{22}")
+
+
+def is_youtube_short(url: str | None) -> bool:
+    if not url:
+        return False
+    parsed = urlparse(url)
+    return (
+        (parsed.hostname or "").lower() in YOUTUBE_HOSTS
+        and parsed.path.startswith("/shorts/")
+    )
+
+
+def longform_feed_url(feed_url: str) -> str | None:
+    """The feed of a channel's regular videos, without Shorts: YouTube keeps a
+    hidden playlist per channel, its ID the channel's own with `UC` swapped for
+    `UULF`. None for anything that is not a channel feed."""
+    parsed = urlparse(feed_url)
+    if (parsed.hostname or "").lower() not in YOUTUBE_HOSTS:
+        return None
+    if parsed.path != "/feeds/videos.xml":
+        return None
+    channel_id = (parse_qs(parsed.query).get("channel_id") or [""])[0]
+    if not YOUTUBE_CHANNEL_ID.fullmatch(channel_id):
+        return None
+    return (
+        f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        f"?playlist_id=UULF{channel_id[2:]}"
+    )
+
+
 def youtube_video_id(url: str | None) -> str | None:
     if not url:
         return None
@@ -880,7 +941,7 @@ def discover_feed(url: str) -> DiscoveredFeed | None:
             return DiscoveredFeed(
                 feed_url=final_url,
                 title=str(title),
-                item_count=len(parsed.entries),
+                item_count=_feed_item_count(final_url, body, parsed),
             )
         if first:
             first = False
@@ -889,6 +950,14 @@ def discover_feed(url: str) -> DiscoveredFeed | None:
             for path in COMMON_FEED_PATHS:
                 candidates.append(urljoin(origin, path))
     return None
+
+
+def _feed_item_count(feed_url: str, body: str, parsed: Any) -> int:
+    """How many items adding this feed can bring in. For a YouTube channel that
+    is its regular videos, counted from the feed ingestion will read."""
+    if longform_feed_url(feed_url) is None:
+        return len(parsed.entries)
+    return len(parse_feed(_fetch_longform_xml(feed_url) or body, ""))
 
 
 def _looks_like_feed(parsed: Any) -> bool:

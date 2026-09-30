@@ -935,6 +935,13 @@ def delete_items_except_guids(
     )
 
 
+def delete_youtube_shorts(conn: sqlite3.Connection, source_id: str) -> None:
+    conn.execute(
+        "DELETE FROM items WHERE source_id = ? AND url LIKE '%youtube.com/shorts/%'",
+        (source_id,),
+    )
+
+
 def format_when(published_at: str | None, now: datetime | None = None) -> str:
     if not published_at:
         return ""
