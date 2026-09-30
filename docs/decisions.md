@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
+## 2026-09-30: YouTube Shorts are filtered out, reading channels from YouTube's unofficial long-form feed (#57)
+
+**Decision:** A YouTube channel is read from its long-form feed (playlist ID `UULF` plus the channel ID without `UC`), falling back to the channel's own feed, and every entry linking to `/shorts/` is dropped; each sync also deletes Shorts already stored. This supersedes the Shorts part of the 2026-09-28 entry below.
+
+**Why:** A channel's own feed holds only its 15 newest uploads, often mostly Shorts, so dropping them by link alone leaves "latest 5" with as few as 3 videos; the long-form feed returns 15 regular videos.
+
+**Rejected:** Dropping Shorts by link only: too few videos for channels that post many Shorts. The YouTube Data API: needs a key for a problem the feed already solves.
+
+**Revisit when:** YouTube changes or removes the long-form feed (the link check and the fallback then carry it alone), or a client wants Shorts back for some channel.
+
 ## 2026-09-28: Evening Video Triage is dropped; videos play in the embedded player (#56)
 
 **Decision:** The app will not build the rest of Evening Video Triage (an evening session, filtering Shorts); the epic and its journey are removed from the vision docs. Videos play only through YouTube's embedded player, added in #56.

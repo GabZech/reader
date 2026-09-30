@@ -22,9 +22,7 @@ Run `bash init.sh` for the current live SHA against `origin/main`.
 
 ## In flight
 
-- **Change:** keep YouTube Shorts out of channel sources: on adding a channel (latest N) and on every later sync. Kind: behaviour + external system. Branch: `dev/skip-youtube-shorts`. Small change, Shape agreed in chat.
-  Shape: a channel feed is read from YouTube's hidden long-form playlist feed (`UULF` + channel ID without `UC`), falling back to the channel's own feed when that is unreachable or empty; `parse_feed` drops any `/shorts/` link either way; each sync deletes already-stored Shorts for the source; the add flow's item count comes from the same feed. Leaves alone: stored `feed_url`s, schema, UI, non-YouTube feeds.
-  Built and committed; real feeds saved as fixtures in `tests/fixtures/youtube/`; ran once end to end against live Kurzgesagt (five regular videos). Not yet deployed. Next: client says deploy or keep building; then live sign-off, then Ship (roadmap line, `docs/decisions.md` entry reversing 2026-09-28's "no Shorts filtering", `docs/architecture.md` YouTube line).
+None.
 
 ## Stacked awaiting deploy
 
