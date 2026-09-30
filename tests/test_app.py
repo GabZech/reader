@@ -2306,3 +2306,75 @@ def test_malformed_youtube_url_shows_no_player_but_keeps_open_original(
         page = client.get(f"/items/{item_id}").text
         assert "<iframe" not in page
         assert "Open original" in page
+
+
+# --- a video shows its own length, not a reading time ---------------------
+
+
+def _set_first_item_video(tmp_path, url, duration_seconds):
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        item_id = dbmod.items_for_list(conn, "news")[0]["id"]
+        conn.execute(
+            "UPDATE items SET url = ?, duration_seconds = ? WHERE id = ?",
+            (url, duration_seconds, item_id),
+        )
+        conn.commit()
+        return item_id
+    finally:
+        conn.close()
+
+
+def _lede(page: str) -> str:
+    return page.split('<p class="lede">', 1)[1].split("</p>", 1)[0]
+
+
+def _card_lengths(page: str) -> list[str]:
+    return re.findall(r'<span class="length">(.*?)</span>', page)
+
+
+VIDEO_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+
+def test_video_length_rounds_to_minutes_and_never_reads_zero():
+    assert dbmod.video_length(852) == "14 min"
+    assert dbmod.video_length(45) == "1 min"
+    assert dbmod.video_length(3723) == "62 min"
+
+
+def test_youtube_item_page_shows_the_video_length(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _set_first_item_video(tmp_path, VIDEO_URL, 2400)
+        assert _lede(client.get(f"/items/{item_id}").text).endswith("· 40 min")
+
+
+def test_youtube_item_page_shows_no_length_when_it_is_unknown(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _set_first_item_video(tmp_path, VIDEO_URL, None)
+        assert " min" not in _lede(client.get(f"/items/{item_id}").text)
+
+
+def test_youtube_item_card_shows_the_video_length(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        _set_first_item_video(tmp_path, VIDEO_URL, 2400)
+        assert "40 min" in _card_lengths(client.get("/lists/news").text)
+
+
+def test_youtube_item_card_shows_no_length_when_it_is_unknown(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        before = _card_lengths(client.get("/lists/news").text)
+        _set_first_item_video(tmp_path, VIDEO_URL, None)
+        after = _card_lengths(client.get("/lists/news").text)
+        assert len(after) == len(before) - 1
+
+
+def test_an_article_keeps_its_reading_time(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        assert _card_lengths(client.get("/lists/news").text)
+        assert " min" in _lede(client.get(f"/items/{item_id}").text)

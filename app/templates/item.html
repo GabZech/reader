@@ -9,7 +9,7 @@
       <header class="top">
         <h1>{{ item.title }}</h1>
       </header>
-      <p class="lede">{{ item.author or item.source_title }}{% if item.published_at %} · {{ format_when(item.published_at) }}{% endif %}{% if item.word_count %} · {{ reading_length(item.word_count) }}{% endif %}</p>
+      <p class="lede">{{ item.author or item.source_title }}{% if item.published_at %} · {{ format_when(item.published_at) }}{% endif %}{% set length = item_length(item) %}{% if length %} · {{ length }}{% endif %}</p>
       {% if item.url %}
       <div class="actions">
         <a href="{{ item.url }}" rel="noreferrer">Open original</a>

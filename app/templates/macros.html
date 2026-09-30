@@ -25,8 +25,9 @@
           <span class="title">{{ item.title }}</span>
           <span class="sub">
             <span class="byline">{{ item.author or item.source_title }}{% if item.published_at %} · {{ format_when(item.published_at) }}{% endif %}</span>
-            {% if item.word_count %}
-            <span class="length">{{ reading_length(item.word_count) }}</span>
+            {% set length = item_length(item) %}
+            {% if length %}
+            <span class="length">{{ length }}</span>
             {% endif %}
           </span>
           </a>
