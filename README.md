@@ -96,3 +96,7 @@ The rules are in [AGENTS.md](AGENTS.md), and [HARNESS.md](HARNESS.md) explains h
 - **[Operations](docs/operations.md):** hosting, backup of the library file, and the cost ceiling.
 - **[UI guidelines](docs/ui-guidelines.md):** the look the screens follow.
 - **[Docs index](docs/README.md):** everything else.
+
+## License
+
+Reader is open source under the [GNU AGPL-3.0](LICENSE). You are free to use, study, and change it. If you run a modified version as a network service, the AGPL requires you to offer that version's source to its users.
