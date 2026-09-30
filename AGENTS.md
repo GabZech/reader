@@ -32,7 +32,7 @@ Every branch is `<type>/<kebab-slug>`, `type` matching which kind of task it is:
 | --- | --- |
 | Any product change, once Foundation is accepted | `.claude/skills/2-develop/SKILL.md` |
 | Any client-facing message: asking something, explaining, or an ask for sign-off | `.claude/skills/questioning/SKILL.md` |
-| Editing a living doc under `docs/`, or the root `README.md` | `.claude/skills/writing-docs/SKILL.md` |
+| Editing a living doc under `docs/` | `.claude/skills/writing-docs/SKILL.md` |
 | Creating or editing a skill under `.claude/skills/` | `.claude/skills/write-skills/SKILL.md` |
 | Committing | `.claude/skills/commits/SKILL.md` |
 

@@ -1,7 +1,7 @@
 ---
 name: writing-docs
 description: >-
-  Voice and structure for human-facing living docs under docs/ (vision, roadmap, decisions, architecture, development, operations, ui-guidelines, and similar) and the product root README.
+  Voice and structure for human-facing living docs under docs/ (vision, roadmap, decisions, architecture, development, operations, ui-guidelines, and similar).
   Use when writing or editing those files.
 ---
 
@@ -28,17 +28,6 @@ Style for reports and living docs under `docs/` meant for humans. Purpose and co
 
 - A small fixed emoji vocabulary as field or section labels only, same meaning → same icon every time: 🎯 Goal, 🔭 Vision, 📄 Summary, ❗ Decisions, ⚠️ Open / Caution, 📌 Post-MVP Notes, ✅/❌ progress and non-goals
 - Distinct icons on adjacent sibling headings so labels do not look identical; emoji on subheadings, never the document `#` title; never one per bullet or sentence; narrative prose stays emoji-free unless a milestone or caution needs a signal
-
-## Root README (`README.md`)
-
-Product front door, not a second copy of the proposition or a feature inventory.
-
-1. **Title:** product or working name
-2. **Overview:** short prosaic pitch, problem and consequence first, then direction. Sentences, not a capability inventory
-3. **How we work:** why structure beats jumping to code, then the change loop's steps in running sentences with what each is for
-4. Optional short pointers into `docs/`
-
-The change loop's Ship step owns keeping this current; no standing refresh ask outside that.
 
 ## Roadmap (`docs/roadmap.md`)
 
