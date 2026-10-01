@@ -86,13 +86,23 @@ Each entry: date, title and PR (when one exists), then **Decision**, **Why** (on
 
 ## 2026-09-20: Vault export filenames are date + title, not the item id (#23)
 
-**Decision:** A highlight note is `Highlights/YY-MM-DD Article title.md` (published date, else added date, else today; title sanitized, falling back to the item id only if nothing is left). `items.exported_note_path` tracks the last path so a renamed export deletes the old file. Two same-day articles with the same title overwrite each other; this is accepted.
+**Decision:** A highlight note is `Highlights/YY-MM-DD Article title.md` (the date of the note's first export, see the 2026-10-01 entry; title sanitized, falling back to the item id only if nothing is left). `items.exported_note_path` tracks the last path so a renamed export deletes the old file. Two same-day articles with the same title overwrite each other; this is accepted.
 
 **Why:** The client wants filenames readable and sortable in the vault, and accepted giving up the id-based name's stability to get that.
 
 **Rejected:** Appending an id or hash to guarantee uniqueness: breaks the exact pattern asked for.
 
 **Revisit when:** A real collision happens, or the vault stops being one person's library.
+
+## 2026-10-01: Vault note date is the first export date, read back from the last path
+
+**Decision:** The `YY-MM-DD` in a highlight note's filename is the day the note was first exported, not the article's published date. A re-export reuses the date already in `items.exported_note_path`; only an item with no usable previous path gets today's date. Notes exported before this keep the date they already have.
+
+**Why:** The client wants the vault ordered by when they read and highlighted, not by when the article came out. The last path already carries the first date, so no column is added.
+
+**Rejected:** A new `first_exported_at` column: more schema for a value the path holds. Renaming existing notes to a first-export date: the date was never stored, so it would be a guess.
+
+**Revisit when:** The client wants the date to survive an item whose path was lost.
 
 ## 2026-09-20: Vault export fires on archive/mark-as-read or a day later, not on every highlight action (#23)
 

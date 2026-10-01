@@ -15,6 +15,7 @@ OWNER = "GabZech"
 REPO = "news-highlights"
 BRANCH = "main"
 
+_PATH_DATE = re.compile(r"Highlights/(\d{2}-\d{2}-\d{2}) ")
 _UNSAFE_TITLE_CHARS = re.compile(r'[\\/:*?"<>|]')
 
 
@@ -22,18 +23,14 @@ def _request(method: str, url: str, **kwargs):
     return httpx.request(method, url, timeout=10, **kwargs)
 
 
-def _export_date(item) -> str:
-    for field in ("published_at", "seen_at"):
-        try:
-            value = item[field]
-        except (KeyError, IndexError):
-            value = None
-        if value:
-            try:
-                return datetime.fromisoformat(value).strftime("%y-%m-%d")
-            except ValueError:
-                continue
+def _today() -> str:
     return datetime.now(UTC).strftime("%y-%m-%d")
+
+
+def _export_date(previous_path: str | None) -> str:
+    # The date is the note's first export, which the last path still carries.
+    match = _PATH_DATE.match(previous_path or "")
+    return match.group(1) if match else _today()
 
 
 def _sanitize_title(title: str | None, item_id: int) -> str:
@@ -42,8 +39,8 @@ def _sanitize_title(title: str | None, item_id: int) -> str:
     return cleaned or str(item_id)
 
 
-def note_path_for_item(item) -> str:
-    date = _export_date(item)
+def note_path_for_item(item, previous_path: str | None = None) -> str:
+    date = _export_date(previous_path)
     title = _sanitize_title(item["title"], item["id"])
     return f"Highlights/{date} {title}.md"
 
@@ -224,7 +221,7 @@ def export_note(item, highlights, previous_path: str | None = None) -> dict:
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
     }
-    path = note_path_for_item(item)
+    path = note_path_for_item(item, previous_path)
     url = _url_for_path(path)
 
     if previous_path and previous_path != path:

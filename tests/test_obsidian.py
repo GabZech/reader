@@ -39,23 +39,42 @@ def _highlight(
     }
 
 
-def test_note_path_uses_published_date_and_title():
+def test_note_path_uses_todays_date_on_first_export(monkeypatch):
+    monkeypatch.setattr("app.obsidian._today", lambda: "26-10-01")
     path = note_path_for_item(_item())
-    assert path == "Highlights/26-08-13 Subagents on Subagents.md"
+    assert path == "Highlights/26-10-01 Subagents on Subagents.md"
 
 
-def test_note_path_falls_back_to_seen_at_when_no_published_date():
-    item = _item(published_at=None, seen_at="2026-09-01T00:00:00+00:00")
-    assert note_path_for_item(item) == "Highlights/26-09-01 Subagents on Subagents.md"
+def test_note_path_ignores_the_published_date(monkeypatch):
+    monkeypatch.setattr("app.obsidian._today", lambda: "26-10-01")
+    item = _item(published_at="2020-01-02T00:00:00+00:00")
+    assert note_path_for_item(item) == "Highlights/26-10-01 Subagents on Subagents.md"
 
 
-def test_note_path_strips_filesystem_unsafe_characters_from_the_title():
+def test_note_path_keeps_the_first_export_date_on_re_export(monkeypatch):
+    monkeypatch.setattr("app.obsidian._today", lambda: "26-10-05")
+    path = note_path_for_item(
+        _item(title="New title"),
+        previous_path="Highlights/26-10-01 Subagents on Subagents.md",
+    )
+    assert path == "Highlights/26-10-01 New title.md"
+
+
+def test_note_path_uses_today_when_the_previous_path_has_no_date(monkeypatch):
+    monkeypatch.setattr("app.obsidian._today", lambda: "26-10-05")
+    path = note_path_for_item(_item(), previous_path="Highlights/old-name.md")
+    assert path == "Highlights/26-10-05 Subagents on Subagents.md"
+
+
+def test_note_path_strips_filesystem_unsafe_characters_from_the_title(monkeypatch):
+    monkeypatch.setattr("app.obsidian._today", lambda: "26-08-13")
     item = _item(title='Ask: "What now?" / How <this> works | really?')
     path = note_path_for_item(item)
     assert path == "Highlights/26-08-13 Ask What now How this works really.md"
 
 
-def test_note_path_falls_back_to_item_id_when_title_sanitizes_to_nothing():
+def test_note_path_falls_back_to_item_id_when_title_sanitizes_to_nothing(monkeypatch):
+    monkeypatch.setattr("app.obsidian._today", lambda: "26-08-13")
     item = _item(title='///:::***')
     assert note_path_for_item(item) == "Highlights/26-08-13 42.md"
 
@@ -349,10 +368,9 @@ def test_export_note_does_not_delete_when_the_path_is_unchanged(monkeypatch):
     monkeypatch.setattr("app.obsidian._request", fake_request)
 
     item = _item()
-    result = export_note(
-        item, [_highlight("Some text.")], previous_path=note_path_for_item(item)
-    )
-    assert result == {"exported": True, "path": note_path_for_item(item)}
+    previous = "Highlights/26-09-01 Subagents on Subagents.md"
+    result = export_note(item, [_highlight("Some text.")], previous_path=previous)
+    assert result == {"exported": True, "path": previous}
     methods = [call[0] for call in calls]
     assert "DELETE" not in methods
 

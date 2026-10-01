@@ -1305,7 +1305,7 @@ def highlight_detail(request: Request, item_id: int, highlight_id: int):
         {
             "nav": "home",
             "highlight": highlight,
-            "back": f"/items/{item_id}",
+            "back": f"/items/{item_id}#highlight-{highlight_id}",
             "section_title_action": f"/items/{item_id}/highlights/{highlight_id}/section-title",
             "subsection_title_action": (
                 f"/items/{item_id}/highlights/{highlight_id}/subsection-title"
@@ -1361,7 +1361,7 @@ async def _highlight_title_submit(
         conn.commit()
     finally:
         conn.close()
-    return RedirectResponse(f"/items/{item_id}", status_code=303)
+    return RedirectResponse(f"/items/{item_id}#highlight-{highlight_id}", status_code=303)
 
 
 @app.get("/items/{item_id}/highlights/{highlight_id}/section-title")

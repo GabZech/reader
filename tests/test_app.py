@@ -1106,6 +1106,36 @@ def test_setting_a_subsection_title_persists(monkeypatch, tmp_path):
         assert 'value="A closer look"' in page.text
 
 
+def test_closing_a_highlight_page_returns_to_that_highlight(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+        target = f'href="/items/{item_id}#highlight-{highlight_id}"'
+
+        detail = client.get(f"/items/{item_id}/highlights/{highlight_id}")
+        assert target in detail.text
+        for level in ("section", "subsection"):
+            titled = client.get(f"/items/{item_id}/highlights/{highlight_id}/{level}-title")
+            assert f'href="/items/{item_id}/highlights/{highlight_id}"' in titled.text
+
+
+def test_saving_a_title_redirects_back_to_that_highlight(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+
+        for level in ("section", "subsection"):
+            saved = client.post(
+                f"/items/{item_id}/highlights/{highlight_id}/{level}-title",
+                data={"title": "Money and markets"},
+                follow_redirects=False,
+            )
+            assert saved.status_code == 303
+            assert saved.headers["location"] == f"/items/{item_id}#highlight-{highlight_id}"
+
+
 def test_saving_a_highlight_marks_touched_but_does_not_export_immediately(
     monkeypatch, tmp_path
 ):
