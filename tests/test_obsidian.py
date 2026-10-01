@@ -71,7 +71,7 @@ def test_build_note_markdown_includes_frontmatter_and_title():
     assert "## Summary" not in md
 
 
-def test_build_note_markdown_includes_image_lines_under_the_bullet():
+def test_build_note_markdown_puts_each_image_in_its_own_top_level_bullet():
     highlights = [
         _highlight("Text only."),
         _highlight(
@@ -81,12 +81,17 @@ def test_build_note_markdown_includes_image_lines_under_the_bullet():
     ]
     md = build_note_markdown(_item(), highlights)
     lines = [line for line in md.splitlines() if line]
-    assert "  - ![](https://example.test/a.png)" not in "\n".join(
-        lines[: lines.index("- Spans an image.")]
-    )
     idx = lines.index("- Spans an image.")
-    assert lines[idx + 1] == "  - ![](https://example.test/a.png)"
-    assert lines[idx + 2] == "  - ![](https://example.test/b.png)"
+    assert lines[idx + 1] == "- ![](https://example.test/a.png)"
+    assert lines[idx + 2] == "- ![](https://example.test/b.png)"
+
+
+def test_build_note_markdown_leaves_no_empty_bullet_for_an_image_only_highlight():
+    highlight = _highlight("", image_urls=["https://example.test/a.png"])
+    md = build_note_markdown(_item(), [highlight])
+    lines = [line for line in md.splitlines() if line]
+    assert lines[-2:] == ["## Highlights", "- ![](https://example.test/a.png)"]
+    assert "- " not in [line for line in md.splitlines()]
 
 
 def test_build_note_markdown_turns_a_captured_list_into_a_sublist():
@@ -102,7 +107,7 @@ def test_build_note_markdown_turns_a_captured_list_into_a_sublist():
     assert "\nMinimum viable\nMaximum necessary\n" not in md
 
 
-def test_build_note_markdown_nests_images_after_multiline_text():
+def test_build_note_markdown_puts_images_after_multiline_text_at_top_level():
     highlight = _highlight(
         "Lead-in text.\nSecond line.",
         image_urls=["https://example.test/a.png"],
@@ -111,7 +116,7 @@ def test_build_note_markdown_nests_images_after_multiline_text():
     lines = [line for line in md.splitlines() if line]
     idx = lines.index("- Lead-in text.")
     assert lines[idx + 1] == "  - Second line."
-    assert lines[idx + 2] == "  - ![](https://example.test/a.png)"
+    assert lines[idx + 2] == "- ![](https://example.test/a.png)"
 
 
 def test_build_note_markdown_preserves_nested_unordered_sublist_depth():

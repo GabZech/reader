@@ -104,13 +104,15 @@ def _highlight_lines(highlight, body_html) -> list[str]:
     # Fallback: no reliable shape (missing body_html, or a structure whose
     # line count doesn't line up with what the browser captured, such as a
     # blockquote holding more than one paragraph). Keep the first line as
-    # the bullet's own text and nest the rest flat, images included, as a
-    # sublist so the structure survives instead of raw newlines breaking
-    # the bullet.
+    # the bullet's own text and nest the rest flat as a sublist so the
+    # structure survives instead of raw newlines breaking the bullet.
+    # Images sit in their own top-level bullets after it.
+    image_lines = [f"- ![]({url})" for url in _image_urls(highlight)]
+    if not any(line.strip() for line in text_lines) and image_lines:
+        return image_lines
     lines = [f"- {text_lines[0]}"]
     lines.extend(f"  - {line}" for line in text_lines[1:])
-    lines.extend(f"  - ![]({url})" for url in _image_urls(highlight))
-    return lines
+    return lines + image_lines
 
 
 def _shaped_highlight_lines(highlight, text_lines, shapes) -> list[str]:
@@ -129,7 +131,7 @@ def _shaped_highlight_lines(highlight, text_lines, shapes) -> list[str]:
         else:
             depth, marker = shape
             lines.append(f"{'  ' * depth}{marker} {line}")
-    lines.extend(f"  - ![]({url})" for url in _image_urls(highlight))
+    lines.extend(f"- ![]({url})" for url in _image_urls(highlight))
     return lines
 
 
