@@ -319,15 +319,50 @@
     });
     window.addEventListener("pagehide", sendProgress);
 
+  };
+
+  // Put the reader back where they were: on the highlight named by the
+  // #highlight-<id> in the address (set when closing a highlight), else at
+  // the saved reading spot. Runs once the text is parsed and highlights are
+  // drawn, not on "load", which waits for every image and leaves a slow
+  // connection stuck at the top. Images arriving later push the text
+  // around, so it places again once after "load", unless the reader has
+  // touched the page since.
+  const initRestorePosition = () => {
+    const body = document.querySelector(".article-body[data-progress-action]");
+    if (!body) return;
+    const blocks = Array.from(body.children);
+
+    const hashMatch = /^#highlight-(\d+)$/.exec(location.hash);
+    const highlight = hashMatch
+      ? body.querySelector(`[data-highlight-id="${hashMatch[1]}"]`)
+      : null;
     const resumeIndex = parseInt(body.dataset.progressIndex || "", 10);
-    if (Number.isInteger(resumeIndex) && resumeIndex >= 2 && blocks[resumeIndex]) {
-      window.addEventListener("load", () => {
-        const target = blocks[resumeIndex];
-        target.classList.add("is-resume");
-        target.scrollIntoView({ block: "start" });
-        showToast("Resumed");
-      });
+    const resumeBlock =
+      Number.isInteger(resumeIndex) && resumeIndex >= 2 ? blocks[resumeIndex] : null;
+
+    const place = highlight
+      ? () => highlight.scrollIntoView({ block: "center" })
+      : resumeBlock
+        ? () => resumeBlock.scrollIntoView({ block: "start" })
+        : null;
+    if (!place) return;
+
+    if (!highlight) {
+      resumeBlock.classList.add("is-resume");
+      showToast("Resumed");
     }
+    place();
+
+    let touched = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach((type) => {
+      window.addEventListener(type, () => (touched = true), { passive: true, once: true });
+    });
+    const settle = () => {
+      if (!touched) place();
+    };
+    if (document.readyState === "complete") settle();
+    else window.addEventListener("load", settle, { once: true });
   };
 
   const initHighlights = () => {
@@ -724,6 +759,7 @@
   initSwipe();
   initReadingProgress();
   initHighlights();
+  initRestorePosition();
   initHighlightDetail();
   registerWorker();
   syncHome();
