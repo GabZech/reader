@@ -6,10 +6,6 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 None.
 
-## Stacked awaiting deploy
-
-None.
-
 ## Blocked
 
 None.
