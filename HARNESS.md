@@ -8,7 +8,7 @@ Every agent harness needs five things: **Instructions** (what to do), **State** 
 | --- | --- | --- |
 | Instructions | `CLAUDE.md` → `.claude/skills/` | One short file: session types, a shared git workflow, commands, and chat conduct; everything else lives in the skill that uses it |
 | State | `docs/roadmap.md` (what's built, with `(in flight)`/`(blocked)` markers) + `PROGRESS.md` (what's in flight right now) | Both covered |
-| Verification | `uv run pytest`, `uv run ruff check`, the harness reference test, `evaluator-rubric.md` and `quality-document.md` for review, and the client's live sign-off | Solid; the two review artifacts are new and optional |
+| Verification | `uv run pytest`, `uv run ruff check`, the harness reference test, and the client's live sign-off | Solid |
 | Scope | `2-develop`'s one-change-at-a-time rule, Shape names what it leaves alone, deep-plan's confirmed plan is now a durable record for a not-small change | Solid |
 | Session lifecycle | Start (with recent commit history and a start-command hint), the six-step loop (with Pause), Ship's split clean-state checklist | A real start-of-session check runs automatically; a direct push to `main` is refused outright, merge only happens via a gated PR |
 
@@ -37,12 +37,11 @@ Where "what's true right now" and "what's still in progress" live.
 
 How an agent proves a change actually works, instead of just claiming it does.
 
-- **`uv run pytest`**: 210 tests, run locally before every change is shown and in CI ([test.yml](.github/workflows/test.yml)) on every push and pull request. [tests/test_highlight_browser.py](tests/test_highlight_browser.py) drives the reader page in headless Chromium through Playwright, since highlighting runs in `app/static/app.js`; CI installs Chromium before the tests.
+- **`uv run pytest`**: run locally before every change is shown and in CI ([test.yml](.github/workflows/test.yml)) on every push and pull request. [tests/test_highlight_browser.py](tests/test_highlight_browser.py) drives the reader page in headless Chromium through Playwright, since highlighting runs in `app/static/app.js`; CI installs Chromium before the tests.
 - **`uv run ruff check`**: runs in CI before the tests. `pytest`, `ruff`, and `playwright` are dev-only dependencies (`[dependency-groups] dev`); the deployed image installs with `--no-dev`, so none ships in production.
-- **[tests/test_harness_refs.py](tests/test_harness_refs.py)** asserts that markdown links and multi-segment backticked paths across `CLAUDE.md`, `README.md`, `HARNESS.md`, `PROGRESS.md`, `evaluator-rubric.md`, `quality-document.md`, `.claude/skills/`, and `docs/` all resolve. It runs with the rest of the suite and would have caught the two stale-path findings that motivated it, plus anything broken by this file's own links.
+- **[tests/test_harness_refs.py](tests/test_harness_refs.py)** asserts that markdown links and multi-segment backticked paths across `CLAUDE.md`, `README.md`, `HARNESS.md`, `PROGRESS.md`, `.claude/skills/`, and `docs/` all resolve. It runs with the rest of the suite and would have caught the two stale-path findings that motivated it, plus anything broken by this file's own links.
 - **[change-kinds.md](.claude/skills/2-develop/change-kinds.md)** spells out what "verified" means per kind of change.
-- **[evaluator-rubric.md](evaluator-rubric.md)** and **[quality-document.md](quality-document.md)** are new: a post-change scorecard for a session's own work, and a standing snapshot of the codebase's health by domain and layer. Both are optional and neither is a merge gate; the position this file previously recorded as "an independent review pass was considered and left optional" now has concrete artifacts behind it, but the position is unchanged.
-- **The client's live sign-off** is the real gate: the client actually tries the change on the live app before it merges, not just a report of test results, a passing rubric, or a good quality-document grade.
+- **The client's live sign-off** is the real gate: the client actually tries the change on the live app before it merges, not just a report of test results.
 - **`/health`** returns `{"ok": true, "sha": "<short git sha>"}` (`"dev"` outside a built image), so "live is back on main" is a comparison `init.sh` makes automatically, not an assumption.
 
 ## Scope

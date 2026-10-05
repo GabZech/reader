@@ -105,4 +105,4 @@ Procedures for the middle four: [change-kinds.md](change-kinds.md).
 
 ## Gate
 
-Done means the behaviour matches Shape, every kind's proof ran, and the docs this change made wrong are updated on the branch. The client trying it live and saying it is good is the only gate that closes a turn; a green suite or a rubric score never substitutes for it.
+Done means the behaviour matches Shape, every kind's proof ran, and the docs this change made wrong are updated on the branch. The client trying it live and saying it is good is the only gate that closes a turn; a green suite never substitutes for it.
