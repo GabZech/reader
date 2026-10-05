@@ -28,7 +28,7 @@ For Development and Maintenance sessions.
 - If the change builds on an open PR (session start lists them), stop before branching: say that merging it first is the best course, and continue only once the user merges it or tells you how to proceed.
 - Pull `main`, then branch: `dev/<name>` for Development, `maint/<name>` for Maintenance, where `<name>` is short, lowercase and hyphenated (e.g. `dev/highlight-export`).
 - Commit as you go. Load `commits` before each commit, `writing-docs` before editing `docs/`, and `write-skills` before editing a skill.
-- Suggest a PR once the user has signed off the change, and open it on a yes, following `pull-requests`. The user merges it, or tells you to.
+- Suggest a PR once the user has signed off the change, and open it on a yes, following `pull-requests`. The user merges it, or tells you to; when you merge, squash and delete the branch (`gh pr merge --squash --delete-branch`).
 
 ## Commands
 

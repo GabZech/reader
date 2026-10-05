@@ -63,7 +63,7 @@ Leaving mid-change, before Ship: commit what is checked on the branch, update `P
 
 On the branch, once the client has signed off live: check the docs. Tick the roadmap line, update whichever living doc this change made wrong, clear this change's entry from `PROGRESS.md`'s in-flight section (no note that a PR awaits merge; GitHub's PR list is that record), and write a convention or a decision record if this change produced one. Run this check every time, even when nothing ends up changing; say so rather than skipping it silently. Commit doc changes with or before the last code commit on the branch, never after the merge — the `PROGRESS.md` clear included, so it merges in the same PR rather than needing a follow-up one.
 
-Suggest the PR; on a yes, push the branch and open it (`gh pr create` locally; the GitHub MCP server's PR tool in a cloud session, same substitution the branch-trial deploy in `docs/operations.md` already uses) — title and description follow `pull-requests`. Never push `main` directly — a local hook refuses it, and branch protection refuses it on GitHub's side too. Merge only two ways: the client merges the PR themselves, or explicitly tells the agent to, in which case squash-merge it (`gh pr merge --squash`), a confirmation-gated action like `flyctl deploy`.
+Suggest the PR; on a yes, push the branch and open it (`gh pr create` locally; the GitHub MCP server's PR tool in a cloud session, same substitution the branch-trial deploy in `docs/operations.md` already uses) — title and description follow `pull-requests`. Never push `main` directly — a local hook refuses it, and branch protection refuses it on GitHub's side too. Merge only two ways: the client merges the PR themselves, or explicitly tells the agent to, in which case squash-merge it and delete the branch (`gh pr merge --squash --delete-branch`), a confirmation-gated action like `flyctl deploy`.
 
 A merge (by either path) deploys `main` automatically per `docs/operations.md`, so an open PR is a fine stopping point with the live host left on this signed-off branch: do not redeploy `main` just because the turn is ending. If the PR is closed without merging, redeploy `main` then, the same way a Try trial deploy gets cleared. Then the clean-state checklist:
 
@@ -76,7 +76,7 @@ A merge (by either path) deploys `main` automatically per `docs/operations.md`, 
 
 Recommend `/clear` (a fresh chat without leaving the terminal), or `/compact` if context has grown but continuity still matters.
 
-If a shipped change breaks the live app: open a revert PR and merge it the same gated way (explicit permission, squash), then redeploy — a revert is never a direct push to `main` either.
+If a shipped change breaks the live app: open a revert PR and merge it the same gated way (explicit permission, squash, delete the branch), then redeploy — a revert is never a direct push to `main` either.
 
 ## Change kinds
 
