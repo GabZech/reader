@@ -59,3 +59,13 @@ Copy `.env.example` to `.env` if you need to override defaults. Names only, no s
 - `SKELETON_FEED_URL`: public RSS URL used by the skeleton sync (default is a public news feed)
 
 Mailbox credentials (`MAIL_IMAP_HOST`, `MAIL_IMAP_USER`, `MAIL_IMAP_PASSWORD`) are read on `/sync` when set; without them mail sync is skipped. Local runs do not need them unless you are working on that path — see `docs/operations.md` for the live values.
+
+## Dev container
+
+**Purpose.** Run Claude Code (or any agent) in a container so it cannot reach the host machine. `.devcontainer/` builds Python 3.12 with the same uv version as CI and production, installs the locked dependencies and Chromium, and installs Claude Code.
+
+**Open it as a volume clone.** In VS Code, run `Dev Containers: Clone Repository in Container Volume` and give it the repo URL. The checkout then lives in Docker's own storage, so the container sees no host files. Opening the Windows checkout in the container instead bind-mounts it, which gives the container write access to that folder, reports every file as executable (`ruff check` fails with `EXE002`), and shows CRLF files as modified in git.
+
+**Inside the container.** The commands under Run and Test work unchanged. Port 8000 is forwarded to the host. Claude Code's login lives in a named Docker volume, so it survives rebuilds; log in once with `claude`.
+
+**What it does not isolate.** VS Code forwards the host's git credentials into the container, so an agent there can push as you. Outbound network access is unrestricted. Do not mount the Docker socket.
