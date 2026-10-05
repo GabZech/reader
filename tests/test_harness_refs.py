@@ -13,8 +13,6 @@ CHECKED_FILES = (
         ROOT / "README.md",
         ROOT / "HARNESS.md",
         ROOT / "PROGRESS.md",
-        ROOT / "evaluator-rubric.md",
-        ROOT / "quality-document.md",
     ]
     + sorted((ROOT / ".claude" / "skills").rglob("*.md"))
     + sorted((ROOT / "docs").rglob("*.md"))
