@@ -7,7 +7,7 @@ description: >-
 
 # Writing docs
 
-Style for reports and living docs under `docs/` meant for humans. Purpose and consequence before mechanics; stay precise. Prefer scannable structure when the reader must compare many similar units.
+Style for reports and living docs under `docs/` meant for humans. Code and tests are the behaviour; living docs are the current agreed picture of it, kept true by the change that makes one wrong. Purpose and consequence before mechanics; stay precise. Prefer scannable structure when the reader must compare many similar units.
 
 ## Voice
 
@@ -38,7 +38,7 @@ Orient the reader; do not duplicate vision or a full feature inventory. Exactly 
 
 ## Decisions (`docs/decisions.md`)
 
-Living, append-only, newest first. One entry per choice expensive to undo: date, title and PR link (`(#N)`, when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. Keep each field short; the full reasoning and evidence belong in the PR description, not here. Written by Ship when a change produces one. Threshold: a choice a future session might plausibly reverse, not a design detail already implied by the code.
+Living, append-only, newest first. One entry per choice expensive to undo: date, title and PR link (`(#N)`, when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. Keep each field short; the full reasoning and evidence belong in the PR description, not here. Written by Ship when a change produces one. Threshold: a choice a future session might plausibly reverse, not a design detail already implied by the code. A plan file archived at a git tag once its change ships gets one dated entry naming the tag.
 
 ## System docs
 

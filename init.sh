@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Health, git, and live-state check. See AGENTS.md "Start of session".
+# Health, git, and live-state check. Run by the SessionStart hook in .claude/settings.json.
 # --quick skips install/lint/test, for the SessionStart hook.
 set -uo pipefail
 

@@ -17,7 +17,7 @@ Client-facing voice follows the **questioning** skill.
 
 - Foundation is accepted
 - Any product change: feature, fix, UI tweak, chore
-- `AGENTS.md`'s start protocol has run this session: git and live state seen, `PROGRESS.md` read, `docs/roadmap.md` "Where we are" read once per chat
+- The suite is green. A red baseline is reported as already red, never silently fixed or worked around
 
 ## Artifacts
 
@@ -34,7 +34,7 @@ Restate the change in a sentence or two. Name its kinds; a change can carry seve
 
 ### 2. Shape
 
-Before any code, one message: what will change, what could break, how it will be verified, and what it will leave alone. Small: say it and keep going. Not small: stop for one confirm. No plan file.
+Before any code, one message: what will change, what could break, how it will be verified, and what it will leave alone. Small: say it and keep going. Not small: stop for one confirm. No plan file unless the client asks to see the plan in writing; delete it once the change ships.
 
 ### 3. Preview
 
@@ -42,7 +42,7 @@ A change to what the client sees needs a screenshot of the intended look, signed
 
 ### 4. Build
 
-A branch per change, named `dev/<kebab-slug>` (`AGENTS.md`'s Branch names). Behaviour: write the failing test first. Then the code, then `uv run pytest` and the local checks in `docs/development.md`. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
+A branch per change. Behaviour: write the failing test first. Then the code, then `uv run pytest` and the local checks in `docs/development.md`. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
 
 ### 5. Try
 
@@ -61,16 +61,18 @@ Leaving mid-change, before Ship: commit what is checked on the branch, update `P
 
 ### 6. Ship
 
-On the branch, once the client has signed off live: check the docs. Tick the roadmap line, update whichever living doc this change made wrong, clear this change's entry from `PROGRESS.md`'s in-flight section (`AGENTS.md`'s Required artifacts says what "cleared" means), and write a convention or a decision record if this change produced one. Run this check every time, even when nothing ends up changing; say so rather than skipping it silently. Commit doc changes with or before the last code commit on the branch, never after the merge — the `PROGRESS.md` clear included, so it merges in the same PR rather than needing a follow-up one.
+On the branch, once the client has signed off live: check the docs. Tick the roadmap line, update whichever living doc this change made wrong, clear this change's entry from `PROGRESS.md`'s in-flight section (no note that a PR awaits merge; GitHub's PR list is that record), and write a convention or a decision record if this change produced one. Run this check every time, even when nothing ends up changing; say so rather than skipping it silently. Commit doc changes with or before the last code commit on the branch, never after the merge — the `PROGRESS.md` clear included, so it merges in the same PR rather than needing a follow-up one.
 
-Push the branch and open a PR (`gh pr create` locally; the GitHub MCP server's PR tool in a cloud session, same substitution the branch-trial deploy in `docs/operations.md` already uses) — title and description follow `pull-requests`. Never push `main` directly — a local hook refuses it, and branch protection refuses it on GitHub's side too. Merge only two ways: the client merges the PR themselves, or explicitly tells the agent to, in which case squash-merge it (`gh pr merge --squash`), a confirmation-gated action like `flyctl deploy`.
+Suggest the PR; on a yes, push the branch and open it (`gh pr create` locally; the GitHub MCP server's PR tool in a cloud session, same substitution the branch-trial deploy in `docs/operations.md` already uses) — title and description follow `pull-requests`. Never push `main` directly — a local hook refuses it, and branch protection refuses it on GitHub's side too. Merge only two ways: the client merges the PR themselves, or explicitly tells the agent to, in which case squash-merge it (`gh pr merge --squash`), a confirmation-gated action like `flyctl deploy`.
 
-A merge (by either path) deploys `main` automatically per `docs/operations.md`, so an open PR is a fine stopping point with the live host left on this signed-off branch: do not redeploy `main` just because the turn is ending. If the PR is closed without merging, redeploy `main` then, the same way a Try trial deploy gets cleared. Then the rest of the clean-state checklist, on top of `AGENTS.md`'s End of session:
+A merge (by either path) deploys `main` automatically per `docs/operations.md`, so an open PR is a fine stopping point with the live host left on this signed-off branch: do not redeploy `main` just because the turn is ending. If the PR is closed without merging, redeploy `main` then, the same way a Try trial deploy gets cleared. Then the clean-state checklist:
 
+- [ ] Working tree clean; nothing half-finished left outside a commit or `PROGRESS.md`.
 - [ ] `docs/roadmap.md` reflects what actually passed: no line ticked that the client has not signed off live, no stale `(in flight)` or `(blocked)` marker.
 - [ ] `PROGRESS.md`'s in-flight entry for this change is cleared, committed on this same branch.
 - [ ] `preview/` empty, port 8000 free.
 - [ ] The live host is on `main`, or on this signed-off branch while its PR is open (`bash init.sh --quick` shows which).
+- [ ] `bash init.sh` runs clean, so the next session needs no manual repair.
 
 Recommend `/clear` (a fresh chat without leaving the terminal), or `/compact` if context has grown but continuity still matters.
 
@@ -103,4 +105,4 @@ Procedures for the middle four: [change-kinds.md](change-kinds.md).
 
 ## Gate
 
-The client trying it live and saying it is good. That is the only gate that closes a turn.
+Done means the behaviour matches Shape, every kind's proof ran, and the docs this change made wrong are updated on the branch. The client trying it live and saying it is good is the only gate that closes a turn; a green suite or a rubric score never substitutes for it.
