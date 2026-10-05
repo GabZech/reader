@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
+## 2026-10-05: CLAUDE.md is the only instructions file, sorted by session type
+
+**Decision:** `AGENTS.md` is deleted. A short `CLAUDE.md` sorts each session into Development (anything that changes the live app, through `2-develop`), Maintenance (docs, skills, CI, the harness), or Information, and every other rule lives in the skill or hook that applies it.
+
+**Why:** All work here now runs through Claude Code, and a 96-line manual that restated its own hooks and skills was more than the client could keep in view.
+
+**Rejected:** Keeping `AGENTS.md` vendor-neutral with `CLAUDE.md` as an adapter: its `@` import never expanded in this environment, and no other tool is in use.
+
+**Revisit when:** Another coding agent starts working in this repo.
+
 ## 2026-09-30: A video's length is read from its channel's /videos page (#58)
 
 **Decision:** Each sync reads the lengths of a channel's newest videos from the channel's `/videos` page and stores them on the item (`items.duration_seconds`). A YouTube item shows that length, or nothing when unknown, never a reading time guessed from its description.
