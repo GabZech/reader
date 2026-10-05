@@ -8,7 +8,7 @@ After the user's first prompt, classify the session as one of the types below, t
 
 Anything that changes the live app: new features, changes to existing ones, and fixes.
 
-- Read `docs/roadmap.md` "Where we are" first, so you know the product's current state.
+- Read `docs/roadmap.md` first.
 - Then load the `2-develop` skill and follow its loop.
 
 ### Maintenance
