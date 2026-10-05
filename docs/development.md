@@ -62,10 +62,10 @@ Mailbox credentials (`MAIL_IMAP_HOST`, `MAIL_IMAP_USER`, `MAIL_IMAP_PASSWORD`) a
 
 ## Dev container
 
-**Purpose.** Run Claude Code (or any agent) in a container so it cannot reach the host machine. `.devcontainer/` builds Python 3.12 with the same uv version as CI and production, installs the locked dependencies and Chromium, and installs Claude Code.
+**Purpose.** Run Claude Code (or any agent) in a container so it cannot reach the host machine. `.devcontainer/` builds Python 3.12 with the same uv version as CI and production, installs the locked dependencies and Chromium, and installs Claude Code and the GitHub CLI (`gh`).
 
 **Open it as a volume clone.** In VS Code, run `Dev Containers: Clone Repository in Container Volume` and give it the repo URL. The checkout then lives in Docker's own storage, so the container sees no host files. Opening the Windows checkout in the container instead bind-mounts it, which gives the container write access to that folder, reports every file as executable (`ruff check` fails with `EXE002`), and shows CRLF files as modified in git.
 
-**Inside the container.** The commands under Run and Test work unchanged. Port 8000 is forwarded to the host. Claude Code's login lives in a named Docker volume, so it survives rebuilds; log in once with `claude`.
+**Inside the container.** The commands under Run and Test work unchanged. Port 8000 is forwarded to the host. Claude Code's and `gh`'s logins live in named Docker volumes, so they survive rebuilds. Log in once with `claude`, and once with `gh auth login --with-token`, pasting a fine-grained personal access token limited to this repo (Contents, Pull requests, and Actions, read and write) so an agent's reach stays limited to it.
 
-**What it does not isolate.** VS Code forwards the host's git credentials into the container, so an agent there can push as you. Outbound network access is unrestricted. Do not mount the Docker socket.
+**What it does not isolate.** VS Code forwards the host's git credentials into the container, so an agent there can push as you; with `gh` logged in it can also open PRs and start workflows within the token's permissions. `gh pr merge` and `gh workflow run` still ask first. Outbound network access is unrestricted. Do not mount the Docker socket.
