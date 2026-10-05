@@ -4,7 +4,8 @@
   "features": {
     // Claude Code needs Node and npm; its own Node fallback installs no npm on Debian.
     "ghcr.io/devcontainers/features/node:1": {},
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "forwardPorts": [8000],
   "containerEnv": {
@@ -12,8 +13,11 @@
     "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv",
     "UV_LINK_MODE": "copy"
   },
-  // Claude Code login and settings survive container rebuilds.
-  "mounts": ["source=reader-claude-config,target=/home/vscode/.claude,type=volume"],
+  // Claude Code and gh logins and settings survive container rebuilds.
+  "mounts": [
+    "source=reader-claude-config,target=/home/vscode/.claude,type=volume",
+    "source=reader-gh-config,target=/home/vscode/.config/gh,type=volume"
+  ],
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "customizations": {
     "vscode": {
