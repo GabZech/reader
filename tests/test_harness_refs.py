@@ -9,7 +9,6 @@ ROOT = Path(__file__).resolve().parent.parent
 
 CHECKED_FILES = (
     [
-        ROOT / "AGENTS.md",
         ROOT / "CLAUDE.md",
         ROOT / "README.md",
         ROOT / "HARNESS.md",

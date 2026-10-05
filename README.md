@@ -85,7 +85,7 @@ Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). The tests include brow
 
 This repo is built with AI coding agents, under rules meant to keep them honest. Work moves one change at a time through a fixed loop: frame, shape, preview the look, build, try it on the live app, ship. A behaviour change starts with a failing test, nothing merges without the owner trying it live, and every change goes through a pull request.
 
-The rules are in [AGENTS.md](AGENTS.md), and [HARNESS.md](HARNESS.md) explains how that setup is put together.
+The rules are in [CLAUDE.md](CLAUDE.md) and the skills under [.claude/skills/](.claude/skills/), and [HARNESS.md](HARNESS.md) explains how that setup is put together.
 
 ## Where to look next
 

@@ -1,6 +1,6 @@
 # Evaluator rubric
 
-A scorecard for a completed session's own work, run after Ship on a not-small change, not on every typo fix. It grades what a session did, not whether the change can merge: the client's live sign-off is the only merge gate (`AGENTS.md` Definition of Done), and this rubric never substitutes for it. Optional, like the rest of `docs/decisions.md` 2026-09-10's position on review passes.
+A scorecard for a completed session's own work, run after Ship on a not-small change, not on every typo fix. It grades what a session did, not whether the change can merge: the client's live sign-off is the only merge gate (`.claude/skills/2-develop/SKILL.md` Gate), and this rubric never substitutes for it. Optional, like the rest of `docs/decisions.md` 2026-09-10's position on review passes.
 
 | Category | Question | Score (0-2) | Notes |
 | --- | --- | --- | --- |
