@@ -27,7 +27,7 @@ For Development and Maintenance sessions.
 
 - Branch first: `dev/<name>` for Development, `maint/<name>` for Maintenance, where `<name>` is short, lowercase and hyphenated (e.g. `dev/highlight-export`).
 - Commit as you go. Load `commits` before each commit, `writing-docs` before editing `docs/`, and `write-skills` before editing a skill.
-- Suggest a PR once the change is complete (for Development, once the user has signed off live), and open it on a yes, following `pull-requests`. The user merges it, or tells you to.
+- Suggest a PR once the user has signed off the change, and open it on a yes, following `pull-requests`. The user merges it, or tells you to.
 
 ## Commands
 
