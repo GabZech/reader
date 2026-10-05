@@ -76,6 +76,14 @@ else
 fi
 echo
 
+echo "== Open PRs (merge first if the next change builds on one) =="
+if command -v gh >/dev/null 2>&1 && open_prs="$(gh pr list --state open 2>/dev/null)"; then
+  echo "${open_prs:-None.}"
+else
+  echo "Unknown: gh is not installed or not logged in"
+fi
+echo
+
 echo "== PROGRESS.md: In flight =="
 if [[ -f PROGRESS.md ]]; then
   awk '/^## In flight/{flag=1; next} /^## /{flag=0} flag' PROGRESS.md | sed '/^$/d'

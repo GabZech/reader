@@ -8,8 +8,8 @@ After the user's first prompt, classify the session as one of the types below, t
 
 Anything that changes the live app: new features, changes to existing ones, and fixes.
 
-- Read `docs/roadmap.md` "Where we are" first, so you know the product's current state.
-- Then load the `2-develop` skill and follow its loop.
+- Read `docs/roadmap.md` first.
+- Then load the `2-develop` skill.
 
 ### Maintenance
 
@@ -25,7 +25,8 @@ Answering questions about the repo. Don't change any files unless explicitly ask
 
 For Development and Maintenance sessions.
 
-- Branch first: `dev/<name>` for Development, `maint/<name>` for Maintenance, where `<name>` is short, lowercase and hyphenated (e.g. `dev/highlight-export`).
+- If the change builds on an open PR (session start lists them), stop before branching: say that merging it first is the best course, and continue only once the user merges it or tells you how to proceed.
+- Pull `main`, then branch: `dev/<name>` for Development, `maint/<name>` for Maintenance, where `<name>` is short, lowercase and hyphenated (e.g. `dev/highlight-export`).
 - Commit as you go. Load `commits` before each commit, `writing-docs` before editing `docs/`, and `write-skills` before editing a skill.
 - Suggest a PR once the user has signed off the change, and open it on a yes, following `pull-requests`. The user merges it, or tells you to.
 
