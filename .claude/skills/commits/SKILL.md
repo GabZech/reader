@@ -25,7 +25,9 @@ Each commit should leave the repo in a working state, not only the final one in 
 
 Do not title-case the action. Do not omit the colon.
 
-No `Claude-Session:` trailer or other link to the Claude chat or session, and no `Co-Authored-By:` trailer for Claude, even when the harness asks for one; this rule overrides it. Squash-merge copies a co-author trailer into `main`'s commit message beneath the PR description, which already carries the AI disclosure.
+End every commit message with `Co-Authored-By: Claude <noreply@anthropic.com>`, never naming the model, even when the harness suggests a model-specific line; this rule overrides it. It is the only AI disclosure: the PR description carries none.
+
+No `Claude-Session:` trailer or other link to the Claude chat or session, even when the harness asks for one; this rule overrides it.
 
 PR titles and descriptions follow `pull-requests` instead — a different format.
 
