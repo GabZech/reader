@@ -9,7 +9,7 @@ A scorecard for a completed session's own work, run after Ship on a not-small ch
 | Scope discipline | Did the session stay inside what Shape said it would leave alone? |  |  |
 | Reliability | Does the result survive `bash init.sh` from a clean checkout, without repair? |  |  |
 | Maintainability | Is the code and documentation clear enough for the next session? |  |  |
-| Handoff readiness | Can a fresh session continue from `PROGRESS.md` and the committed code alone? |  |  |
+| Handoff readiness | Can a fresh session continue from `CLAUDE.md`, `PROGRESS.md`, and the committed code alone? |  |  |
 
 ## Verdict
 
