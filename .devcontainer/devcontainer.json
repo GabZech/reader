@@ -2,6 +2,8 @@
   "name": "reader",
   "build": { "dockerfile": "Dockerfile" },
   "features": {
+    // Claude Code needs Node and npm; its own Node fallback installs no npm on Debian.
+    "ghcr.io/devcontainers/features/node:1": {},
     "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
   },
   "forwardPorts": [8000],
