@@ -4,7 +4,13 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ## In flight
 
-**UI redesign** (visual, with a little behaviour), branch `dev/ui-redesign`. Signed-off look: direction C "Warm & tactile", dark first, Marigold accent `#f5a524`, Fraunces for screen titles and list names, Literata for item titles and article text, Figtree for chrome. Icons only for Settings (a cog that spins with thin arrows while updating) and the add actions. Home's Edit moves into Settings. Delete is red. Boxes only where groups of the same kind are separated. Leaves alone: routes' behaviour, swipe, highlighting, export. Mockup: `preview/directions.html` (published as the "Reader Directions" artifact).
+**UI redesign** (visual, with a little behaviour), branch `dev/ui-redesign`. Signed-off look: direction C "Warm & tactile", dark first, Marigold accent `#f5a524`, Fraunces for screen titles and list names, Literata for item titles and article text, Figtree for chrome. Icons only for Settings (a cog that spins with thin arrows while updating) and the add actions. Home's Edit moves into Settings. Delete is red. Boxes only where groups of the same kind are separated. Leaves alone: routes' behaviour, swipe, highlighting, export. Mockup: the "Reader Directions" artifact (https://claude.ai/artifact/XuTGvaK2UBpRHPSyaZkN9S); the local `preview/` copy is gitignored and not on the branch.
+
+Small deviations from the mockup, kept on purpose: a source page's heading stays the source's name (rename tests rely on it); long list names truncate in Settings' "Lists on Home" at phone width.
+
+Feedback rounds: four mockup rounds, signed off. Live try: branch deployed 2026-10-07 (commit `f7925ee`), live host is on `dev/ui-redesign`; no feedback on the live app yet.
+
+Next step: the client tries the live app (walkthrough: Home cog spin, Settings lists/theme, list swipe and switch counts, article bars and highlight, Edit list error, source page, fonts offline in airplane mode). Fix what they report on this branch, redeploy with the `workflow_dispatch` trial deploy (see `docs/operations.md`), and once signed off live: rewrite `docs/ui-guidelines.md` for the new look, tick the "Improve UI" lines in `docs/roadmap.md`, add a `docs/decisions.md` entry (bundled fonts, one accent and two icons replace the stone-and-ink, no-icon rule), clear this entry, then suggest the PR.
 
 ### Planned
 
