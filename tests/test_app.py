@@ -504,7 +504,7 @@ def test_empty_rename_stays_on_edit(monkeypatch, tmp_path):
         client.post("/lists/add", data={"name": "Weekend"})
         response = client.post("/lists/weekend/edit", data={"name": "   "})
         assert response.status_code == 200
-        assert "<h1>Edit</h1>" in response.text
+        assert "<h1>Edit list</h1>" in response.text
         opened = client.get("/lists/weekend")
         assert "<h1>Weekend</h1>" in opened.text
 

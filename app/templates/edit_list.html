@@ -1,21 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Edit{% endblock %}
+{% block title %}Edit list{% endblock %}
 {% block body %}
       <form method="post" action="/lists/{{ slug }}/edit">
-        <header class="top top-row">
-          <h1>Edit</h1>
-          <button class="top-edit" type="submit">Done</button>
+        <div class="top-bar">
+          <a class="top-edit is-quiet" href="/lists/{{ slug }}">Cancel</a>
+          <button class="top-edit is-strong" type="submit">Done</button>
+        </div>
+        <header class="top">
+          <h1>Edit list</h1>
         </header>
+        <label class="field-label" for="list-name">Name</label>
+        <input class="field{% if error %} is-error{% endif %}" id="list-name" name="name" type="text" autocomplete="off" value="{{ name }}"{% if error %} aria-describedby="list-name-error"{% endif %}>
         {% if error %}
-        <p class="lede">{{ error }}</p>
+        <p class="field-error" id="list-name-error">{{ error }}</p>
         {% endif %}
-        <input class="field" name="name" type="text" autocomplete="off" value="{{ name }}">
       </form>
-      <form method="post" action="/lists/{{ slug }}/delete">
-        <section class="list">
-          <button class="item" type="submit">
-            <span class="title">Delete list</span>
-          </button>
-        </section>
+      <form class="danger-zone" method="post" action="/lists/{{ slug }}/delete">
+        <button class="btn btn-danger" type="submit">Delete list</button>
       </form>
 {% endblock %}
