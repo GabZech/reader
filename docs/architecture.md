@@ -10,6 +10,7 @@ Reader is a personal reading hub for one person. A single hosted web app holds t
 - **Host now, move later.** The app runs on a small always-on container until there is a home server. The unit of move is a Docker image plus a SQLite file, not a vendor-only data plane. We pay to keep the host awake: a sleeping free tier would blow the morning sync bound.
 - **Web app, not a store app.** One codebase for phone and computer, no App Store fee. We give up a native iPhone app.
 - **Hosted hub plus device cache.** Phone and computer share one library. News and Read later remain readable offline after a successful sync. This is not a phone-only local app.
+- **A small machine, so small queries.** The host has 256 MB (about 207 MB usable). Lists, counts and a source's items leave article text out, and counts read only ids and dates, so several page loads at once stay small; the text is read for one article at a time and for the export.
 - **Python and HTML over a heavier JavaScript client.** The dummy is HTML, and Python is already somewhat familiar. We give up a single-language TypeScript client framework.
 
 ## Parts
@@ -17,8 +18,9 @@ Reader is a personal reading hub for one person. A single hosted web app holds t
 1. **Web app.** Serves Home, Lists, Sources, list views, and item reading. Copies the accepted dummy look.
 2. **SQLite file.** The library on the host. Copied off for backup and for a later move to another machine. A source can belong to several lists at once: membership lives in a `source_lists` table, which also carries the recency window for that source on that list. A single item can also belong to a list directly (`item_lists`), for Read later, regardless of its source; direct membership never expires by recency.
 3. **Ingest on sync.** On open (when online): poll RSS/Atom and public YouTube channel feeds, and read new mail from the isolated newsletter mailbox. Incremental sync aims to stay under 5 seconds on a typical morning (10 second ceiling); not yet separately measured. First sync and a large backlog may take longer. Linked-article cleanup on open still waits (only captured Read later pages are cleaned today). Newsletter bodies come with the mail.
-4. **Device cache.** A PWA (installable site with an offline cache) keeps already fetched News and Read later pages on the phone or computer.
-5. **Vault files (later).** Markdown in a folder the Obsidian vault can open. Not a highlight-sync vendor. Not in the walking skeleton.
+4. **Device cache.** A PWA (installable site with an offline cache) keeps already fetched News and Read later pages on the phone or computer. A page that can neither load nor be found in the cache gets a short retry screen, never a blank one.
+5. **Diagnostics trace.** Each page keeps short breadcrumbs on the device (start, load, first paint, taps, errors, what the service worker answered, where the bars sit) and sends them to the server on a later load. The server keeps them, its recent requests, its start time and its memory, in memory only (`/diagnostics`, linked from Settings; `POST /diag` receives). A restart or deploy clears it. It is open like the rest of the app until auth lands.
+6. **Vault files (later).** Markdown in a folder the Obsidian vault can open. Not a highlight-sync vendor. Not in the walking skeleton.
 
 Data moves: browser opens the app → if online, the app syncs inbound sources into SQLite → pages render from SQLite → the device caches those pages → if the connection drops, cached News and Read later remain readable.
 

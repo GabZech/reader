@@ -24,17 +24,14 @@ Session logs from this phase, and the working files from an earlier per-epic way
 - **Reading progress:** every list except Read Later (which has its own Library/Archive and Started/Unstarted state) splits items into Unread and Read, with a "Mark as read" action on the article and automatic tracking as items are opened, so the Home screen shows only what's unread. An article reopens at its saved spot as soon as the text is ready, without waiting on images, and closing a highlight (or saving its title) returns to that highlight. Swiping a row right to left moves it straight to the other tab (read or unread, archive or library, on Home too), and swiping left to right deletes it after a confirmation.
 - **Highlighting and Obsidian export:** passages can be highlighted on first opening an article, including any image the selection covers; a standalone image can also be highlighted on its own with a double-click or double-tap, no surrounding text needed. Either way the image gets an outline in the highlight colour and travels into the export, with section titles that stick to the highlights below them and can be deleted along with them; a highlight carrying a title shows a small `§` before it in the article. Highlights land as a note in a private Obsidian vault, in the agreed format, kept to roughly one commit per article via an archive/mark-as-read trigger with a daily 5am (Brasilia time) fallback.
 - **Watching videos:** a YouTube item plays inside its own page, below the Open original and Read later buttons, using YouTube's embedded player. A video shows its own length (for example "14 min") on its card and page instead of a reading time, for a channel's 30 newest videos; an older video, a live stream, or one YouTube's page did not give a length for shows none. Other items are unchanged.
+- **Look and feel:** every screen shares one warm look, dark by default with a light option, set in three bundled fonts that also work offline with one amber accent. Each list on Lists and each kind of source on Sources sits in its own card, Settings holds the list editor and the theme switch, and the bottom bar and the article's top bar stay put on an iPhone. In the installed app, a page that cannot load shows a short retry screen instead of a blank one, and a Diagnostics page under Settings shows what the phone and server did, for tracking down faults.
 
 ## What's next
 
 ### 🎯 Upcoming features
 
 
-#### Improve UI
-
-
-- [ ] Revise `ui-guidelines.md` beyond the mockup-era stone and ink look
-- [ ] Apply the revised look across every screen already built
+None scoped yet.
 
 ### 📌 Deferred to later
 
