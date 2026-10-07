@@ -494,8 +494,10 @@ def test_scrolling_before_images_load_is_not_undone(monkeypatch, tmp_path, brows
         browser_page.mouse.move(200, 200)
         browser_page.mouse.wheel(0, 1500)
         browser_page.wait_for_timeout(300)
-        before = browser_page.evaluate("window.scrollY")
+        scrolled = "document.querySelector('.scroller').scrollTop"
+        before = browser_page.evaluate(scrolled)
+        assert before > 0
         release()
         browser_page.wait_for_load_state("load")
         browser_page.wait_for_timeout(500)
-        assert browser_page.evaluate("window.scrollY") == before
+        assert browser_page.evaluate(scrolled) == before

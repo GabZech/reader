@@ -116,9 +116,9 @@ def test_pages_record_where_the_bar_sits_while_scrolling(phone, monkeypatch, tmp
 
     with _live_server(monkeypatch, tmp_path) as (origin, _server):
         phone.goto(f"{origin}/sources")
-        phone.evaluate("document.body.style.minHeight = '3000px'")
+        phone.evaluate("document.querySelector('.page').style.minHeight = '3000px'")
         phone.wait_for_timeout(900)
-        phone.evaluate("window.scrollTo(0, 400)")
+        phone.evaluate("document.querySelector('.scroller').scrollTo(0, 400)")
         phone.wait_for_timeout(900)
         phone.click(".tabbar >> text=Home")
         phone.wait_for_url(f"{origin}/")

@@ -112,6 +112,7 @@
               probe.remove();
               const view = window.visualViewport;
               const bar = document.querySelector(".tabbar");
+              const scroller = document.querySelector(".scroller");
               const box = bar ? bar.getBoundingClientRect() : null;
               log(
                 "geo",
@@ -120,7 +121,7 @@
                   `ih=${innerHeight}`,
                   `sh=${screen.height}`,
                   view ? `vv=${Math.round(view.height)}+${Math.round(view.offsetTop)}` : "vv=?",
-                  `y=${Math.round(scrollY)}`,
+                  `y=${Math.round(scroller ? scroller.scrollTop : scrollY)}`,
                   `safe=${safe}`,
                   box ? `bar=${Math.round(box.top)}-${Math.round(box.bottom)}` : "bar=-",
                   `standalone=${matchMedia("(display-mode: standalone)").matches ? 1 : 0}`,
@@ -132,7 +133,7 @@
           let geoAt = 0;
           let geoTimer = 0;
           window.addEventListener("load", () => setTimeout(() => geometry("load"), 400));
-          window.addEventListener(
+          document.addEventListener(
             "scroll",
             () => {
               if (geoCount < 30 && Date.now() - geoAt > 250) {
@@ -148,7 +149,7 @@
                 }
               }, 400);
             },
-            { passive: true }
+            { passive: true, capture: true }
           );
           window.addEventListener("error", (ev) => log("error", `${ev.message} ${ev.filename ? ev.filename.split("/").pop() : ""}:${ev.lineno}`));
           window.addEventListener("unhandledrejection", (ev) => log("rejection", ev.reason && ev.reason.message ? ev.reason.message : ev.reason));
@@ -179,8 +180,10 @@
     </script>
   </head>
   <body>
-    <div class="page">
-      {% block body %}{% endblock %}
+    <div class="scroller">
+      <div class="page">
+        {% block body %}{% endblock %}
+      </div>
     </div>
     {% if flash %}
     <div class="toast" role="status">{{ flash }}</div>
