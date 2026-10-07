@@ -8,9 +8,10 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 Small deviations from the mockup, kept on purpose: a source page's heading stays the source's name (rename tests rely on it); long list names truncate in Settings' "Lists on Home" at phone width.
 
-Feedback rounds: four mockup rounds, signed off. Live try: branch deployed 2026-10-07 (commit `f7925ee`), live host is on `dev/ui-redesign`; no feedback on the live app yet.
+Feedback rounds: four mockup rounds, signed off. Live try: branch deployed 2026-10-07 (commit `f7925ee`), live host is on `dev/ui-redesign`.
+Round 1 of live feedback, built and committed on the branch but not yet deployed: the app froze and then went white when tapping between pages while Home's cog was turning (cause: every page load wrote to the database and the sync held its write lock across all downloads; fixed in `app/db.py` and `app/ingest.py`, with two regression tests); source titles turning bold late (fonts now wait for the bundled file instead of swapping); source-kind headings centred; each list on the Lists page in its own card; Home's "Show more" flush right.
 
-Next step: the client tries the live app (walkthrough: Home cog spin, Settings lists/theme, list swipe and switch counts, article bars and highlight, Edit list error, source page, fonts offline in airplane mode). Fix what they report on this branch, redeploy with the `workflow_dispatch` trial deploy (see `docs/operations.md`), and once signed off live: rewrite `docs/ui-guidelines.md` for the new look, tick the "Improve UI" lines in `docs/roadmap.md`, add a `docs/decisions.md` entry (bundled fonts, one accent and two icons replace the stone-and-ink, no-icon rule), clear this entry, then suggest the PR.
+Next step: redeploy with the trial deploy, then the client tries the live app (walkthrough: Home cog spin, Settings lists/theme, list swipe and switch counts, article bars and highlight, Edit list error, source page, fonts offline in airplane mode). Fix what they report on this branch, redeploy with the `workflow_dispatch` trial deploy (see `docs/operations.md`), and once signed off live: rewrite `docs/ui-guidelines.md` for the new look, tick the "Improve UI" lines in `docs/roadmap.md`, add a `docs/decisions.md` entry (bundled fonts, one accent and two icons replace the stone-and-ink, no-icon rule), clear this entry, then suggest the PR.
 
 ### Planned
 
