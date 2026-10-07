@@ -248,19 +248,6 @@ def _bookmarklet_href(request: Request) -> str:
 def settings_page(request: Request):
     mail_config = mail_imap_config()
     newsletter_address = mail_config[1] if mail_config else None
-    return templates.TemplateResponse(
-        request,
-        "settings.html",
-        {
-            "nav": "home",
-            "newsletter_address": newsletter_address,
-            "bookmarklet_href": _bookmarklet_href(request),
-        },
-    )
-
-
-@app.get("/home/edit")
-def home_edit_page(request: Request):
     conn = connect()
     try:
         init_db(conn)
@@ -269,9 +256,20 @@ def home_edit_page(request: Request):
         conn.close()
     return templates.TemplateResponse(
         request,
-        "home_edit.html",
-        {"nav": "home", "lists": lists},
+        "settings.html",
+        {
+            "nav": "home",
+            "lists": lists,
+            "newsletter_address": newsletter_address,
+            "bookmarklet_href": _bookmarklet_href(request),
+        },
     )
+
+
+@app.get("/home/edit")
+def home_edit_page():
+    # Choosing Home's lists moved into Settings; keep old bookmarks working.
+    return RedirectResponse("/settings", status_code=303)
 
 
 @app.post("/home/edit/{slug}/toggle")
@@ -286,7 +284,7 @@ def home_edit_toggle(slug: str):
         conn.commit()
     finally:
         conn.close()
-    return RedirectResponse("/home/edit", status_code=303)
+    return RedirectResponse("/settings", status_code=303)
 
 
 @app.post("/home/edit/{slug}/move")
@@ -303,7 +301,7 @@ async def home_edit_move(request: Request, slug: str):
             conn.commit()
     finally:
         conn.close()
-    return RedirectResponse("/home/edit", status_code=303)
+    return RedirectResponse("/settings", status_code=303)
 
 
 @app.get("/lists")

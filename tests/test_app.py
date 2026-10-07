@@ -178,18 +178,32 @@ def test_home_hides_lists_with_nothing_unread(monkeypatch, tmp_path):
 def test_home_says_all_caught_up_when_every_list_is_empty(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         home = client.get("/")
-        edit = client.get("/home/edit")
+        settings = client.get("/settings")
     assert "You're all caught up." in home.text
     assert "data-list" not in home.text
-    assert "Read later" in edit.text
-    assert "Favourite channels" in edit.text
+    assert "Read later" in settings.text
+    assert "Favourite channels" in settings.text
 
 
-def test_home_edit_shows_lists_with_move_boundaries(monkeypatch, tmp_path):
+def test_home_header_has_no_edit_link(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
-        response = client.get("/home/edit")
+        home = client.get("/")
+    assert 'href="/home/edit"' not in home.text
+    assert 'id="sync-status"' in home.text
+
+
+def test_old_home_edit_address_forwards_to_settings(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.get("/home/edit", follow_redirects=False)
+    assert response.status_code in (301, 303, 307, 308)
+    assert response.headers["location"] == "/settings"
+
+
+def test_settings_shows_home_lists_with_move_boundaries(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.get("/settings")
     assert response.status_code == 200
-    assert "Home lists" in response.text
+    assert "Lists on Home" in response.text
     assert response.text.index("News") < response.text.index("Read later")
     assert response.text.index("Read later") < response.text.index("Favourite channels")
     first_moves = response.text.split('action="/home/edit/news/move"')[1]
@@ -203,8 +217,9 @@ def test_home_edit_toggle_hides_list_from_home(monkeypatch, tmp_path):
         _fill_every_home_list(client, tmp_path)
         toggled = client.post("/home/edit/news/toggle", follow_redirects=False)
         assert toggled.status_code == 303
-        edit_page = client.get("/home/edit")
-        assert "Hidden" in edit_page.text
+        assert toggled.headers["location"] == "/settings"
+        settings = client.get("/settings")
+        assert "Hidden" in settings.text
         home = client.get("/")
         assert 'href="/lists/news"' not in home.text
         client.post("/home/edit/news/toggle")
@@ -215,11 +230,12 @@ def test_home_edit_toggle_hides_list_from_home(monkeypatch, tmp_path):
 def test_home_edit_move_reorders_lists(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _fill_every_home_list(client, tmp_path)
-        client.post(
+        moved = client.post(
             "/home/edit/news/move", data={"direction": "down"}, follow_redirects=False
         )
-        edit_page = client.get("/home/edit")
-        assert edit_page.text.index("Read later") < edit_page.text.index("News")
+        assert moved.headers["location"] == "/settings"
+        settings = client.get("/settings")
+        assert settings.text.index("Read later") < settings.text.index("News")
         home = client.get("/")
         assert home.text.index("Read later") < home.text.index(">News<")
 

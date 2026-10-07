@@ -974,6 +974,15 @@ button.item {
   cursor: pointer;
 }
 
+.set-controls .chip {
+  min-width: 3.25rem;
+}
+
+.set-controls .chip.is-on,
+.set-controls .chip.is-off {
+  min-width: 4.75rem;
+}
+
 .chip:disabled {
   color: color-mix(in srgb, var(--muted) 55%, transparent);
   cursor: default;
@@ -989,12 +998,12 @@ button.item {
   color: var(--muted);
 }
 
-.seg.theme-switch {
+.seg.theme-toggle {
   width: 9.5rem;
   margin: 0;
 }
 
-.seg.theme-switch button {
+.seg.theme-toggle button {
   min-height: 2.125rem;
   font-size: 0.84375rem;
 }
