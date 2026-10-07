@@ -50,8 +50,10 @@ def _client(monkeypatch, tmp_path):
     real_visible = dbmod._visible_items
     frozen = datetime(2026, 8, 20, 12, tzinfo=UTC)
 
-    def visible(conn, slug, now=None, archived=False, read=False):
-        return real_visible(conn, slug, now or frozen, archived=archived, read=read)
+    def visible(conn, slug, now=None, archived=False, read=False, columns=None):
+        return real_visible(
+            conn, slug, now or frozen, archived=archived, read=read, columns=columns
+        )
 
     monkeypatch.setattr(dbmod, "_visible_items", visible)
     return TestClient(app)

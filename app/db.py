@@ -217,6 +217,17 @@ def all_lists(conn: sqlite3.Connection) -> list[dict]:
     ]
 
 
+def _item_columns(conn: sqlite3.Connection) -> str:
+    """Every items column but the article text, which only the item page and the
+    export need. Lists and counts that carried it filled the 256 MB machine."""
+    names = [
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(items)")
+        if row["name"] != "body_html"
+    ]
+    return ", ".join(f"items.{name}" for name in names)
+
+
 def count_for_list(
     conn: sqlite3.Connection,
     slug: str,
@@ -224,7 +235,10 @@ def count_for_list(
     archived: bool = False,
     read: bool = False,
 ) -> int:
-    return len(_visible_items(conn, slug, now, archived=archived, read=read))
+    rows = _visible_items(
+        conn, slug, now, archived=archived, read=read, columns="items.id, items.published_at"
+    )
+    return len(rows)
 
 
 def items_for_list(
@@ -247,8 +261,10 @@ def _visible_items(
     now: datetime | None = None,
     archived: bool = False,
     read: bool = False,
+    columns: str | None = None,
 ) -> list[sqlite3.Row]:
     now = now or datetime.now(UTC)
+    columns = columns or f"{_item_columns(conn)}, sources.title AS source_title"
     archived_clause = (
         "item_lists.archived_at IS NOT NULL"
         if archived
@@ -257,7 +273,7 @@ def _visible_items(
     read_clause = "item_read.read_at IS NOT NULL" if read else "item_read.read_at IS NULL"
     rows = conn.execute(
         f"""
-        SELECT items.*, sources.title AS source_title,
+        SELECT {columns},
                MAX(source_lists.window) AS window,
                MAX(item_lists.list_slug IS NOT NULL) AS is_direct
         FROM items
@@ -821,8 +837,8 @@ def insert_source(
 
 def items_for_source(conn: sqlite3.Connection, source_id: str) -> list[sqlite3.Row]:
     return conn.execute(
-        """
-        SELECT items.*, sources.title AS source_title
+        f"""
+        SELECT {_item_columns(conn)}, sources.title AS source_title
         FROM items
         JOIN sources ON sources.id = items.source_id
         WHERE items.source_id = ?
