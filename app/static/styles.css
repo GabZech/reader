@@ -62,10 +62,10 @@
   --danger-soft: rgba(184, 64, 44, 0.11);
   --swipe-move: #6f5f4d;
   --highlight-bg: #fbd88f;
-  --bar: rgba(245, 238, 227, 0.94);
+  /* Bars are solid: a full-screen blend layer or a blur behind them can blank an iOS home-screen app. */
+  --bar: #f5eee3;
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 12px 26px -16px rgba(80, 52, 20, 0.35);
   --scrim: rgba(42, 32, 24, 0.45);
-  --grain-opacity: 0.05;
   color-scheme: light;
 }
 
@@ -84,10 +84,9 @@
   --danger-soft: rgba(232, 112, 95, 0.13);
   --swipe-move: #4a3c2f;
   --highlight-bg: #6e4c14;
-  --bar: rgba(26, 20, 15, 0.94);
+  --bar: #17120e;
   --shadow: 0 1px 0 rgba(255, 225, 190, 0.05) inset, 0 14px 30px -12px rgba(6, 3, 0, 0.7);
   --scrim: rgba(10, 6, 3, 0.62);
-  --grain-opacity: 0.12;
   color-scheme: dark;
 }
 
@@ -111,18 +110,6 @@ body {
   color: var(--text);
   background: var(--bg);
   -webkit-tap-highlight-color: transparent;
-}
-
-/* A faint paper grain over everything; never catches a tap. */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: var(--grain-opacity);
-  mix-blend-mode: overlay;
 }
 
 a {
@@ -658,8 +645,6 @@ button.item {
   padding: 0.375rem 0.75rem calc(0.625rem + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--line);
   background: var(--bar);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
 }
 
 .tab {
@@ -1069,8 +1054,6 @@ form.is-apart {
   padding: env(safe-area-inset-top, 0px) 1.25rem 0;
   border-bottom: 1px solid var(--line);
   background: var(--bar);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
 }
 
 .article-bar a,
