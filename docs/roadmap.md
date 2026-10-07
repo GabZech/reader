@@ -40,11 +40,14 @@ Session logs from this phase, and the working files from an earlier per-epic way
 
 Choices explicitly put off for later, each with a real trigger to revisit. Removed once acted on.
 
-#### Launch on the phone
+#### Switching over
 
 - Bring the Library Over: importing sources from the subscriptions export (OPML), and saved items from the CSV and from the folder of files, so switching off the current reading app doesn't mean rebuilding by hand. Revisit when ready to actually switch off the current reading app
 - Keep the GitHub repo name and the current Fly app name through feature work. Before the MVP is put on the phone as the lasting URL, rename the repo, stand up a new Fly app name (Fly cannot rename in place), and add a home-screen logo that shows when the site is installed
-- Take the Fly app name, and so the app URL, out of the public repo. It sits in `fly.toml`, the deploy workflow, `init.sh`, and several docs, and in git history. Do it with the rename above: keep the new name out of the files (the deploy workflow reads it from a GitHub Actions variable, `init.sh` from `LIVE_URL`, docs use a placeholder) and destroy the old app so the exposed URL goes dead. Editing files alone is not enough, because history keeps the old name. Revisit with the rename, before the lasting URL goes on the phone
+
+#### Security
+
+- Take the Fly app name, and so the app URL, out of the public repo. It sits in `fly.toml`, the deploy workflow, `init.sh`, and several docs, and in git history. Do it with the rename under Switching over: keep the new name out of the files (the deploy workflow reads it from a GitHub Actions variable, `init.sh` from `LIVE_URL`, docs use a placeholder) and destroy the old app so the exposed URL goes dead. Editing files alone is not enough, because history keeps the old name. Revisit with the rename, before the lasting URL goes on the phone
 - Add auth to the app. Nothing in it checks who is calling, including the `/capture` endpoint that accepts POSTs, so the URL is the only thing protecting the library. A shared secret or basic auth would do; the iOS Shortcut and the bookmarklet would then need to send it. Revisit with the rename, before the lasting URL goes on the phone
 
 #### Hosting and data
