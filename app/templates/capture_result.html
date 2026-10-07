@@ -4,8 +4,6 @@
       <header class="top">
         <h1>Saved to Read later</h1>
       </header>
-      <p class="lede">{{ title }}</p>
-      <div class="actions">
-        <a href="{{ item_url }}">Read now</a>
-      </div>
+      <blockquote class="quote">{{ title }}</blockquote>
+      <a class="btn btn-accent" href="{{ item_url }}">Read now</a>
 {% endblock %}
