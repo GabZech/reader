@@ -97,3 +97,16 @@ def test_the_diagnostics_page_opens_and_settings_links_to_it(monkeypatch, tmp_pa
         assert page.status_code == 200
         assert "Diagnostics" in page.text and "check" in page.text
         assert 'href="/diagnostics"' in client.get("/settings").text
+
+
+def test_the_server_reports_its_memory_and_whether_it_was_ever_killed_for_it(monkeypatch, tmp_path):
+    # A restart under load is the suspect behind the white screen; these numbers
+    # say how big the server gets and whether the machine has killed it.
+    with _client(monkeypatch, tmp_path) as client:
+        system = _snapshot(client)["system"]
+        assert set(system) == {"rss_mb", "peak_rss_mb", "available_mb", "total_mb", "machine_up_s", "oom_kills"}
+        assert system["rss_mb"] > 0
+        assert system["peak_rss_mb"] >= system["rss_mb"]
+        assert system["oom_kills"] >= 0
+        page = client.get("/diagnostics").text
+        assert "oom" in page.lower()

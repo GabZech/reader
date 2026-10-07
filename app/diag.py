@@ -96,9 +96,44 @@ def request_finished(method: str, path: str, status: int, started: tuple[float, 
     )
 
 
+def _proc_number(path: str, key: str) -> int | None:
+    """One number from a /proc file ("Key:   123 kB" or "key 123"), else None."""
+    try:
+        with open(path) as handle:
+            for line in handle:
+                if line.startswith(key):
+                    return int(line.replace(":", " ").split()[1])
+    except (OSError, ValueError, IndexError):
+        pass
+    return None
+
+
+def system() -> dict:
+    """How big the server is and whether the machine ever killed it for memory."""
+
+    def mb(kilobytes: int | None) -> int:
+        return round(kilobytes / 1024) if kilobytes is not None else -1
+
+    try:
+        with open("/proc/uptime") as handle:
+            machine_up = int(float(handle.read().split()[0]))
+    except (OSError, ValueError, IndexError):
+        machine_up = -1
+    oom = _proc_number("/proc/vmstat", "oom_kill")
+    return {
+        "rss_mb": max(mb(_proc_number("/proc/self/status", "VmRSS")), 1),
+        "peak_rss_mb": max(mb(_proc_number("/proc/self/status", "VmHWM")), 1),
+        "available_mb": mb(_proc_number("/proc/meminfo", "MemAvailable")),
+        "total_mb": mb(_proc_number("/proc/meminfo", "MemTotal")),
+        "machine_up_s": machine_up,
+        "oom_kills": oom if oom is not None else -1,
+    }
+
+
 def snapshot() -> dict:
     now = datetime.now(UTC)
     return {
+        "system": system(),
         "started_at": _started.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "uptime_s": int((now - _started).total_seconds()),
         "events": list(_events),

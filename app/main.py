@@ -1660,6 +1660,7 @@ def diagnostics_page(request: Request, fmt: str | None = Query(None, alias="form
             "nav": "home",
             "started_at": snapshot["started_at"],
             "uptime_s": snapshot["uptime_s"],
+            "system": snapshot["system"],
             "event_lines": lines[:300],
             "request_lines": served[:150],
         },
