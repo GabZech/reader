@@ -8,11 +8,11 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ### Planned
 
-- Foundation: bundled fonts and offline cache, tokens (dark + light), base type, tab bar, states: not started
-- Home and Settings: cog with updating spin, Lists on Home inside Settings, theme switch: not started
-- Lists: add icon, flat single lists, segmented tabs, edit list: not started
-- Article: action rows, reading type, highlight colour: not started
-- Sources: add icon, source page cog, source settings, add flow: not started
+- Foundation: bundled fonts and offline cache, tokens (dark + light), base type, tab bar, states: done, awaiting live try
+- Home and Settings: cog with updating spin, Lists on Home inside Settings, theme switch: done, awaiting live try
+- Lists: add icon, flat single lists, segmented tabs, edit list: done, awaiting live try
+- Article: action rows, reading type, highlight colour: done, awaiting live try
+- Sources: add icon, source page cog, source settings, add flow: done, awaiting live try
 - Docs: ui-guidelines, roadmap, decision record: not started
 
 ## Blocked
