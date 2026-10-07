@@ -7,7 +7,7 @@
         <a class="icon-btn" href="/lists/add" aria-label="Add list">{{ icon_plus() }}</a>
       </header>
 
-      <section class="list is-flat">
+      <section class="list is-cards">
         {% for list in lists %}
         <a class="item list-row" href="/lists/{{ list.slug }}">
           <span class="title">{{ list.name }}</span>

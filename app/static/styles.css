@@ -1,10 +1,13 @@
 /* Warm & tactile: dark first, one Marigold accent. See docs/ui-guidelines.md. */
 
+/* The fonts are bundled, preloaded and cached, so text waits for them
+   (`block`) rather than showing in a stand-in first and then changing weight. */
+
 @font-face {
   font-family: "Fraunces";
   font-style: normal;
   font-weight: 400 700;
-  font-display: swap;
+  font-display: block;
   src: url("/static/fonts/fraunces-normal.woff2") format("woff2");
 }
 
@@ -12,7 +15,7 @@
   font-family: "Fraunces";
   font-style: italic;
   font-weight: 400 700;
-  font-display: swap;
+  font-display: block;
   src: url("/static/fonts/fraunces-italic.woff2") format("woff2");
 }
 
@@ -20,7 +23,7 @@
   font-family: "Literata";
   font-style: normal;
   font-weight: 400 700;
-  font-display: swap;
+  font-display: block;
   src: url("/static/fonts/literata-normal.woff2") format("woff2");
 }
 
@@ -28,7 +31,7 @@
   font-family: "Literata";
   font-style: italic;
   font-weight: 400 700;
-  font-display: swap;
+  font-display: block;
   src: url("/static/fonts/literata-italic.woff2") format("woff2");
 }
 
@@ -36,7 +39,7 @@
   font-family: "Figtree";
   font-style: normal;
   font-weight: 400 700;
-  font-display: swap;
+  font-display: block;
   src: url("/static/fonts/figtree-normal.woff2") format("woff2");
 }
 
@@ -358,6 +361,29 @@ button.top-edit {
   border-top: 0;
 }
 
+/* Lists page: each list is its own card instead of a row between hairlines. */
+.list.is-cards {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.list.is-cards a.item.list-row {
+  border-top: 0;
+  border-radius: 1.375rem;
+  background: var(--bg-card);
+  box-shadow: var(--shadow);
+  padding-inline: 1.15rem;
+}
+
+.list.is-cards a.item.list-row:active {
+  background-color: var(--bg-sunk);
+}
+
 .list-head {
   display: flex;
   align-items: center;
@@ -366,6 +392,11 @@ button.top-edit {
   padding: 0.85rem 1rem 0.15rem;
   color: inherit;
   text-decoration: none;
+}
+
+/* Sources: the kind of source ("Newsletter", "YouTube") sits in the middle. */
+.list-head.is-centered {
+  justify-content: center;
 }
 
 .list-head h2 {
@@ -598,7 +629,7 @@ button.item {
   color: var(--muted);
   font-size: 0.875rem;
   font-weight: 500;
-  text-align: left;
+  text-align: right;
   cursor: pointer;
 }
 
@@ -1383,6 +1414,10 @@ form.is-apart {
 
   .item-swipe .item:hover {
     background-color: var(--bg-card);
+  }
+
+  .list.is-cards a.item.list-row:hover {
+    background-color: color-mix(in srgb, var(--bg-sunk) 55%, var(--bg-card));
   }
 
   .list.is-flat .item-swipe .item:hover {
