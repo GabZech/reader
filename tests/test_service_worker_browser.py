@@ -68,6 +68,8 @@ def test_a_page_that_cannot_load_or_be_found_offline_shows_a_retry_page(
         assert phone.evaluate("getComputedStyle(document.body).backgroundColor") != (
             "rgba(0, 0, 0, 0)"
         )
+        logged = phone.evaluate("JSON.parse(localStorage.getItem('reader-log') || '[]').map(x => x.e)")
+        assert "retry-page" in logged
 
 
 def test_a_page_seen_before_still_opens_offline(phone, monkeypatch, tmp_path):
@@ -81,3 +83,27 @@ def test_a_page_seen_before_still_opens_offline(phone, monkeypatch, tmp_path):
         phone.goto(f"{origin}/lists")
 
         assert phone.locator("h1", has_text="Lists").count() == 1
+
+
+def test_pages_leave_breadcrumbs_that_reach_the_server(phone, monkeypatch, tmp_path):
+    # A white screen on the phone can only be traced if the page records what
+    # it did and the next page sends that record to the server.
+    import httpx
+
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        phone.goto(f"{origin}/sources")
+        phone.wait_for_timeout(3600)
+        phone.click(".tabbar >> text=Home")
+        phone.wait_for_url(f"{origin}/")
+        phone.wait_for_timeout(1500)
+
+        events = httpx.get(f"{origin}/diagnostics?format=json").json()["events"]
+        seen = {(e["e"], e["p"]) for e in events}
+
+        assert ("start", "/sources") in seen
+        assert ("load", "/sources") in seen
+        assert ("check", "/sources") in seen
+        assert ("tap", "/sources") in seen
+        assert ("start", "/") in seen
+        check = next(e for e in events if e["e"] == "check" and e["p"] == "/sources")
+        assert "fcp=1" in check["d"]

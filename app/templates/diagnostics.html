@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Diagnostics{% endblock %}
+{% block body %}
+        <a class="back" href="/settings">Settings</a>
+        <header class="top">
+          <h1>Diagnostics</h1>
+        </header>
+
+        <p class="section-note">Server started {{ started_at }} (UTC), {{ uptime_s // 60 }} min ago. A restart or deploy clears everything below. Times are UTC.</p>
+
+        <h2 class="section-label">Phone events</h2>
+        <pre class="diag-log">{% for line in event_lines %}{{ line }}
+{% else %}Nothing yet.
+{% endfor %}</pre>
+
+        <h2 class="section-label">Server requests</h2>
+        <pre class="diag-log">{% for line in request_lines %}{{ line }}
+{% else %}Nothing yet.
+{% endfor %}</pre>
+{% endblock %}

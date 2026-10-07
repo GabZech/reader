@@ -19,6 +19,114 @@
         }
       })();
     </script>
+    <script>
+      // Breadcrumbs for tracing a white screen. Each page notes what it did in
+      // the phone's storage and sends the notes to /diagnostics on a later load.
+      (() => {
+        try {
+          const KEY = "reader-log";
+          const MAX = 150;
+          const rand = () => Math.random().toString(36).slice(2, 7);
+          const nav = rand();
+          let launch = "";
+          try {
+            launch = sessionStorage.getItem("reader-launch") || "";
+            if (!launch) {
+              launch = rand();
+              sessionStorage.setItem("reader-launch", launch);
+            }
+          } catch (_) {}
+          const read = () => {
+            try {
+              return JSON.parse(localStorage.getItem(KEY) || "[]");
+            } catch (_) {
+              return [];
+            }
+          };
+          const write = (list) => {
+            try {
+              localStorage.setItem(KEY, JSON.stringify(list.slice(-MAX)));
+            } catch (_) {}
+          };
+          const log = (e, d) => {
+            try {
+              const list = read();
+              const last = list.length ? list[list.length - 1].s : 0;
+              const now = Date.now();
+              list.push({ s: Math.max(last + 1, now), t: now, e, p: location.pathname, d: d == null ? "" : String(d).slice(0, 160), n: nav, l: launch });
+              write(list);
+            } catch (_) {}
+          };
+          let sending = false;
+          const flush = () => {
+            if (sending || !navigator.onLine) return;
+            const batch = read().slice(0, 60);
+            if (!batch.length) return;
+            sending = true;
+            fetch("/diag", { method: "POST", body: JSON.stringify(batch), keepalive: true })
+              .then((response) => {
+                if (!response.ok) return;
+                const sent = new Set(batch.map((x) => x.s));
+                write(read().filter((x) => !sent.has(x.s)));
+              })
+              .catch(() => {})
+              .finally(() => {
+                sending = false;
+              });
+          };
+
+          const entry = performance.getEntriesByType("navigation")[0];
+          let from = "";
+          try {
+            from = document.referrer ? new URL(document.referrer).pathname : "";
+          } catch (_) {}
+          const worker = navigator.serviceWorker && navigator.serviceWorker.controller ? 1 : 0;
+          log("start", `${entry ? entry.type : "?"} sw=${worker} from=${from || "-"} ${document.visibilityState}`);
+          flush();
+
+          document.addEventListener("DOMContentLoaded", () => log("dcl", `${Math.round(performance.now())}ms`));
+          window.addEventListener("load", () => {
+            const n = performance.getEntriesByType("navigation")[0];
+            log("load", `${Math.round(performance.now())}ms ttfb=${n ? Math.round(n.responseStart) : "?"} resp=${n ? Math.round(n.responseEnd) : "?"}`);
+          });
+          try {
+            new PerformanceObserver((list) =>
+              list.getEntries().forEach((p) => log("paint", `${p.name} ${Math.round(p.startTime)}ms`))
+            ).observe({ type: "paint", buffered: true });
+          } catch (_) {}
+          setTimeout(() => {
+            const painted = performance.getEntriesByName("first-contentful-paint").length;
+            const text = document.body ? document.body.innerText.trim().length : -1;
+            log("check", `fcp=${painted} ready=${document.readyState} text=${text} ${document.visibilityState}`);
+            flush();
+          }, 3000);
+          window.addEventListener("error", (ev) => log("error", `${ev.message} ${ev.filename ? ev.filename.split("/").pop() : ""}:${ev.lineno}`));
+          window.addEventListener("unhandledrejection", (ev) => log("rejection", ev.reason && ev.reason.message ? ev.reason.message : ev.reason));
+          window.addEventListener("pageshow", (ev) => log("pageshow", ev.persisted ? "from-cache" : "fresh"));
+          window.addEventListener("pagehide", (ev) => {
+            log("pagehide", ev.persisted ? "to-cache" : "gone");
+            flush();
+          });
+          document.addEventListener("visibilitychange", () => {
+            log("vis", document.visibilityState);
+            if (document.visibilityState === "hidden") flush();
+          });
+          document.addEventListener(
+            "click",
+            (ev) => {
+              const link = ev.target && ev.target.closest ? ev.target.closest("a[href]") : null;
+              if (link) log("tap", link.getAttribute("href"));
+            },
+            true
+          );
+          if (navigator.serviceWorker) {
+            navigator.serviceWorker.addEventListener("message", (ev) => {
+              if (ev.data && ev.data.type === "log") log(ev.data.e, ev.data.d);
+            });
+          }
+        } catch (_) {}
+      })();
+    </script>
   </head>
   <body>
     <div class="page">

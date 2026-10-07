@@ -38,10 +38,30 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(answer(request));
 });
 
+const BOOTED = Date.now();
+let pagesServed = 0;
+
+// Tell every open page what happened, so it lands in the phone's breadcrumb log
+// (see base.html); the worker itself has nowhere to keep one.
+function tell(e, d) {
+  self.clients
+    .matchAll({ includeUncontrolled: true })
+    .then((pages) => pages.forEach((page) => page.postMessage({ type: "log", e, d })))
+    .catch(() => {});
+}
+
 // Network first, then the copy from the last visit. A page that is neither
 // reachable nor cached gets a retry page: answering with nothing shows as a
 // blank white screen in an installed iPhone app, with no way out.
 async function answer(request) {
+  const started = Date.now();
+  const page = request.mode === "navigate";
+  const where = new URL(request.url).pathname;
+  const note = (what) => {
+    if (!page) return;
+    const up = Math.round((Date.now() - BOOTED) / 1000);
+    tell("sw-nav", `${where} ${what} ${Date.now() - started}ms #${++pagesServed} up=${up}s`);
+  };
   try {
     const response = await fetch(request);
     if (response.ok) {
@@ -51,11 +71,16 @@ async function answer(request) {
         .then((cache) => cache.put(request, copy))
         .catch(() => {});
     }
+    note(`net ${response.status}`);
     return response;
-  } catch {
+  } catch (error) {
     const cached = await caches.match(request);
-    if (cached) return cached;
-    if (request.mode === "navigate") return retryPage(request.url);
+    if (cached) {
+      note(`cache after ${error}`);
+      return cached;
+    }
+    note(`retry-page after ${error}`);
+    if (page) return retryPage(request.url);
     return Response.error();
   }
 }
@@ -72,7 +97,9 @@ function retryPage(url) {
   a { display: inline-block; padding: 0.7rem 1.4rem; border-radius: 999px; background: #f5a524; color: #17120e;
     font-weight: 650; text-decoration: none; }
 </style></head>
-<body><main><p>Couldn't load this page.</p><a href="${url}">Try again</a></main></body></html>`;
+<body><main><p>Couldn't load this page.</p><a href="${url}">Try again</a></main>
+<script>try{var k="reader-log",l=JSON.parse(localStorage.getItem(k)||"[]"),t=Date.now();l.push({s:t,t:t,e:"retry-page",p:location.pathname,d:"",n:"sw",l:""});localStorage.setItem(k,JSON.stringify(l.slice(-150)))}catch(_){}</script>
+</body></html>`;
   return new Response(html, {
     status: 503,
     headers: { "Content-Type": "text/html; charset=utf-8" },
