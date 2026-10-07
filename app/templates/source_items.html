@@ -1,16 +1,19 @@
 {% extends "base.html" %}
-{% from "macros.html" import item_row %}
+{% from "macros.html" import item_row, icon_cog %}
 {% block title %}{{ source.title }}{% endblock %}
 {% block body %}
+      <a class="back" href="/sources">Sources</a>
       <header class="top top-row">
         <h1>{{ source.title }}</h1>
-        <a class="top-edit" href="/sources/{{ source.id }}">Settings</a>
+        <a class="icon-btn" href="/sources/{{ source.id }}" aria-label="Settings">{{ icon_cog() }}</a>
       </header>
       {% if items %}
-      <section class="list">
+      <section class="list is-flat">
         {% for item in items %}
           {{ item_row(item, source_id=source.id, swipeable=true) }}
         {% endfor %}
       </section>
+      {% else %}
+      <p class="lede">Nothing from this source yet.</p>
       {% endif %}
 {% endblock %}

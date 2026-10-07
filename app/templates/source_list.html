@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% from "macros.html" import icon_plus %}
 {% block title %}Add to a list{% endblock %}
 {% block body %}
+      <a class="back" href="/sources/{{ source.id }}">{{ source.title }}</a>
       <header class="top">
-        <a class="back" href="/sources/{{ source.id }}">{{ source.title }}</a>
-        <h1>{{ source.title }}</h1>
+        <h1>Add to a list</h1>
       </header>
       <p class="lede">Choose a list for this source.</p>
-      <section class="list">
+      <section class="list is-flat">
         {% for slug, name, note in lists %}
         <form method="post" action="/sources/{{ source.id }}/list">
           <input type="hidden" name="list_slug" value="{{ slug }}">
@@ -16,8 +17,6 @@
           </button>
         </form>
         {% endfor %}
-        <a class="item" href="/sources/{{ source.id }}/new-list">
-          <span class="title">Create new list</span>
-        </a>
+        <a class="item add-row" href="/sources/{{ source.id }}/new-list">{{ icon_plus() }}Create new list</a>
       </section>
 {% endblock %}

@@ -1,21 +1,19 @@
 {% extends "base.html" %}
 {% block title %}Add source{% endblock %}
 {% block body %}
+      <a class="back" href="/sources">Sources</a>
       <header class="top">
-        <a class="back" href="/sources">Sources</a>
         <h1>Add source</h1>
       </header>
-      {% if error %}
-      <p class="lede">{{ error }}</p>
-      {% else %}
+      {% if not error %}
       <p class="lede">Paste a feed or a blog page.</p>
       {% endif %}
       <form method="post" action="/sources/add">
-        <input class="field" name="url" type="text" inputmode="url" autocomplete="off" value="{{ url }}" required>
-        <section class="list">
-          <button class="item" type="submit">
-            <span class="title">Continue</span>
-          </button>
-        </section>
+        <label class="field-label" for="source-url">Address</label>
+        <input class="field{% if error %} is-error{% endif %}" id="source-url" name="url" type="text" inputmode="url" autocomplete="off" value="{{ url }}" required{% if error %} aria-describedby="source-url-error"{% endif %}>
+        {% if error %}
+        <p class="field-error" id="source-url-error">{{ error }}</p>
+        {% endif %}
+        <button class="btn btn-accent" type="submit">Continue</button>
       </form>
 {% endblock %}

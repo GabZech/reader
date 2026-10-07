@@ -1,38 +1,38 @@
 {% extends "base.html" %}
+{% from "macros.html" import icon_plus %}
 {% block title %}{{ source.title }}{% endblock %}
 {% block body %}
+      <a class="back" href="/sources/{{ source.id }}/items">Items</a>
       <header class="top">
-        <a class="back" href="/sources/{{ source.id }}/items">Back</a>
         <h1>{{ source.title }}</h1>
       </header>
       {% if already %}
-      <p class="lede">{{ source.title }} is already in Sources.</p>
+      <p class="notice"><span class="dot" aria-hidden="true"></span>{{ source.title }} is already in Sources.</p>
       {% endif %}
       <p class="lede">{{ source.byline }}</p>
+
       <form method="post" action="/sources/{{ source.id }}/rename">
-        <input class="field" name="name" type="text" autocomplete="off" value="{{ source.title }}">
-        <button class="item" type="submit">
-          <span class="title">Save name</span>
-        </button>
+        <label class="field-label" for="source-name">Name</label>
+        <div class="field-row">
+          <input id="source-name" name="name" type="text" autocomplete="off" value="{{ source.title }}">
+          <button type="submit">Save</button>
+        </div>
       </form>
+
+      <h2 class="section-label">On these lists</h2>
       <section class="list">
         {% for membership in memberships %}
-        <div class="item item-row">
-          <span class="title">{{ membership.label }}</span>
+        <div class="set-row">
+          <span class="set-name is-reading">{{ membership.label }}</span>
           <form method="post" action="/sources/{{ source.id }}/lists/{{ membership.list_slug }}/remove">
-            <button class="remove" type="submit" aria-label="Remove from {{ membership.label }}">✕</button>
+            <button class="chip" type="submit" aria-label="Remove from {{ membership.label }}">Remove</button>
           </form>
         </div>
         {% endfor %}
-        <a class="item" href="/sources/{{ source.id }}/list">
-          <span class="title">Add to a list</span>
-        </a>
+        <a class="item add-row" href="/sources/{{ source.id }}/list">{{ icon_plus() }}Add to a list</a>
       </section>
-      <section class="list">
-        <form method="post" action="/sources/{{ source.id }}/delete">
-          <button class="item" type="submit">
-            <span class="title">Delete source</span>
-          </button>
-        </form>
-      </section>
+
+      <form class="danger-zone" method="post" action="/sources/{{ source.id }}/delete">
+        <button class="btn btn-danger" type="submit">Delete source</button>
+      </form>
 {% endblock %}

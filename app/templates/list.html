@@ -2,6 +2,7 @@
 {% from "macros.html" import item_row %}
 {% block title %}{{ list_name }}{% endblock %}
 {% block body %}
+      <a class="back" href="/lists">Lists</a>
       <header class="top top-row">
         <h1>{{ list_name }}</h1>
         <a class="top-edit" href="/lists/{{ slug }}/edit">Edit</a>

@@ -784,7 +784,8 @@ button.item {
   font-weight: 550;
 }
 
-.danger-zone {
+.danger-zone,
+form.is-apart {
   margin-top: 1.75rem;
 }
 
@@ -907,7 +908,8 @@ button.item {
   padding: 0.25rem 1rem;
 }
 
-.set-row + .set-row {
+.set-row + .set-row,
+.set-row + .item {
   border-top: 1px solid var(--line);
 }
 
