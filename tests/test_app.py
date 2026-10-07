@@ -2443,3 +2443,17 @@ def test_pages_load_while_a_sync_holds_the_database_write_lock(monkeypatch, tmp_
         finally:
             syncing.rollback()
             syncing.close()
+
+
+def test_pages_fill_the_whole_iphone_screen_so_the_safe_area_insets_apply(
+    monkeypatch, tmp_path
+):
+    # Without viewport-fit=cover every env(safe-area-inset-*) in the stylesheet
+    # is 0 on an iPhone: the sticky article bar then stops below the status bar
+    # and the article shows through the gap above it.
+    with _client(monkeypatch, tmp_path) as client:
+        for path in ("/", "/lists", "/sources"):
+            page = client.get(path).text
+            viewport = re.search(r'<meta name="viewport" content="([^"]*)"', page)
+            assert viewport, path
+            assert "viewport-fit=cover" in viewport.group(1), path
