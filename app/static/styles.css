@@ -68,6 +68,8 @@
   --scrim: rgba(42, 32, 24, 0.45);
   /* Space under the tab buttons: a little above the home indicator, not a whole safe area. */
   --tab-bottom: max(0.75rem, calc(env(safe-area-inset-bottom, 0px) - 1.25rem));
+  /* Space between the screen edge and the page content; full-width rows and the article bar cancel it. */
+  --gutter: 0.625rem;
 }
 
 :root[data-theme="dark"] {
@@ -173,7 +175,7 @@ button {
   max-width: 24.375rem;
   min-height: 100dvh;
   margin: 0 auto;
-  padding: calc(1rem + env(safe-area-inset-top, 0px)) 1.25rem calc(5rem + var(--tab-bottom));
+  padding: calc(1rem + env(safe-area-inset-top, 0px)) var(--gutter) calc(5rem + var(--tab-bottom));
 }
 
 /* ---------- Header ---------- */
@@ -361,14 +363,14 @@ button.top-edit {
 
 /* A single list on its own page: no box, rows on the page with hairlines. */
 .list.is-flat {
-  margin-inline: -1.25rem;
+  margin-inline: calc(-1 * var(--gutter));
   border-radius: 0;
   background: none;
   box-shadow: none;
 }
 
 .list.is-flat .item {
-  padding-inline: 1.25rem;
+  padding-inline: var(--gutter);
   background: var(--bg);
 }
 
@@ -1105,8 +1107,8 @@ form.is-apart {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin: calc(-1rem - env(safe-area-inset-top, 0px)) -1.25rem 1rem;
-  padding: env(safe-area-inset-top, 0px) 1.25rem 0;
+  margin: calc(-1rem - env(safe-area-inset-top, 0px)) calc(-1 * var(--gutter)) 1rem;
+  padding: env(safe-area-inset-top, 0px) var(--gutter) 0;
   border-bottom: 1px solid var(--line);
   background: var(--bar);
 }

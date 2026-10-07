@@ -39,3 +39,28 @@ def test_the_tab_bar_sits_low_with_round_outer_corners(phone, monkeypatch, tmp_p
         )
         assert corners["first"] >= 30 and corners["last"] >= 30
         assert corners["middle"] <= 20
+
+
+def test_the_side_padding_is_ten_pixels_and_full_width_rows_still_reach_the_edges(
+    phone, monkeypatch, tmp_path  # noqa: F811
+):
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        phone.goto(f"{origin}/lists")
+        page = phone.evaluate(
+            """() => {
+              const style = getComputedStyle(document.querySelector('.page'));
+              const card = document.querySelector('.list.is-cards a.item').getBoundingClientRect();
+              return {left: style.paddingLeft, right: style.paddingRight, cardLeft: card.left, cardRight: innerWidth - card.right};
+            }"""
+        )
+        assert page["left"] == "10px" and page["right"] == "10px"
+        assert page["cardLeft"] == 10 and page["cardRight"] == 10
+
+        phone.goto(f"{origin}/lists/news")
+        flat = phone.evaluate(
+            """() => {
+              const box = document.querySelector('.list.is-flat').getBoundingClientRect();
+              return {left: box.left, right: innerWidth - box.right};
+            }"""
+        )
+        assert flat["left"] == 0 and flat["right"] == 0

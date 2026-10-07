@@ -6,7 +6,7 @@ The durable look the real UI follows: warm and tactile, dark first, one accent. 
 
 ## Layout, density, chrome
 
-- **Phone column.** Content sits in a single centred column, about 390px wide (`24.375rem`). On a computer the same chrome stretches to a modestly wider column; it does not become a new layout.
+- **Phone column.** Content sits in a single centred column, about 390px wide (`24.375rem`), with 10px of padding on each side (`--gutter`); full-width rows and the article's top bar cancel it to reach the screen edges. On a computer the same chrome stretches to a modestly wider column; it does not become a new layout.
 - **Screen shell.** The page itself never scrolls. One full-screen container (`.scroller`) scrolls, and the bottom bar sits outside it. On an iPhone a scrolling page drags fixed elements with it, which lifted the bar off the bottom edge. Safe areas are respected at the top of the page and under the bar.
 - **Solid bars, no effects.** The bottom bar and the article's top bar are opaque. No blur behind them and no full-screen overlay or blend layer anywhere: both can blank an installed iPhone app. In the installed app a 12px solid bar on the top edge colours the status strip instead of letting scrolled text show through it.
 - **Cards.** A group of the same kind sits in one rounded card (1.375rem corners, soft shadow) on the page colour: each list on Home, each kind of source on Sources (its name centred, in italic). Lists is the exception that proves it: each list is its own card, with no hairlines between them. Rows inside a card are separated by hairlines. A single list on its own page is flat rows on the page, not a card.
