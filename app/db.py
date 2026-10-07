@@ -165,16 +165,24 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE sources DROP COLUMN list_slug")
     if "window" in columns:
         conn.execute("ALTER TABLE sources DROP COLUMN window")
-    conn.execute("DELETE FROM items WHERE source_id = ?", (SKELETON_SOURCE_ID,))
-    conn.execute("DELETE FROM sources WHERE id = ?", (SKELETON_SOURCE_ID,))
-    conn.execute(
-        """
-        INSERT OR IGNORE INTO sources
-            (id, kind, title, feed_url, backfill, auto_title, mail_address, pending_notice)
-        VALUES (?, 'captured', 'Captured', NULL, NULL, 'Captured', NULL, 0)
-        """,
-        (CAPTURED_SOURCE_ID,),
-    )
+    # Every page load runs this, so it writes only when something is missing or
+    # left over: a write needs the lock a running sync holds.
+    if conn.execute(
+        "SELECT 1 FROM sources WHERE id = ?", (SKELETON_SOURCE_ID,)
+    ).fetchone():
+        conn.execute("DELETE FROM items WHERE source_id = ?", (SKELETON_SOURCE_ID,))
+        conn.execute("DELETE FROM sources WHERE id = ?", (SKELETON_SOURCE_ID,))
+    if not conn.execute(
+        "SELECT 1 FROM sources WHERE id = ?", (CAPTURED_SOURCE_ID,)
+    ).fetchone():
+        conn.execute(
+            """
+            INSERT INTO sources
+                (id, kind, title, feed_url, backfill, auto_title, mail_address, pending_notice)
+            VALUES (?, 'captured', 'Captured', NULL, NULL, 'Captured', NULL, 0)
+            """,
+            (CAPTURED_SOURCE_ID,),
+        )
 
 
 def lists_with_items(conn: sqlite3.Connection, limit_per_list: int | None = None) -> list[dict]:

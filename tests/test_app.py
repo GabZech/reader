@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 import json
 import re
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -2424,3 +2425,21 @@ def test_an_article_keeps_its_reading_time(monkeypatch, tmp_path):
         item_id = _first_item_id(tmp_path)
         assert _card_lengths(client.get("/lists/news").text)
         assert " min" in _lede(client.get(f"/items/{item_id}").text)
+
+
+def test_pages_load_while_a_sync_holds_the_database_write_lock(monkeypatch, tmp_path):
+    # Home's sync keeps a write transaction open while it downloads feeds. Tapping
+    # to another page while the cog turns used to wait on it, freeze, then fail.
+    with _client(monkeypatch, tmp_path) as client:
+        assert client.get("/").status_code == 200
+        syncing = dbmod.connect(tmp_path / "reader.db")
+        syncing.execute("BEGIN IMMEDIATE")
+        try:
+            for path in ("/", "/lists", "/sources", "/settings"):
+                started = time.monotonic()
+                response = client.get(path)
+                assert response.status_code == 200, path
+                assert time.monotonic() - started < 2, path
+        finally:
+            syncing.rollback()
+            syncing.close()

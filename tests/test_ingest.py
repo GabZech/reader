@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
 from lxml.html import fromstring
 
+import app.ingest as app_ingest
 from app.db import (
     add_source_to_list,
     connect,
@@ -152,6 +154,7 @@ def test_ingest_all_sources_skips_a_source_that_fails_to_fetch(monkeypatch, tmp_
         backfill=None,
     )
     add_source_to_list(conn, "broken-rss", "news", "week")
+    conn.commit()
 
     def flaky_fetch_url(url: str, timeout: float = 8.0):
         if url == "https://broken.test/feed.xml":
@@ -1185,3 +1188,43 @@ def test_a_feed_that_is_not_a_youtube_channel_never_asks_for_lengths(
     _source(conn)
     ingest_url(conn, "https://example.test/feed.xml", SOURCE_ID)
     assert requested == ["https://example.test/feed.xml"]
+
+
+def test_sync_does_not_hold_the_write_lock_while_downloading(monkeypatch, tmp_path):
+    # While the Home cog turns, every page you open needs to write to the same
+    # file; a lock held across a download freezes the app, then fails the page.
+    db_path = tmp_path / "reader.db"
+    served = _serve_youtube(
+        monkeypatch,
+        longform=_youtube_fixture("longform_feed.xml"),
+        videos_page=_youtube_fixture("channel_videos.html"),
+    )
+    serve = app_ingest.fetch_url
+    blocked: list[str] = []
+
+    def probing_fetch_url(url: str, timeout: float = 8.0):
+        probe = sqlite3.connect(db_path, timeout=0)
+        try:
+            probe.execute("BEGIN IMMEDIATE")
+        except sqlite3.OperationalError:
+            blocked.append(url)
+        finally:
+            probe.close()
+        if url == "https://example.test/feed.xml":
+            return url, FIXTURE.read_text(encoding="utf-8")
+        return serve(url, timeout)
+
+    conn = connect(db_path)
+    init_db(conn)
+    _source(conn)
+    _youtube_source(conn)
+    conn.commit()
+    monkeypatch.setattr("app.ingest.fetch_url", probing_fetch_url)
+
+    result = ingest_all_sources(conn)
+
+    assert result["failed"] == 0
+    assert blocked == []
+    assert served.pages == [VIDEOS_PAGE_URL]
+    conn.commit()
+    assert _durations(conn, "yt-channel")
