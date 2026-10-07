@@ -112,6 +112,24 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* iOS 26.1+ home-screen apps fade whatever scrolls up under the status bar
+   unless a fixed bar sits on the top edge; then the strip takes that bar's
+   colour. WebKit wants it taller than 10px. Installed app only, so a browser
+   tab loses nothing. */
+@media (display-mode: standalone) {
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 9;
+    height: max(env(safe-area-inset-top, 0px), 12px);
+    background: var(--bar);
+    pointer-events: none;
+  }
+}
+
 a {
   color: inherit;
 }
