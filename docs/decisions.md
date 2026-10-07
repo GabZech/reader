@@ -4,7 +4,7 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
-## 2026-10-07: Lists and counts never load article text
+## 2026-10-07: Lists and counts never load article text (#73)
 
 **Decision:** The queries behind Home, Lists and a source's page leave article text out, and counts read only ids and dates. Article text is read for one article at a time and for the export.
 
@@ -14,7 +14,7 @@ Each entry: date, title and PR (when one exists), then **Decision**, **Why** (on
 
 **Revisit when:** A list needs article text itself (search, previews): select a trimmed excerpt, never the whole body.
 
-## 2026-10-07: The page never scrolls on its own; bars are solid, with no blur or overlay layers
+## 2026-10-07: The page never scrolls on its own; bars are solid, with no blur or overlay layers (#73)
 
 **Decision:** One full-screen container scrolls and the bottom bar sits outside it. The bars are opaque, nothing blurs or blends over the page, and the installed app has a 12px solid bar on the top edge.
 
@@ -24,7 +24,7 @@ Each entry: date, title and PR (when one exists), then **Decision**, **Why** (on
 
 **Revisit when:** iOS keeps fixed elements still while the page scrolls, or the status-strip behaviour of iOS 26.1 and later is fixed.
 
-## 2026-10-07: Warm look with three bundled fonts, one accent and two icons replaces stone and ink
+## 2026-10-07: Warm look with three bundled fonts, one accent and two icons replaces stone and ink (#73)
 
 **Decision:** The app uses Fraunces, Literata and Figtree bundled in `app/static/fonts`, one Marigold accent, a warm dark default with a light option, and icons only for Settings and the add actions. This supersedes the stone-and-ink look and its no-icon rule.
 
