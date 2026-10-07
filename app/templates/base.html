@@ -100,6 +100,56 @@
             log("check", `fcp=${painted} ready=${document.readyState} text=${text} ${document.visibilityState}`);
             flush();
           }, 3000);
+          // Where things sit: viewport, safe areas (read through a hidden probe)
+          // and the tab bar, at load and while scrolling.
+          const geometry = (label) => {
+            try {
+              const probe = document.createElement("div");
+              probe.style.cssText = "position:fixed;top:0;left:0;visibility:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0";
+              document.documentElement.appendChild(probe);
+              const css = getComputedStyle(probe);
+              const safe = `${css.paddingTop}/${css.paddingBottom}`;
+              probe.remove();
+              const view = window.visualViewport;
+              const bar = document.querySelector(".tabbar");
+              const box = bar ? bar.getBoundingClientRect() : null;
+              log(
+                "geo",
+                [
+                  label,
+                  `ih=${innerHeight}`,
+                  `sh=${screen.height}`,
+                  view ? `vv=${Math.round(view.height)}+${Math.round(view.offsetTop)}` : "vv=?",
+                  `y=${Math.round(scrollY)}`,
+                  `safe=${safe}`,
+                  box ? `bar=${Math.round(box.top)}-${Math.round(box.bottom)}` : "bar=-",
+                  `standalone=${matchMedia("(display-mode: standalone)").matches ? 1 : 0}`,
+                ].join(" ")
+              );
+            } catch (_) {}
+          };
+          let geoCount = 0;
+          let geoAt = 0;
+          let geoTimer = 0;
+          window.addEventListener("load", () => setTimeout(() => geometry("load"), 400));
+          window.addEventListener(
+            "scroll",
+            () => {
+              if (geoCount < 30 && Date.now() - geoAt > 250) {
+                geoAt = Date.now();
+                geoCount += 1;
+                geometry("scroll");
+              }
+              clearTimeout(geoTimer);
+              geoTimer = setTimeout(() => {
+                if (geoCount < 30) {
+                  geoCount += 1;
+                  geometry("scroll-end");
+                }
+              }, 400);
+            },
+            { passive: true }
+          );
           window.addEventListener("error", (ev) => log("error", `${ev.message} ${ev.filename ? ev.filename.split("/").pop() : ""}:${ev.lineno}`));
           window.addEventListener("unhandledrejection", (ev) => log("rejection", ev.reason && ev.reason.message ? ev.reason.message : ev.reason));
           window.addEventListener("pageshow", (ev) => log("pageshow", ev.persisted ? "from-cache" : "fresh"));

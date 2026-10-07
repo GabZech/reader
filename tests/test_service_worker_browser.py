@@ -107,3 +107,28 @@ def test_pages_leave_breadcrumbs_that_reach_the_server(phone, monkeypatch, tmp_p
         assert ("start", "/") in seen
         check = next(e for e in events if e["e"] == "check" and e["p"] == "/sources")
         assert "fcp=1" in check["d"]
+
+
+def test_pages_record_where_the_bar_sits_while_scrolling(phone, monkeypatch, tmp_path):
+    # The bottom bar leaves a gap on the phone while scrolling; the log has to
+    # carry the numbers (viewport, safe areas, bar position) to explain it.
+    import httpx
+
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        phone.goto(f"{origin}/sources")
+        phone.evaluate("document.body.style.minHeight = '3000px'")
+        phone.wait_for_timeout(900)
+        phone.evaluate("window.scrollTo(0, 400)")
+        phone.wait_for_timeout(900)
+        phone.click(".tabbar >> text=Home")
+        phone.wait_for_url(f"{origin}/")
+        phone.wait_for_timeout(1200)
+
+        events = httpx.get(f"{origin}/diagnostics?format=json").json()["events"]
+        geo = [e["d"] for e in events if e["e"] == "geo" and e["p"] == "/sources"]
+
+        assert any(d.startswith("load ") for d in geo)
+        assert any(d.startswith("scroll ") for d in geo)
+        scrolled = next(d for d in geo if d.startswith("scroll "))
+        for part in ("ih=", "sh=", "vv=", "y=", "safe=", "bar=", "standalone="):
+            assert part in scrolled
