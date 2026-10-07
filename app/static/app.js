@@ -1,5 +1,5 @@
 (() => {
-  const THEME_COLOR = { light: "#fafaf9", dark: "#1c1917" };
+  const THEME_COLOR = { light: "#f5eee3", dark: "#17120e" };
 
   const initThemeToggle = () => {
     const button = document.querySelector(".theme-toggle");

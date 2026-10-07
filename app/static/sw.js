@@ -1,9 +1,20 @@
-const CACHE = "reader-shell-v3";
+const CACHE = "reader-shell-v4";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) =>
-      cache.addAll(["/", "/lists", "/sources", "/static/styles.css", "/static/app.js"])
+      cache.addAll([
+        "/",
+        "/lists",
+        "/sources",
+        "/static/styles.css",
+        "/static/app.js",
+        "/static/fonts/fraunces-normal.woff2",
+        "/static/fonts/fraunces-italic.woff2",
+        "/static/fonts/literata-normal.woff2",
+        "/static/fonts/literata-italic.woff2",
+        "/static/fonts/figtree-normal.woff2",
+      ])
     )
   );
   self.skipWaiting();

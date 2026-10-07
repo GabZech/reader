@@ -3,8 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#1c1917" />
+    <meta name="theme-color" content="#17120e" />
     <title>{% block title %}Reader{% endblock %}</title>
+    <link rel="preload" href="/static/fonts/literata-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/static/fonts/fraunces-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/static/fonts/figtree-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/static/styles.css" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
@@ -24,9 +27,9 @@
     <div class="toast" role="status">{{ flash }}</div>
     {% endif %}
     <nav class="tabbar" aria-label="Main">
-      <a class="tab{% if nav == 'home' %} is-active{% endif %}" href="/">Home</a>
-      <a class="tab{% if nav == 'lists' %} is-active{% endif %}" href="/lists">Lists</a>
-      <a class="tab{% if nav == 'sources' %} is-active{% endif %}" href="/sources">Sources{% if sources_notice_pending() %}<span class="dot" aria-hidden="true"></span>{% endif %}</a>
+      <a class="tab{% if nav == 'home' %} is-active{% endif %}" href="/"{% if nav == 'home' %} aria-current="page"{% endif %}><span class="tab-label">Home</span></a>
+      <a class="tab{% if nav == 'lists' %} is-active{% endif %}" href="/lists"{% if nav == 'lists' %} aria-current="page"{% endif %}><span class="tab-label">Lists</span></a>
+      <a class="tab{% if nav == 'sources' %} is-active{% endif %}" href="/sources"{% if nav == 'sources' %} aria-current="page"{% endif %}><span class="tab-label">Sources{% if sources_notice_pending() %}<span class="dot" aria-hidden="true"></span>{% endif %}</span></a>
     </nav>
     <script src="/static/app.js"></script>
   </body>
