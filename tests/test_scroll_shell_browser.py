@@ -64,3 +64,40 @@ def test_the_side_padding_is_ten_pixels_and_full_width_rows_still_reach_the_edge
             }"""
         )
         assert flat["left"] == 0 and flat["right"] == 0
+
+
+def test_a_list_name_on_home_is_centred_with_its_count_at_the_right(
+    phone, monkeypatch, tmp_path  # noqa: F811
+):
+    from datetime import UTC, datetime
+
+    from app import db as dbmod
+
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        phone.goto(f"{origin}/lists")  # creates the library
+        conn = dbmod.connect(tmp_path / "reader.db")
+        dbmod.insert_source(
+            conn, source_id="s", kind="rss", title="Source", feed_url="https://s.test/f", backfill=None
+        )
+        dbmod.add_source_to_list(conn, "s", "news", None)
+        dbmod.upsert_item(
+            conn, source_id="s", guid="g", title="An article", author="A", url="https://s.test/1",
+            published_at=datetime.now(UTC).isoformat(), body_html="<p>x</p>", image_url=None, word_count=900,
+        )
+        conn.commit()
+        conn.close()
+
+        phone.goto(f"{origin}/")
+        geometry = phone.evaluate(
+            """() => {
+              const head = document.querySelector('.list-head').getBoundingClientRect();
+              const name = document.querySelector('.list-head h2').getBoundingClientRect();
+              const count = document.querySelector('.list-head .count').getBoundingClientRect();
+              return {
+                offCentre: Math.abs((name.left + name.right) / 2 - (head.left + head.right) / 2),
+                countFromRight: head.right - count.right,
+              };
+            }"""
+        )
+        assert geometry["offCentre"] < 1
+        assert 0 <= geometry["countFromRight"] <= 20

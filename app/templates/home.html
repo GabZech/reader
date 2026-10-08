@@ -9,7 +9,7 @@
 
       {% for section in lists %}
       <section class="list" data-list aria-labelledby="{{ section.slug }}-heading">
-        <a class="list-head" href="/lists/{{ section.slug }}">
+        <a class="list-head is-centered has-count" href="/lists/{{ section.slug }}">
           <h2 id="{{ section.slug }}-heading">{{ section.name }}</h2>
           <span class="count">{{ section.count }}</span>
         </a>

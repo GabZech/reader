@@ -421,6 +421,21 @@ button.top-edit {
   justify-content: center;
 }
 
+/* Home: the name sits in the middle and the count stays at the right edge. */
+.list-head.is-centered.has-count {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+}
+
+.list-head.is-centered.has-count h2 {
+  grid-column: 2;
+}
+
+.list-head.is-centered.has-count .count {
+  grid-column: 3;
+  justify-self: end;
+}
+
 .list-head h2 {
   display: inline-flex;
   align-items: center;
