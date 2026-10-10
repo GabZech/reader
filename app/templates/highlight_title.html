@@ -1,17 +1,18 @@
 {% extends "base.html" %}
 {% block title %}{{ label }}{% endblock %}
 {% block body %}
-      <div class="actions">
-        <a href="{{ back }}">Close</a>
+      <div class="top-bar">
+        <a class="top-edit" href="{{ back }}">Close</a>
       </div>
       <header class="top">
         <h1>{{ label }}</h1>
       </header>
-      <p class="lede">{{ text }}</p>
-      <div class="actions">
-        <form method="post" action="{{ save_action }}">
-          <input class="field" type="text" name="title" autocomplete="off" value="{{ title }}">
+      <blockquote class="quote">{{ text }}</blockquote>
+      <form method="post" action="{{ save_action }}">
+        <label class="field-label" for="highlight-title">Title</label>
+        <div class="field-row">
+          <input id="highlight-title" type="text" name="title" autocomplete="off" value="{{ title }}">
           <button type="submit">Done</button>
-        </form>
-      </div>
+        </div>
+      </form>
 {% endblock %}

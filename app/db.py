@@ -165,16 +165,24 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE sources DROP COLUMN list_slug")
     if "window" in columns:
         conn.execute("ALTER TABLE sources DROP COLUMN window")
-    conn.execute("DELETE FROM items WHERE source_id = ?", (SKELETON_SOURCE_ID,))
-    conn.execute("DELETE FROM sources WHERE id = ?", (SKELETON_SOURCE_ID,))
-    conn.execute(
-        """
-        INSERT OR IGNORE INTO sources
-            (id, kind, title, feed_url, backfill, auto_title, mail_address, pending_notice)
-        VALUES (?, 'captured', 'Captured', NULL, NULL, 'Captured', NULL, 0)
-        """,
-        (CAPTURED_SOURCE_ID,),
-    )
+    # Every page load runs this, so it writes only when something is missing or
+    # left over: a write needs the lock a running sync holds.
+    if conn.execute(
+        "SELECT 1 FROM sources WHERE id = ?", (SKELETON_SOURCE_ID,)
+    ).fetchone():
+        conn.execute("DELETE FROM items WHERE source_id = ?", (SKELETON_SOURCE_ID,))
+        conn.execute("DELETE FROM sources WHERE id = ?", (SKELETON_SOURCE_ID,))
+    if not conn.execute(
+        "SELECT 1 FROM sources WHERE id = ?", (CAPTURED_SOURCE_ID,)
+    ).fetchone():
+        conn.execute(
+            """
+            INSERT INTO sources
+                (id, kind, title, feed_url, backfill, auto_title, mail_address, pending_notice)
+            VALUES (?, 'captured', 'Captured', NULL, NULL, 'Captured', NULL, 0)
+            """,
+            (CAPTURED_SOURCE_ID,),
+        )
 
 
 def lists_with_items(conn: sqlite3.Connection, limit_per_list: int | None = None) -> list[dict]:
@@ -209,6 +217,17 @@ def all_lists(conn: sqlite3.Connection) -> list[dict]:
     ]
 
 
+def _item_columns(conn: sqlite3.Connection) -> str:
+    """Every items column but the article text, which only the item page and the
+    export need. Lists and counts that carried it filled the 256 MB machine."""
+    names = [
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(items)")
+        if row["name"] != "body_html"
+    ]
+    return ", ".join(f"items.{name}" for name in names)
+
+
 def count_for_list(
     conn: sqlite3.Connection,
     slug: str,
@@ -216,7 +235,10 @@ def count_for_list(
     archived: bool = False,
     read: bool = False,
 ) -> int:
-    return len(_visible_items(conn, slug, now, archived=archived, read=read))
+    rows = _visible_items(
+        conn, slug, now, archived=archived, read=read, columns="items.id, items.published_at"
+    )
+    return len(rows)
 
 
 def items_for_list(
@@ -239,8 +261,10 @@ def _visible_items(
     now: datetime | None = None,
     archived: bool = False,
     read: bool = False,
+    columns: str | None = None,
 ) -> list[sqlite3.Row]:
     now = now or datetime.now(UTC)
+    columns = columns or f"{_item_columns(conn)}, sources.title AS source_title"
     archived_clause = (
         "item_lists.archived_at IS NOT NULL"
         if archived
@@ -249,7 +273,7 @@ def _visible_items(
     read_clause = "item_read.read_at IS NOT NULL" if read else "item_read.read_at IS NULL"
     rows = conn.execute(
         f"""
-        SELECT items.*, sources.title AS source_title,
+        SELECT {columns},
                MAX(source_lists.window) AS window,
                MAX(item_lists.list_slug IS NOT NULL) AS is_direct
         FROM items
@@ -813,8 +837,8 @@ def insert_source(
 
 def items_for_source(conn: sqlite3.Connection, source_id: str) -> list[sqlite3.Row]:
     return conn.execute(
-        """
-        SELECT items.*, sources.title AS source_title
+        f"""
+        SELECT {_item_columns(conn)}, sources.title AS source_title
         FROM items
         JOIN sources ON sources.id = items.source_id
         WHERE items.source_id = ?

@@ -6,6 +6,7 @@ from app import mail
 from app.db import (
     all_sources,
     connect,
+    get_item,
     has_pending_source_notice,
     init_db,
     items_for_source,
@@ -114,8 +115,9 @@ def test_ingest_mail_creates_source_and_marks_seen(monkeypatch, tmp_path):
     items = items_for_source(conn, source["id"])
     assert len(items) == 1
     assert items[0]["title"] == "First issue"
-    assert "Hello" in items[0]["body_html"]
-    assert "<strong>reader</strong>" in items[0]["body_html"]
+    stored = get_item(conn, items[0]["id"])
+    assert "Hello" in stored["body_html"]
+    assert "<strong>reader</strong>" in stored["body_html"]
 
     assert has_pending_source_notice(conn) is True
     mark_sources_seen(conn)

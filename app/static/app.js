@@ -1,25 +1,28 @@
 (() => {
-  const THEME_COLOR = { light: "#fafaf9", dark: "#1c1917" };
+  const THEME_COLOR = { light: "#f5eee3", dark: "#17120e" };
 
   const initThemeToggle = () => {
-    const button = document.querySelector(".theme-toggle");
+    const buttons = document.querySelectorAll(".theme-toggle [data-theme-value]");
     const meta = document.querySelector('meta[name="theme-color"]');
 
     const apply = (theme) => {
       document.documentElement.dataset.theme = theme;
-      if (button) button.textContent = theme === "dark" ? "Light" : "Dark";
+      buttons.forEach((button) => {
+        const on = button.dataset.themeValue === theme;
+        button.classList.toggle("is-active", on);
+        button.setAttribute("aria-pressed", String(on));
+      });
       if (meta) meta.setAttribute("content", THEME_COLOR[theme]);
     };
 
     apply(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
 
-    if (button) {
+    buttons.forEach((button) => {
       button.addEventListener("click", () => {
-        const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-        localStorage.setItem("reader-theme", next);
-        apply(next);
+        localStorage.setItem("reader-theme", button.dataset.themeValue);
+        apply(button.dataset.themeValue);
       });
-    }
+    });
   };
 
   const registerWorker = async () => {
@@ -35,18 +38,24 @@
     if (location.pathname !== "/") return;
     if (!navigator.onLine) return;
     if (sessionStorage.getItem("reader-synced") === "1") return;
+    // The Settings cog turns inside two thin arrows while Home updates.
     const status = document.getElementById("sync-status");
-    if (status) status.textContent = "Updating";
+    const updating = (on) => {
+      if (!status) return;
+      status.classList.toggle("is-updating", on);
+      status.setAttribute("aria-label", on ? "Settings (updating)" : "Settings");
+    };
+    updating(true);
     sessionStorage.setItem("reader-synced", "1");
     try {
       const response = await fetch("/sync", { method: "POST" });
       if (response.ok) {
         location.reload();
-      } else if (status) {
-        status.textContent = "Edit";
+      } else {
+        updating(false);
       }
     } catch {
-      if (status) status.textContent = "Edit";
+      updating(false);
     }
   };
 

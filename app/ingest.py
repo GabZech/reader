@@ -822,10 +822,18 @@ def ingest_xml(
 
 
 def ingest_url(
-    conn, url: str, source_id: str, limit: int | None = None
+    conn,
+    url: str,
+    source_id: str,
+    limit: int | None = None,
+    *,
+    release_lock: bool = False,
 ) -> dict:
     xml = fetch_feed_xml(url)
     result = ingest_xml(conn, xml, source_id, limit=limit)
+    if release_lock:
+        # A sync commits here so the next download does not hold the write lock.
+        conn.commit()
     _store_youtube_durations(conn, url, source_id)
     return result
 
@@ -861,11 +869,18 @@ def ingest_all_sources(conn) -> dict:
     for source in sources:
         try:
             result = ingest_url(
-                conn, source["feed_url"], source["id"], limit=source["backfill"]
+                conn,
+                source["feed_url"],
+                source["id"],
+                limit=source["backfill"],
+                release_lock=True,
             )
         except Exception:  # noqa: BLE001 - one dead feed must not stop the sync
+            conn.rollback()
             failed += 1
             continue
+        # One source at a time, so pages opened mid-sync never wait for the whole run.
+        conn.commit()
         created += result["created"]
         kept += result["kept"]
     return {

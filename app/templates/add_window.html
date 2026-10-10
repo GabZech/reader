@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}How far back{% endblock %}
 {% block body %}
+      <a class="back" href="/sources/add/list?{{ list_query }}">List</a>
       <header class="top">
-        <a class="back" href="/sources/add/list?{{ list_query }}">List</a>
         <h1>News</h1>
       </header>
       <p class="lede">How far back should {{ title }} go on this list?</p>
-      <section class="list">
+      <section class="list is-flat">
         <form method="post" action="/sources/add/window">
           <input type="hidden" name="feed_url" value="{{ feed_url }}">
           <input type="hidden" name="title" value="{{ title }}">

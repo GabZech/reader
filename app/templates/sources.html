@@ -1,14 +1,15 @@
 {% extends "base.html" %}
+{% from "macros.html" import icon_plus %}
 {% block title %}Sources{% endblock %}
 {% block body %}
       <header class="top top-row">
         <h1>Sources</h1>
-        <a class="top-edit" href="/sources/add">Add source</a>
+        <a class="icon-btn" href="/sources/add" aria-label="Add source">{{ icon_plus() }}</a>
       </header>
 
       {% for group in groups %}
-      <section class="list{% if not loop.first %} is-apart{% endif %}">
-        <div class="list-head">
+      <section class="list">
+        <div class="list-head is-centered">
           <h2>{{ group.label }}</h2>
         </div>
         {% for source in group.sources %}

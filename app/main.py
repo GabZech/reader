@@ -8,11 +8,12 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from app import diag
 from app.config import database_path, git_sha, mail_imap_config
 from app.db import (
     add_highlight,
@@ -182,6 +183,21 @@ async def no_cache_static(request: Request, call_next):
     return response
 
 
+@app.middleware("http")
+async def trace_requests(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/static/") or path in diag.QUIET_PATHS:
+        return await call_next(request)
+    started = diag.request_started()
+    status = 500
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    finally:
+        diag.request_finished(request.method, path, status, started)
+
+
 def _sources_view(conn, rows) -> list[dict]:
     result = []
     for row in rows:
@@ -248,19 +264,6 @@ def _bookmarklet_href(request: Request) -> str:
 def settings_page(request: Request):
     mail_config = mail_imap_config()
     newsletter_address = mail_config[1] if mail_config else None
-    return templates.TemplateResponse(
-        request,
-        "settings.html",
-        {
-            "nav": "home",
-            "newsletter_address": newsletter_address,
-            "bookmarklet_href": _bookmarklet_href(request),
-        },
-    )
-
-
-@app.get("/home/edit")
-def home_edit_page(request: Request):
     conn = connect()
     try:
         init_db(conn)
@@ -269,9 +272,20 @@ def home_edit_page(request: Request):
         conn.close()
     return templates.TemplateResponse(
         request,
-        "home_edit.html",
-        {"nav": "home", "lists": lists},
+        "settings.html",
+        {
+            "nav": "home",
+            "lists": lists,
+            "newsletter_address": newsletter_address,
+            "bookmarklet_href": _bookmarklet_href(request),
+        },
     )
+
+
+@app.get("/home/edit")
+def home_edit_page():
+    # Choosing Home's lists moved into Settings; keep old bookmarks working.
+    return RedirectResponse("/settings", status_code=303)
 
 
 @app.post("/home/edit/{slug}/toggle")
@@ -286,7 +300,7 @@ def home_edit_toggle(slug: str):
         conn.commit()
     finally:
         conn.close()
-    return RedirectResponse("/home/edit", status_code=303)
+    return RedirectResponse("/settings", status_code=303)
 
 
 @app.post("/home/edit/{slug}/move")
@@ -303,7 +317,7 @@ async def home_edit_move(request: Request, slug: str):
             conn.commit()
     finally:
         conn.close()
-    return RedirectResponse("/home/edit", status_code=303)
+    return RedirectResponse("/settings", status_code=303)
 
 
 @app.get("/lists")
@@ -1602,6 +1616,55 @@ def manifest():
 def health():
     database_path()
     return {"ok": True, "sha": git_sha()}
+
+
+@app.post("/diag")
+async def diag_events(request: Request):
+    """The phone's breadcrumbs: what each page did, sent on a later page load."""
+    body = await request.body()
+    if len(body) > diag.MAX_BODY_BYTES:
+        return Response(status_code=413)
+    try:
+        batch = json.loads(body)
+    except ValueError:
+        return Response(status_code=400)
+    if not isinstance(batch, list):
+        return Response(status_code=400)
+    diag.record_events(batch)
+    return {"ok": True}
+
+
+def _clock(millis: int) -> str:
+    if millis <= 0:
+        return "--:--:--"
+    return datetime.fromtimestamp(millis / 1000, UTC).strftime("%H:%M:%S.%f")[:-3]
+
+
+@app.get("/diagnostics")
+def diagnostics_page(request: Request, fmt: str | None = Query(None, alias="format")):
+    snapshot = diag.snapshot()
+    if fmt == "json":
+        return snapshot
+    lines = [
+        f"{_clock(e['t'])}  {e['l'] or '-':5}  {e['e']:<12} {e['p']:<16} {e['d']}"
+        for e in reversed(snapshot["events"])
+    ]
+    served = [
+        f"{r['at']}  {r['method']:<4} {r['path']:<28} {r['status']}  {r['ms']}ms  busy={r['busy']}"
+        for r in reversed(snapshot["requests"])
+    ]
+    return templates.TemplateResponse(
+        request,
+        "diagnostics.html",
+        {
+            "nav": "home",
+            "started_at": snapshot["started_at"],
+            "uptime_s": snapshot["uptime_s"],
+            "system": snapshot["system"],
+            "event_lines": lines[:300],
+            "request_lines": served[:150],
+        },
+    )
 
 
 @app.get("/favicon.ico")

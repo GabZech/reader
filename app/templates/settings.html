@@ -6,23 +6,58 @@
           <h1>Settings</h1>
         </header>
 
-        <div class="settings-row">
-          <span>Appearance</span>
-          <button class="theme-toggle" type="button" aria-label="Toggle dark mode">Dark</button>
-        </div>
+        <h2 class="section-label">Lists on Home</h2>
+        <section class="list">
+          {% for list in lists %}
+          <div class="set-row{% if not list.on_home %} is-off{% endif %}">
+            <span class="set-name">{{ list.name }}</span>
+            <span class="set-controls">
+              <form method="post" action="/home/edit/{{ list.slug }}/move">
+                <input type="hidden" name="direction" value="up">
+                <button class="chip" type="submit" aria-label="Move {{ list.name }} up"{% if loop.first %} disabled{% endif %}>Up</button>
+              </form>
+              <form method="post" action="/home/edit/{{ list.slug }}/move">
+                <input type="hidden" name="direction" value="down">
+                <button class="chip" type="submit" aria-label="Move {{ list.name }} down"{% if loop.last %} disabled{% endif %}>Down</button>
+              </form>
+              <form method="post" action="/home/edit/{{ list.slug }}/toggle">
+                <button class="chip {{ 'is-on' if list.on_home else 'is-off' }}" type="submit">{{ "Shown" if list.on_home else "Hidden" }}</button>
+              </form>
+            </span>
+          </div>
+          {% endfor %}
+        </section>
 
-        <div class="settings-row">
-          <span>Subscribe newsletters to</span>
-          {% if newsletter_address %}
-          <span>{{ newsletter_address }}</span>
-          {% else %}
-          <span>Not configured yet</span>
-          {% endif %}
-        </div>
+        <h2 class="section-label">Appearance</h2>
+        <section class="list">
+          <div class="set-row">
+            <span class="set-name">Theme</span>
+            <span class="seg theme-toggle" role="group" aria-label="Theme">
+              <button type="button" data-theme-value="dark">Dark</button>
+              <button type="button" data-theme-value="light">Light</button>
+            </span>
+          </div>
+        </section>
 
-        <div class="settings-row">
-          <span>Save to Read later from any page</span>
-          <a href="{{ bookmarklet_href }}" onclick="return false;">Drag to bookmarks bar</a>
-        </div>
-        <p class="lede">Drag that link to your browser's bookmarks bar. Click it on any page to send that page to Read later.</p>
+        <h2 class="section-label">Newsletters</h2>
+        <section class="list">
+          <div class="set-row is-stacked">
+            <span class="set-name">Subscribe newsletters to</span>
+            <span class="set-value">{{ newsletter_address or "Not configured yet" }}</span>
+          </div>
+        </section>
+
+        <h2 class="section-label">Save from the browser</h2>
+        <section class="list">
+          <div class="set-row">
+            <span class="set-name">Read later button</span>
+            <a class="bookmarklet" href="{{ bookmarklet_href }}" onclick="return false;">Drag to bookmarks</a>
+          </div>
+        </section>
+        <p class="section-note">Drag that button to your browser's bookmarks bar. Click it on any page to send that page to Read later.</p>
+
+        <h2 class="section-label">Troubleshooting</h2>
+        <section class="list">
+          <a class="item list-row" href="/diagnostics"><span class="title">Diagnostics</span></a>
+        </section>
 {% endblock %}

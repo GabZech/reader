@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 import json
 import re
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -49,8 +50,10 @@ def _client(monkeypatch, tmp_path):
     real_visible = dbmod._visible_items
     frozen = datetime(2026, 8, 20, 12, tzinfo=UTC)
 
-    def visible(conn, slug, now=None, archived=False, read=False):
-        return real_visible(conn, slug, now or frozen, archived=archived, read=read)
+    def visible(conn, slug, now=None, archived=False, read=False, columns=None):
+        return real_visible(
+            conn, slug, now or frozen, archived=archived, read=read, columns=columns
+        )
 
     monkeypatch.setattr(dbmod, "_visible_items", visible)
     return TestClient(app)
@@ -178,18 +181,32 @@ def test_home_hides_lists_with_nothing_unread(monkeypatch, tmp_path):
 def test_home_says_all_caught_up_when_every_list_is_empty(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         home = client.get("/")
-        edit = client.get("/home/edit")
+        settings = client.get("/settings")
     assert "You're all caught up." in home.text
     assert "data-list" not in home.text
-    assert "Read later" in edit.text
-    assert "Favourite channels" in edit.text
+    assert "Read later" in settings.text
+    assert "Favourite channels" in settings.text
 
 
-def test_home_edit_shows_lists_with_move_boundaries(monkeypatch, tmp_path):
+def test_home_header_has_no_edit_link(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
-        response = client.get("/home/edit")
+        home = client.get("/")
+    assert 'href="/home/edit"' not in home.text
+    assert 'id="sync-status"' in home.text
+
+
+def test_old_home_edit_address_forwards_to_settings(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.get("/home/edit", follow_redirects=False)
+    assert response.status_code in (301, 303, 307, 308)
+    assert response.headers["location"] == "/settings"
+
+
+def test_settings_shows_home_lists_with_move_boundaries(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.get("/settings")
     assert response.status_code == 200
-    assert "Home lists" in response.text
+    assert "Lists on Home" in response.text
     assert response.text.index("News") < response.text.index("Read later")
     assert response.text.index("Read later") < response.text.index("Favourite channels")
     first_moves = response.text.split('action="/home/edit/news/move"')[1]
@@ -203,8 +220,9 @@ def test_home_edit_toggle_hides_list_from_home(monkeypatch, tmp_path):
         _fill_every_home_list(client, tmp_path)
         toggled = client.post("/home/edit/news/toggle", follow_redirects=False)
         assert toggled.status_code == 303
-        edit_page = client.get("/home/edit")
-        assert "Hidden" in edit_page.text
+        assert toggled.headers["location"] == "/settings"
+        settings = client.get("/settings")
+        assert "Hidden" in settings.text
         home = client.get("/")
         assert 'href="/lists/news"' not in home.text
         client.post("/home/edit/news/toggle")
@@ -215,11 +233,12 @@ def test_home_edit_toggle_hides_list_from_home(monkeypatch, tmp_path):
 def test_home_edit_move_reorders_lists(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _fill_every_home_list(client, tmp_path)
-        client.post(
+        moved = client.post(
             "/home/edit/news/move", data={"direction": "down"}, follow_redirects=False
         )
-        edit_page = client.get("/home/edit")
-        assert edit_page.text.index("Read later") < edit_page.text.index("News")
+        assert moved.headers["location"] == "/settings"
+        settings = client.get("/settings")
+        assert settings.text.index("Read later") < settings.text.index("News")
         home = client.get("/")
         assert home.text.index("Read later") < home.text.index(">News<")
 
@@ -488,7 +507,7 @@ def test_empty_rename_stays_on_edit(monkeypatch, tmp_path):
         client.post("/lists/add", data={"name": "Weekend"})
         response = client.post("/lists/weekend/edit", data={"name": "   "})
         assert response.status_code == 200
-        assert "<h1>Edit</h1>" in response.text
+        assert "<h1>Edit list</h1>" in response.text
         opened = client.get("/lists/weekend")
         assert "<h1>Weekend</h1>" in opened.text
 
@@ -2408,3 +2427,35 @@ def test_an_article_keeps_its_reading_time(monkeypatch, tmp_path):
         item_id = _first_item_id(tmp_path)
         assert _card_lengths(client.get("/lists/news").text)
         assert " min" in _lede(client.get(f"/items/{item_id}").text)
+
+
+def test_pages_load_while_a_sync_holds_the_database_write_lock(monkeypatch, tmp_path):
+    # Home's sync keeps a write transaction open while it downloads feeds. Tapping
+    # to another page while the cog turns used to wait on it, freeze, then fail.
+    with _client(monkeypatch, tmp_path) as client:
+        assert client.get("/").status_code == 200
+        syncing = dbmod.connect(tmp_path / "reader.db")
+        syncing.execute("BEGIN IMMEDIATE")
+        try:
+            for path in ("/", "/lists", "/sources", "/settings"):
+                started = time.monotonic()
+                response = client.get(path)
+                assert response.status_code == 200, path
+                assert time.monotonic() - started < 2, path
+        finally:
+            syncing.rollback()
+            syncing.close()
+
+
+def test_pages_fill_the_whole_iphone_screen_so_the_safe_area_insets_apply(
+    monkeypatch, tmp_path
+):
+    # Without viewport-fit=cover every env(safe-area-inset-*) in the stylesheet
+    # is 0 on an iPhone: the sticky article bar then stops below the status bar
+    # and the article shows through the gap above it.
+    with _client(monkeypatch, tmp_path) as client:
+        for path in ("/", "/lists", "/sources"):
+            page = client.get(path).text
+            viewport = re.search(r'<meta name="viewport" content="([^"]*)"', page)
+            assert viewport, path
+            assert "viewport-fit=cover" in viewport.group(1), path

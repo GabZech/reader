@@ -1,25 +1,21 @@
 {% extends "base.html" %}
 {% block title %}{{ item.title }}{% endblock %}
 {% block body %}
-      <div class="article-top">
-        <div class="actions">
-          <a href="{{ back }}">Close</a>
-        </div>
-      </div>
-      <header class="top">
+      <nav class="article-bar" aria-label="Article">
+        <a class="bar-close" href="{{ back }}">Close</a>
+        <span class="article-bar-right">
+          <form method="post" action="{{ later_action }}">
+            <button type="submit"{% if in_read_later %} class="is-active"{% endif %}>{{ "Saved to Read later" if in_read_later else "Read later" }}</button>
+          </form>
+          {% if item.url %}
+          <a href="{{ item.url }}" rel="noreferrer">Open original</a>
+          {% endif %}
+        </span>
+      </nav>
+      <header class="top article-head">
         <h1>{{ item.title }}</h1>
       </header>
       <p class="lede">{{ item.author or item.source_title }}{% if item.published_at %} · {{ format_when(item.published_at) }}{% endif %}{% set length = item_length(item) %}{% if length %} · {{ length }}{% endif %}</p>
-      {% if item.url %}
-      <div class="actions">
-        <a href="{{ item.url }}" rel="noreferrer">Open original</a>
-      </div>
-      {% endif %}
-      <div class="actions">
-        <form method="post" action="{{ later_action }}">
-          <button type="submit"{% if in_read_later %} class="is-active"{% endif %}>{{ "Saved to Read later" if in_read_later else "Read later" }}</button>
-        </form>
-      </div>
       {% if video_id %}
       <div class="video-frame">
         <iframe src="https://www.youtube-nocookie.com/embed/{{ video_id }}" title="{{ item.title }}" loading="lazy" allow="fullscreen; picture-in-picture; encrypted-media" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
@@ -31,23 +27,19 @@
           {{ item.body_html | safe }}
         {% endif %}
       </div>
-      {% if mark_read_action %}
-      <section class="list">
+      <div class="article-actions">
+        {% if mark_read_action %}
         <form method="post" action="{{ mark_read_action }}">
-          <button type="submit" class="item item-action">Mark as read</button>
+          <button type="submit" class="act-read">Mark as read</button>
         </form>
-      </section>
-      {% endif %}
-      {% if in_read_later %}
-      <section class="list">
+        {% endif %}
+        {% if in_read_later %}
         <form method="post" action="{{ archive_action }}">
-          <button type="submit" class="item item-action item-archive">Archive</button>
+          <button type="submit" class="act-archive">Archive</button>
         </form>
-      </section>
-      {% endif %}
-      <section class="list">
+        {% endif %}
         <form method="post" action="{{ delete_action }}">
-          <button type="submit" class="item item-action item-delete">Delete</button>
+          <button type="submit" class="act-delete">Delete</button>
         </form>
-      </section>
+      </div>
 {% endblock %}

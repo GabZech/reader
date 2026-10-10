@@ -4,6 +4,36 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
+## 2026-10-07: Lists and counts never load article text (#73)
+
+**Decision:** The queries behind Home, Lists and a source's page leave article text out, and counts read only ids and dates. Article text is read for one article at a time and for the export.
+
+**Why:** Counting a list loaded every article's full text, and on a synthetic 1,500-article library six overlapping page loads peaked at 590 MB against a 256 MB host, where a server restart mid-tap leaves an iPhone on a white screen.
+
+**Rejected:** A bigger machine: over the cost ceiling in `docs/operations.md`, and the loads were wasted work.
+
+**Revisit when:** A list needs article text itself (search, previews): select a trimmed excerpt, never the whole body.
+
+## 2026-10-07: The page never scrolls on its own; bars are solid, with no blur or overlay layers (#73)
+
+**Decision:** One full-screen container scrolls and the bottom bar sits outside it. The bars are opaque, nothing blurs or blends over the page, and the installed app has a 12px solid bar on the top edge.
+
+**Why:** On an iPhone home-screen app a scrolling page drags fixed elements with it, and full-screen or blurred layers are documented to blank such an app.
+
+**Rejected:** A skirt under the bar that hides the gap but leaves the bar moving; keeping the paper grain and the blur behind the bars.
+
+**Revisit when:** iOS keeps fixed elements still while the page scrolls, or the status-strip behaviour of iOS 26.1 and later is fixed.
+
+## 2026-10-07: Warm look with three bundled fonts, one accent and two icons replaces stone and ink (#73)
+
+**Decision:** The app uses Fraunces, Literata and Figtree bundled in `app/static/fonts`, one Marigold accent, a warm dark default with a light option, and icons only for Settings and the add actions. This supersedes the stone-and-ink look and its no-icon rule.
+
+**Why:** The client chose this direction over three others after four mockup rounds, then tried it live on a phone.
+
+**Rejected:** System fonts with stone and ink; the three other mocked-up directions.
+
+**Revisit when:** The fonts slow a first load on a poor connection, or the home-screen logo work begins.
+
 ## 2026-10-05: CLAUDE.md is the only instructions file, sorted by session type
 
 **Decision:** `AGENTS.md` is deleted. A short `CLAUDE.md` sorts each session into Development (anything that changes the live app, through `2-develop`), Maintenance (docs, skills, CI, the harness), or Information, and every other rule lives in the skill or hook that applies it.

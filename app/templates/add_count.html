@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}How many{% endblock %}
 {% block body %}
+      <a class="back" href="/sources/add">Add source</a>
       <header class="top">
-        <a class="back" href="/sources/add">Add source</a>
         <h1>{{ title }}</h1>
       </header>
       <p class="lede">This feed currently has {{ item_count }} item{% if item_count != 1 %}s{% endif %}.</p>
-      <section class="list">
+      <section class="list is-flat">
         <form method="post" action="/sources/add/count">
           <input type="hidden" name="feed_url" value="{{ feed_url }}">
           <input type="hidden" name="title" value="{{ title }}">
@@ -43,11 +43,10 @@
         <input type="hidden" name="title" value="{{ title }}">
         <input type="hidden" name="item_count" value="{{ item_count }}">
         <input type="hidden" name="backfill" value="exact">
-        <input class="field" name="exact" type="number" min="1" {% if item_count %}max="{{ item_count }}"{% endif %} inputmode="numeric" placeholder="Exact count">
-        <section class="list">
-          <button class="item" type="submit">
-            <span class="title">Use this count</span>
-          </button>
-        </section>
+        <label class="field-label" for="exact-count">Or an exact number</label>
+        <div class="field-row">
+          <input id="exact-count" name="exact" type="number" min="1" {% if item_count %}max="{{ item_count }}"{% endif %} inputmode="numeric" placeholder="Exact count">
+          <button type="submit">Use this count</button>
+        </div>
       </form>
 {% endblock %}

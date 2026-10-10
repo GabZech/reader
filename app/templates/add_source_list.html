@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% from "macros.html" import icon_plus %}
 {% block title %}Add to a list{% endblock %}
 {% block body %}
+      <a class="back" href="/sources/add/count?{{ count_query }}">How many</a>
       <header class="top">
-        <a class="back" href="/sources/add/count?{{ count_query }}">How many</a>
         <h1>{{ title }}</h1>
       </header>
       <p class="lede">Choose a list for this source.</p>
-      <section class="list">
+      <section class="list is-flat">
         {% for slug, name, note in lists %}
         <form method="post" action="/sources/add/list">
           <input type="hidden" name="feed_url" value="{{ feed_url }}">
@@ -20,20 +21,14 @@
           </button>
         </form>
         {% endfor %}
-        <a class="item" href="/sources/add/new-list?{{ list_query }}">
-          <span class="title">Create new list</span>
-        </a>
+        <a class="item add-row" href="/sources/add/new-list?{{ list_query }}">{{ icon_plus() }}Create new list</a>
       </section>
-      <section class="list is-apart">
-        <form method="post" action="/sources/add/list">
-          <input type="hidden" name="feed_url" value="{{ feed_url }}">
-          <input type="hidden" name="title" value="{{ title }}">
-          <input type="hidden" name="item_count" value="{{ item_count }}">
-          <input type="hidden" name="backfill" value="{{ backfill }}">
-          <input type="hidden" name="list_slug" value="">
-          <button class="item" type="submit">
-            <span class="title">I'll do this later</span>
-          </button>
-        </form>
-      </section>
+      <form class="is-apart" method="post" action="/sources/add/list">
+        <input type="hidden" name="feed_url" value="{{ feed_url }}">
+        <input type="hidden" name="title" value="{{ title }}">
+        <input type="hidden" name="item_count" value="{{ item_count }}">
+        <input type="hidden" name="backfill" value="{{ backfill }}">
+        <input type="hidden" name="list_slug" value="">
+        <button class="btn btn-quiet" type="submit">I'll do this later</button>
+      </form>
 {% endblock %}
