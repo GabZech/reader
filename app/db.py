@@ -948,17 +948,18 @@ def find_item_id(conn: sqlite3.Connection, source_id: str, guid: str) -> int | N
     return row["id"] if row else None
 
 
-def delete_items_except_guids(
-    conn: sqlite3.Connection, source_id: str, guids: list[str]
-) -> None:
-    if not guids:
-        conn.execute("DELETE FROM items WHERE source_id = ?", (source_id,))
-        return
-    placeholders = ",".join("?" * len(guids))
-    conn.execute(
-        f"DELETE FROM items WHERE source_id = ? AND guid NOT IN ({placeholders})",
-        (source_id, *guids),
-    )
+def newest_published_at(conn: sqlite3.Connection, source_id: str) -> str | None:
+    """When a source's newest stored item was published, or None while it has none."""
+    row = conn.execute(
+        "SELECT MAX(published_at) AS newest FROM items WHERE source_id = ?",
+        (source_id,),
+    ).fetchone()
+    return row["newest"]
+
+
+def stored_guids(conn: sqlite3.Connection, source_id: str) -> set[str]:
+    rows = conn.execute("SELECT guid FROM items WHERE source_id = ?", (source_id,))
+    return {row["guid"] for row in rows}
 
 
 def newest_items_without_duration(

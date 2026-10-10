@@ -18,12 +18,13 @@ from lxml.html import fromstring, tostring
 from app.db import (
     CAPTURED_SOURCE_ID,
     add_item_to_list,
-    delete_items_except_guids,
     delete_youtube_shorts,
     find_item_id,
     newest_items_without_duration,
+    newest_published_at,
     rss_sources,
     set_item_duration,
+    stored_guids,
     upsert_item,
 )
 
@@ -781,10 +782,24 @@ def ingest_xml(
     entries = parse_feed(xml, source_id)
     feed_total = len(entries)
     ranked = _newest_first(entries)
-    kept = ranked if limit is None else ranked[:limit]
+    # First, so a stored Short never counts as the newest item.
+    delete_youtube_shorts(conn, source_id)
+    newest = newest_published_at(conn, source_id)
+    if newest is None:
+        # First import: `limit` is how many items to start with.
+        kept = ranked if limit is None else ranked[:limit]
+    else:
+        # Later syncs bring in everything newer than what is stored, however
+        # many, and refresh what is already there. No item is dropped to make room.
+        known = stored_guids(conn, source_id)
+        kept = [
+            entry
+            for entry in ranked
+            if entry["guid"] in known or (entry["published_at"] or "") > newest
+        ]
     created = 0
-    if kept:
-        feed_title = kept[0]["feed_title"]
+    if entries:
+        feed_title = ranked[0]["feed_title"]
         row = conn.execute(
             "SELECT title, auto_title FROM sources WHERE id = ?", (source_id,)
         ).fetchone()
@@ -809,11 +824,6 @@ def ingest_xml(
         )
         if is_new:
             created += 1
-    if limit is not None:
-        delete_items_except_guids(
-            conn, source_id, [entry["guid"] for entry in kept]
-        )
-    delete_youtube_shorts(conn, source_id)
     return {
         "created": created,
         "kept": len(kept),
