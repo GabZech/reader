@@ -849,10 +849,19 @@ def source_delete(source_id: str):
         source = get_source(conn, source_id)
         if source is None:
             raise HTTPException(status_code=404)
+        pending = []
+        for row in items_for_source(conn, source_id):
+            item = get_item(conn, row["id"])
+            if item is not None and _highlights_export_is_pending(item):
+                pending.append((item, highlights_for_item(conn, item["id"])))
         delete_source(conn, source_id)
         conn.commit()
     finally:
         conn.close()
+    # A final catch-up so highlights not yet exported are not lost with the
+    # source. The vault keeps every note it already has.
+    for item, highlights in pending:
+        _best_effort_export(item, highlights)
     return RedirectResponse("/sources", status_code=303)
 
 

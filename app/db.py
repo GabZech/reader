@@ -667,6 +667,7 @@ def is_item_in_list(conn: sqlite3.Connection, item_id: int, list_slug: str) -> b
 
 
 def delete_item(conn: sqlite3.Connection, item_id: int) -> None:
+    conn.execute("DELETE FROM item_read WHERE item_id = ?", (item_id,))
     conn.execute("DELETE FROM item_lists WHERE item_id = ?", (item_id,))
     conn.execute("DELETE FROM highlights WHERE item_id = ?", (item_id,))
     conn.execute("DELETE FROM items WHERE id = ?", (item_id,))
@@ -855,6 +856,10 @@ def delete_source(conn: sqlite3.Connection, source_id: str) -> None:
     )
     conn.execute(
         "DELETE FROM item_lists WHERE item_id IN (SELECT id FROM items WHERE source_id = ?)",
+        (source_id,),
+    )
+    conn.execute(
+        "DELETE FROM highlights WHERE item_id IN (SELECT id FROM items WHERE source_id = ?)",
         (source_id,),
     )
     conn.execute("DELETE FROM source_lists WHERE source_id = ?", (source_id,))

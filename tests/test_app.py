@@ -835,6 +835,25 @@ def test_delete_source_with_a_read_item_does_not_crash(monkeypatch, tmp_path):
         assert missing.status_code == 404
 
 
+def test_delete_source_with_a_highlighted_item_removes_it_and_saves_the_highlights(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _save_highlight(client, item_id)
+        exports = _record_exports(monkeypatch)
+
+        gone = client.post(f"/sources/{source_id}/delete")
+
+        assert gone.status_code == 200
+        assert client.get(f"/sources/{source_id}").status_code == 404
+        assert _rows_about_item(tmp_path, item_id)["highlights"] == 0
+        assert [call[0] for call in exports] == [item_id]
+        assert len(exports[0][1]) == 1
+
+
 def _first_item_id(tmp_path) -> int:
     conn = dbmod.connect(tmp_path / "reader.db")
     try:
@@ -1026,6 +1045,46 @@ def test_delete_item_removes_it_from_the_list_for_good(monkeypatch, tmp_path):
 
         missing = client.get(f"/items/{item_id}")
         assert missing.status_code == 404
+
+
+def _rows_about_item(tmp_path, item_id: int) -> dict[str, int]:
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        return {
+            table: conn.execute(
+                f"SELECT COUNT(*) AS n FROM {table} WHERE item_id = ?", (item_id,)
+            ).fetchone()["n"]
+            for table in ("item_read", "item_lists", "highlights")
+        } | {
+            "items": conn.execute(
+                "SELECT COUNT(*) AS n FROM items WHERE id = ?", (item_id,)
+            ).fetchone()["n"]
+        }
+    finally:
+        conn.close()
+
+
+def test_delete_item_removes_everything_the_app_holds_about_it(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/read?from_list=news")
+        client.post(f"/items/{item_id}/later")
+        _save_highlight(client, item_id)
+        exports = _record_exports(monkeypatch)
+        assert all(_rows_about_item(tmp_path, item_id).values())
+
+        gone = client.post(f"/items/{item_id}/delete?from_list=news")
+
+        assert gone.status_code == 200
+        assert _rows_about_item(tmp_path, item_id) == {
+            "item_read": 0,
+            "item_lists": 0,
+            "highlights": 0,
+            "items": 0,
+        }
+        # The vault keeps its note: the one export is the final catch-up.
+        assert [call[0] for call in exports] == [item_id]
 
 
 def test_delete_item_unknown_id_is_404(monkeypatch, tmp_path):
