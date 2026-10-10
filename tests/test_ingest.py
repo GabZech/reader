@@ -8,14 +8,17 @@ from lxml.html import fromstring
 
 import app.ingest as app_ingest
 from app.db import (
+    add_item_to_list,
     add_source_to_list,
     connect,
+    find_item_id,
     format_when,
     init_db,
     insert_source,
     is_item_in_list,
     item_in_window,
     items_for_list,
+    mark_item_read,
     upsert_item,
 )
 from app.ingest import (
@@ -107,7 +110,7 @@ def test_ingest_xml_stores_news_items(tmp_path):
     assert again["created"] == 0
 
 
-def test_ingest_xml_keeps_only_latest_five_when_limited(tmp_path):
+def test_ingest_xml_starts_with_the_newest_five_when_limited(tmp_path):
     items_xml = "\n".join(
         f"""
         <item>
@@ -139,6 +142,69 @@ def test_ingest_xml_keeps_only_latest_five_when_limited(tmp_path):
         )
     ]
     assert titles == ["Item 7", "Item 6", "Item 5", "Item 4", "Item 3"]
+
+
+def _dated_feed(days: range) -> str:
+    items_xml = "\n".join(
+        f"""
+        <item>
+          <title>Item {n}</title>
+          <link>https://example.test/news/{n}</link>
+          <guid>https://example.test/news/{n}</guid>
+          <pubDate>Wed, {n:02d} Aug 2026 08:00:00 +0000</pubDate>
+          <description>&lt;p&gt;Body {n}&lt;/p&gt;</description>
+        </item>
+        """
+        for n in days
+    )
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>'
+        f'<rss version="2.0"><channel><title>Dated</title>{items_xml}</channel></rss>'
+    )
+
+
+def _stored_titles(conn) -> set[str]:
+    return {
+        row["title"]
+        for row in conn.execute(
+            "SELECT title FROM items WHERE source_id = ?", (SOURCE_ID,)
+        )
+    }
+
+
+def test_older_items_stay_when_newer_ones_arrive(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    _source(conn)
+    ingest_xml(conn, _dated_feed(range(1, 6)), SOURCE_ID, limit=3)
+    conn.commit()
+    assert _stored_titles(conn) == {"Item 5", "Item 4", "Item 3"}
+
+    # The oldest kept item is one the reader has read and listed: a sync must
+    # not trip over it, nor drop it.
+    oldest = find_item_id(conn, SOURCE_ID, "https://example.test/news/3")
+    mark_item_read(conn, oldest, "news")
+    add_item_to_list(conn, oldest, "later")
+    conn.commit()
+
+    result = ingest_xml(conn, _dated_feed(range(1, 8)), SOURCE_ID, limit=3)
+    conn.commit()
+    assert result["created"] == 2
+    assert _stored_titles(conn) == {f"Item {n}" for n in (3, 4, 5, 6, 7)}
+
+
+def test_every_new_item_arrives_even_past_the_start_count(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    _source(conn)
+    ingest_xml(conn, _dated_feed(range(1, 3)), SOURCE_ID, limit=1)
+    conn.commit()
+    assert _stored_titles(conn) == {"Item 2"}
+
+    result = ingest_xml(conn, _dated_feed(range(1, 7)), SOURCE_ID, limit=1)
+    conn.commit()
+    assert result["created"] == 4
+    assert _stored_titles(conn) == {f"Item {n}" for n in range(2, 7)}
 
 
 def test_ingest_all_sources_skips_a_source_that_fails_to_fetch(monkeypatch, tmp_path):

@@ -667,6 +667,7 @@ def is_item_in_list(conn: sqlite3.Connection, item_id: int, list_slug: str) -> b
 
 
 def delete_item(conn: sqlite3.Connection, item_id: int) -> None:
+    conn.execute("DELETE FROM item_read WHERE item_id = ?", (item_id,))
     conn.execute("DELETE FROM item_lists WHERE item_id = ?", (item_id,))
     conn.execute("DELETE FROM highlights WHERE item_id = ?", (item_id,))
     conn.execute("DELETE FROM items WHERE id = ?", (item_id,))
@@ -857,6 +858,10 @@ def delete_source(conn: sqlite3.Connection, source_id: str) -> None:
         "DELETE FROM item_lists WHERE item_id IN (SELECT id FROM items WHERE source_id = ?)",
         (source_id,),
     )
+    conn.execute(
+        "DELETE FROM highlights WHERE item_id IN (SELECT id FROM items WHERE source_id = ?)",
+        (source_id,),
+    )
     conn.execute("DELETE FROM source_lists WHERE source_id = ?", (source_id,))
     conn.execute("DELETE FROM items WHERE source_id = ?", (source_id,))
     conn.execute("DELETE FROM sources WHERE id = ?", (source_id,))
@@ -948,17 +953,18 @@ def find_item_id(conn: sqlite3.Connection, source_id: str, guid: str) -> int | N
     return row["id"] if row else None
 
 
-def delete_items_except_guids(
-    conn: sqlite3.Connection, source_id: str, guids: list[str]
-) -> None:
-    if not guids:
-        conn.execute("DELETE FROM items WHERE source_id = ?", (source_id,))
-        return
-    placeholders = ",".join("?" * len(guids))
-    conn.execute(
-        f"DELETE FROM items WHERE source_id = ? AND guid NOT IN ({placeholders})",
-        (source_id, *guids),
-    )
+def newest_published_at(conn: sqlite3.Connection, source_id: str) -> str | None:
+    """When a source's newest stored item was published, or None while it has none."""
+    row = conn.execute(
+        "SELECT MAX(published_at) AS newest FROM items WHERE source_id = ?",
+        (source_id,),
+    ).fetchone()
+    return row["newest"]
+
+
+def stored_guids(conn: sqlite3.Connection, source_id: str) -> set[str]:
+    rows = conn.execute("SELECT guid FROM items WHERE source_id = ?", (source_id,))
+    return {row["guid"] for row in rows}
 
 
 def newest_items_without_duration(
