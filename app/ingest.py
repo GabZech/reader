@@ -129,6 +129,14 @@ _HIDDEN_STYLE_RE = re.compile(
     r"display\s*:\s*none|visibility\s*:\s*hidden|mso-hide\s*:\s*all", re.IGNORECASE
 )
 
+# A paragraph that holds nothing but images, each optionally wrapped in a link:
+# what a single newsletter table cell holding a social/footer icon becomes.
+_ICON_PARAGRAPH_RE = re.compile(
+    r'<p( style="text-align:center")?>'
+    r"((?:\s*(?:<a(?: [^>]*)?>\s*<img [^>]*>\s*</a>|<img [^>]*>))+)"
+    r"\s*</p>"
+)
+
 # Void elements never get a real closing tag in source, so a starttag call
 # for one of these can't be paired with a matching endtag call - excluded
 # from _Sanitizer's hidden-subtree depth counter to keep it balanced.
@@ -201,6 +209,13 @@ class _Sanitizer(HTMLParser):
         # being processed, so nothing in a hidden wrapper - however deeply
         # nested, whatever the tags are - reaches the output.
         self._hidden_depth = 0
+        # Layout-table rows only (newsletters; with preserve_tables a row is
+        # real content and stays as it is). One entry per open <tr>: the
+        # (start, end) span in self._out of each of its cells' output, so a
+        # row of image-only cells can be joined into one line at </tr>.
+        self._rows: list[list[tuple[int, int]]] = []
+        # Start offset in self._out of each open <td>/<th>.
+        self._cell_starts: list[int] = []
 
     def _current_centered(self) -> bool:
         return self._center_scopes[-1] if self._center_scopes else False
@@ -212,6 +227,28 @@ class _Sanitizer(HTMLParser):
             if self._current_centered():
                 self._loose_centered = True
             self._loose.append(text)
+
+    def _join_icon_cells(self, cells: list[tuple[int, int]]) -> None:
+        """Put a row of image-only cells (social icons) on one line.
+
+        Each cell flushes into its own paragraph, which stacks side-by-side
+        icons in a column. When every non-empty cell of the row is a single
+        image-only paragraph and there are at least two, merge them into one
+        paragraph; any text in the row, or a stray gap, leaves it untouched.
+        """
+        filled = [(start, end) for start, end in cells if end > start]
+        if len(filled) < 2:
+            return
+        lo, hi = filled[0][0], filled[-1][1]
+        if hi - lo != len(filled) or any(end - start != 1 for start, end in filled):
+            return
+        matches = [_ICON_PARAGRAPH_RE.fullmatch(self._out[i]) for i in range(lo, hi)]
+        if not all(matches):
+            return
+        centered = any(m.group(1) for m in matches)
+        inner = " ".join(m.group(2).strip() for m in matches)
+        open_tag = '<p style="text-align:center">' if centered else "<p>"
+        self._out[lo:hi] = [f"{open_tag}{inner}</p>"]
 
     def _flush_loose(self) -> None:
         text = "".join(self._loose).strip()
@@ -246,6 +283,10 @@ class _Sanitizer(HTMLParser):
 
         if canonical in self._block_boundary_tags:
             self._flush_loose()
+            if canonical == "tr":
+                self._rows.append([])
+            elif canonical in {"td", "th"}:
+                self._cell_starts.append(len(self._out))
         elif canonical in self._block_tags:
             self._flush_loose()
             self._block_stack.append(canonical)
@@ -297,6 +338,12 @@ class _Sanitizer(HTMLParser):
 
         if canonical in self._block_boundary_tags:
             self._flush_loose()
+            if canonical in {"td", "th"} and self._cell_starts:
+                start = self._cell_starts.pop()
+                if self._rows:
+                    self._rows[-1].append((start, len(self._out)))
+            elif canonical == "tr" and self._rows:
+                self._join_icon_cells(self._rows.pop())
         elif canonical in self._block_tags:
             if self._block_stack and self._block_stack[-1] == canonical:
                 self._block_stack.pop()

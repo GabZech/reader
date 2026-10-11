@@ -117,3 +117,85 @@ def test_drops_hidden_content_with_nested_tags_and_void_elements():
         "<p>Real body.</p>"
     )
     assert sanitize_html(raw) == "<p>Real body.</p>"
+
+
+def _icon(name: str) -> str:
+    return f'<a href="https://{name}.test"><img src="https://x.test/{name}.png" alt="{name}"></a>'
+
+
+def _clean_icon(name: str) -> str:
+    return (
+        f'<a href="https://{name}.test" rel="noreferrer">'
+        f'<img src="https://x.test/{name}.png" alt="{name}"></a>'
+    )
+
+
+def test_row_of_icon_cells_stays_on_one_line():
+    # A newsletter footer's social buttons are one <td> per icon in a single
+    # row. Each cell used to become its own paragraph, stacking the icons in
+    # a column instead of the horizontal row the email shows.
+    raw = (
+        "<table><tr>"
+        f'<td align="center">{_icon("facebook")}</td>'
+        f'<td align="center">{_icon("instagram")}</td>'
+        f'<td align="center">{_icon("youtube")}</td>'
+        "</tr></table>"
+    )
+    assert sanitize_html(raw) == (
+        '<p style="text-align:center">'
+        f'{_clean_icon("facebook")} {_clean_icon("instagram")} {_clean_icon("youtube")}'
+        "</p>"
+    )
+
+
+def test_empty_spacer_cells_do_not_break_an_icon_row():
+    raw = (
+        "<table><tr>"
+        f"<td>{_icon('facebook')}</td><td>&nbsp;</td><td></td>"
+        f"<td>{_icon('instagram')}</td>"
+        "</tr></table>"
+    )
+    assert sanitize_html(raw) == (
+        f'<p>{_clean_icon("facebook")} {_clean_icon("instagram")}</p>'
+    )
+
+
+def test_icon_row_nested_under_a_logo_row_stays_separate_from_it():
+    raw = (
+        "<table>"
+        '<tr><td><img src="https://x.test/logo.png" alt="logo"></td></tr>'
+        "<tr><td><table><tr>"
+        f"<td>{_icon('facebook')}</td><td>{_icon('instagram')}</td>"
+        "</tr></table></td></tr>"
+        "</table>"
+    )
+    assert sanitize_html(raw) == (
+        '<p><img src="https://x.test/logo.png" alt="logo"></p>'
+        f'<p>{_clean_icon("facebook")} {_clean_icon("instagram")}</p>'
+    )
+
+
+def test_images_in_separate_rows_stay_stacked():
+    # Only cells of one row sit side by side; rows are stacked, so a column of
+    # full-width pictures is not squeezed onto one line.
+    raw = (
+        "<table>"
+        '<tr><td><img src="https://x.test/a.png" alt="a"></td></tr>'
+        '<tr><td><img src="https://x.test/b.png" alt="b"></td></tr>'
+        "</table>"
+    )
+    assert sanitize_html(raw) == (
+        '<p><img src="https://x.test/a.png" alt="a"></p>'
+        '<p><img src="https://x.test/b.png" alt="b"></p>'
+    )
+
+
+def test_row_with_text_in_a_cell_keeps_one_paragraph_per_cell():
+    raw = (
+        "<table><tr>"
+        f"<td>{_icon('facebook')}</td><td>Follow us</td>"
+        "</tr></table>"
+    )
+    assert sanitize_html(raw) == (
+        f"<p>{_clean_icon('facebook')}</p><p>Follow us</p>"
+    )
