@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
@@ -299,6 +300,77 @@ def test_capture_article_keeps_an_inline_body_image(tmp_path):
     assert 'src="https://example.test/diagram.png"' in item["body_html"]
 
 
+def test_capture_article_keeps_inline_links_bold_and_italics(tmp_path):
+    # trafilatura drops every link and all inline emphasis unless asked to
+    # keep them, so a saved essay lost its citations and its stressed words.
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://example.test/an-essay"
+    html = """
+    <html><head><title>An Essay With Citations</title></head>
+    <body><article>
+    <p>An opening paragraph with enough real words in it for trafilatura to
+    treat this page as an actual article worth extracting, citing
+    <a href="https://example.test/study">a study</a> along the way and
+    stressing that <strong>openness</strong> matters and <em>verifiability</em>
+    matters even more than that.</p>
+    <p>A closing paragraph, again with enough real words in it for trafilatura
+    to treat this page as an actual article worth extracting in the first place.</p>
+    </article></body></html>
+    """
+    item_id, _title = capture_article(conn, url, html=html)
+    conn.commit()
+    item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    body = item["body_html"]
+    assert '<a href="https://example.test/study" rel="noreferrer">a study</a>' in body
+    assert "<strong>openness</strong>" in body
+    assert "<em>verifiability</em>" in body
+
+
+def test_capture_article_resolves_a_relative_link_against_the_page(tmp_path):
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://example.test/posts/a-relative-link"
+    html = """
+    <html><head><title>An Article With A Relative Link</title></head>
+    <body><article>
+    <p>An opening paragraph with enough real words in it for trafilatura to
+    treat this page as an actual article worth extracting, pointing readers to
+    <a href="/about/me">the about page</a> for more background.</p>
+    <p>A closing paragraph, again with enough real words in it for trafilatura
+    to treat this page as an actual article worth extracting in the first place.</p>
+    </article></body></html>
+    """
+    item_id, _title = capture_article(conn, url, html=html)
+    conn.commit()
+    item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    assert 'href="https://example.test/about/me"' in item["body_html"]
+
+
+def test_capture_article_does_not_store_a_javascript_link(tmp_path):
+    # A captured page is untrusted: a link that runs script when tapped must
+    # keep its text but lose its target.
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    url = "https://example.test/a-hostile-page"
+    html = """
+    <html><head><title>An Article With A Hostile Link</title></head>
+    <body><article>
+    <p>An opening paragraph with enough real words in it for trafilatura to
+    treat this page as an actual article worth extracting, including one
+    <a href="javascript:alert(1)">tricky link</a> in the middle of it.</p>
+    <p>A closing paragraph, again with enough real words in it for trafilatura
+    to treat this page as an actual article worth extracting in the first place.</p>
+    </article></body></html>
+    """
+    item_id, _title = capture_article(conn, url, html=html)
+    conn.commit()
+    item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    body = item["body_html"]
+    assert "tricky link" in body
+    assert "javascript:" not in body
+
+
 def test_capture_article_keeps_whole_paragraph_bold_in_an_interview(tmp_path):
     # trafilatura strips a <strong> that wraps an entire paragraph's text
     # (treating it as noise rather than emphasis), which loses the
@@ -377,7 +449,8 @@ def test_capture_article_keeps_a_fully_bold_faq_list_item(tmp_path):
     conn.commit()
     item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
     body = item["body_html"]
-    assert "<li><strong>What is the first frequently asked question" in body
+    # trafilatura now keeps the bold itself and pretty-prints it onto its own line
+    assert re.search(r"<li>\s*<strong>What is the first frequently asked question", body)
     assert "<strong>Plain answer text" not in body
 
 
@@ -400,7 +473,7 @@ def test_capture_article_keeps_a_fully_bold_pull_quote(tmp_path):
     conn.commit()
     item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
     body = item["body_html"]
-    assert "<blockquote><strong>This is a fully bold pull quote" in body
+    assert re.search(r"<blockquote>\s*<strong>This is a fully bold pull quote", body)
 
 
 def test_capture_article_prefers_the_real_headline_for_an_x_article(tmp_path):

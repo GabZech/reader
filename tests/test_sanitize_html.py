@@ -21,6 +21,39 @@ def test_keeps_allowed_tags_and_drops_disallowed_wrapper():
     )
 
 
+def test_keeps_http_https_and_mailto_links():
+    raw = (
+        '<p><a href="http://a.test">a</a> <a href="https://b.test/x?y=1">b</a> '
+        '<a href="mailto:c@d.test">c</a></p>'
+    )
+    assert sanitize_html(raw) == (
+        '<p><a href="http://a.test" rel="noreferrer">a</a> '
+        '<a href="https://b.test/x?y=1" rel="noreferrer">b</a> '
+        '<a href="mailto:c@d.test" rel="noreferrer">c</a></p>'
+    )
+
+
+def test_drops_the_target_of_a_link_with_an_unsafe_scheme():
+    # The text stays; the href that would run script (or smuggle data) goes.
+    for href in (
+        "javascript:alert(1)",
+        " JavaScript:alert(1)",
+        "java\tscript:alert(1)",
+        "data:text/html,<script>alert(1)</script>",
+        "vbscript:msgbox(1)",
+    ):
+        raw = f'<p>See <a href="{href}">this</a> now</p>'
+        assert sanitize_html(raw) == "<p>See <a>this</a> now</p>", href
+
+
+def test_keeps_relative_and_fragment_links():
+    raw = '<p><a href="/about">about</a> <a href="#notes">notes</a></p>'
+    assert sanitize_html(raw) == (
+        '<p><a href="/about" rel="noreferrer">about</a> '
+        '<a href="#notes" rel="noreferrer">notes</a></p>'
+    )
+
+
 def test_drops_inline_style_attribute():
     raw = '<p style="color:red">Hello</p>'
     assert sanitize_html(raw) == "<p>Hello</p>"
