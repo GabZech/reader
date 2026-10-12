@@ -1150,7 +1150,7 @@ form.is-apart {
   font-weight: 650;
 }
 
-.article-bar .is-active {
+.article-bar .act-read {
   color: var(--accent);
 }
 
@@ -1202,7 +1202,7 @@ form.is-apart {
   background: var(--bg-sunk);
 }
 
-.article-actions .act-read {
+.article-actions .is-active {
   color: var(--accent);
 }
 
