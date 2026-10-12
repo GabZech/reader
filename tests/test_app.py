@@ -899,6 +899,68 @@ def test_item_page_has_read_later_button(monkeypatch, tmp_path):
         assert "Read later" in page.text
 
 
+def _bar_and_actions(page: str) -> tuple[str, str]:
+    """The article's top bar and its bottom row of buttons, as HTML."""
+    bar = page[page.index('class="article-bar"') : page.index("</nav>")]
+    actions = page[page.index('class="article-actions"') :]
+    return bar, actions
+
+
+def test_top_bar_has_open_original_then_mark_as_read(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        bar, actions = _bar_and_actions(
+            client.get(f"/items/{item_id}?from_list=news").text
+        )
+        assert bar.index("Open original") < bar.index("Mark as read")
+        assert "Read later" not in bar
+        assert "Mark as read" not in actions
+
+
+def test_read_later_sits_in_the_bottom_row_where_mark_as_read_was(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        _bar, actions = _bar_and_actions(
+            client.get(f"/items/{item_id}?from_list=news").text
+        )
+        assert actions.index("Read later") < actions.index("Delete")
+
+
+def test_an_item_opened_from_read_later_has_no_read_later_button(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        for query in ("from_list=later", "from_list=later&from_home=1"):
+            page = client.get(f"/items/{item_id}?{query}").text
+            assert f"/items/{item_id}/later" not in page
+            assert "Read later" not in page
+            bar, actions = _bar_and_actions(page)
+            assert "Open original" in bar
+            assert "Mark as read" not in page
+            assert "Archive" in actions and "Delete" in actions
+
+
+def test_a_saved_item_opened_from_another_list_says_it_is_saved(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        client.post(f"/items/{item_id}/later")
+        bar, actions = _bar_and_actions(
+            client.get(f"/items/{item_id}?from_list=news").text
+        )
+        assert "Saved to Read later" in actions
+        assert "Read later" not in bar
+
+
 def test_tapping_read_later_adds_item_to_the_list(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
@@ -2384,7 +2446,7 @@ def _set_first_item_url(tmp_path, url):
         conn.close()
 
 
-def test_youtube_item_page_embeds_the_video_below_the_buttons(monkeypatch, tmp_path):
+def test_youtube_item_page_embeds_the_video_between_the_top_bar_and_the_buttons(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
         item_id = _set_first_item_url(
@@ -2393,7 +2455,7 @@ def test_youtube_item_page_embeds_the_video_below_the_buttons(monkeypatch, tmp_p
         page = client.get(f"/items/{item_id}").text
         assert 'src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"' in page
         assert page.index("Open original") < page.index("<iframe")
-        assert page.index("Read later") < page.index("<iframe")
+        assert page.index("<iframe") < page.index("Read later")
         assert page.index("<iframe") < page.index('class="article-body"')
 
 

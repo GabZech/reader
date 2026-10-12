@@ -1128,7 +1128,11 @@ def item_page(
             "video_id": youtube_video_id(item["url"]),
             "back": back,
             "in_read_later": in_read_later,
-            "later_action": f"/items/{item_id}/later{context_query}",
+            "later_action": (
+                f"/items/{item_id}/later{context_query}"
+                if from_list != "later"
+                else None
+            ),
             "archive_action": f"/items/{item_id}/archive{context_query}",
             "delete_action": f"/items/{item_id}/delete{context_query}",
             "progress_action": f"/items/{item_id}/progress",

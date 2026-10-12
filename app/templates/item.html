@@ -4,11 +4,13 @@
       <nav class="article-bar" aria-label="Article">
         <a class="bar-close" href="{{ back }}">Close</a>
         <span class="article-bar-right">
-          <form method="post" action="{{ later_action }}">
-            <button type="submit"{% if in_read_later %} class="is-active"{% endif %}>{{ "Saved to Read later" if in_read_later else "Read later" }}</button>
-          </form>
           {% if item.url %}
           <a href="{{ item.url }}" rel="noreferrer">Open original</a>
+          {% endif %}
+          {% if mark_read_action %}
+          <form method="post" action="{{ mark_read_action }}">
+            <button type="submit" class="act-read">Mark as read</button>
+          </form>
           {% endif %}
         </span>
       </nav>
@@ -28,9 +30,9 @@
         {% endif %}
       </div>
       <div class="article-actions">
-        {% if mark_read_action %}
-        <form method="post" action="{{ mark_read_action }}">
-          <button type="submit" class="act-read">Mark as read</button>
+        {% if later_action %}
+        <form method="post" action="{{ later_action }}">
+          <button type="submit"{% if in_read_later %} class="is-active"{% endif %}>{{ "Saved to Read later" if in_read_later else "Read later" }}</button>
         </form>
         {% endif %}
         {% if in_read_later %}
