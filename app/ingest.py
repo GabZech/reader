@@ -306,7 +306,7 @@ class _Sanitizer(HTMLParser):
                     self._emit(f'<img src="{_esc(src)}" alt="{_esc(alt)}">')
             elif canonical == "a":
                 href = _attr(attrs, "href")
-                if href:
+                if href and _is_safe_href(href):
                     self._emit(f'<a href="{_esc(href)}" rel="noreferrer">')
                 else:
                     self._emit("<a>")
@@ -361,6 +361,20 @@ class _Sanitizer(HTMLParser):
         while self._block_stack:
             self._out.append(f"</{self._block_stack.pop()}>")
         return "".join(self._out)
+
+
+_SAFE_LINK_SCHEMES = {"http", "https", "mailto"}
+_URL_SCHEME_RE = re.compile(r"^([a-z][a-z0-9+.\-]*):")
+
+
+def _is_safe_href(href: str) -> bool:
+    """Whether a link target may be kept: relative, or http(s)/mailto. Browsers
+    ignore leading control characters and spaces and any tab or newline inside
+    a URL, so those are removed before the scheme is read; otherwise
+    `java\\tscript:` would slip past."""
+    cleaned = re.sub(r"[\x00-\x20]", "", href).lower()
+    match = _URL_SCHEME_RE.match(cleaned)
+    return match is None or match.group(1) in _SAFE_LINK_SCHEMES
 
 
 def _attr(attrs: list[tuple[str, str | None]], name: str) -> str | None:
@@ -786,8 +800,16 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
         wrapped_block_texts = _fully_wrapped_block_texts(tree)
         _hoist_table_images(tree)
         body_source = tostring(tree, encoding="unicode")
+    # Links and inline bold/italics are dropped unless asked for; with
+    # include_links a relative href also comes back absolute against `url`.
     extracted = trafilatura.extract(
-        body_source, url=url, output_format="html", favor_recall=True, include_images=True
+        body_source,
+        url=url,
+        output_format="html",
+        favor_recall=True,
+        include_images=True,
+        include_links=True,
+        include_formatting=True,
     )
     body = sanitize_html(extracted, preserve_tables=True) if extracted else None
     if body and image_candidates:
