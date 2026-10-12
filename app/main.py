@@ -225,7 +225,7 @@ def _grouped_sources(sources: list[dict]) -> list[dict]:
 
 
 @app.get("/")
-def home(request: Request):
+def home(request: Request, flash: str = ""):
     conn = connect()
     try:
         init_db(conn)
@@ -239,7 +239,7 @@ def home(request: Request):
     return templates.TemplateResponse(
         request,
         "home.html",
-        {"nav": "home", "lists": lists},
+        {"nav": "home", "lists": lists, "flash": flash},
     )
 
 
@@ -1057,6 +1057,24 @@ def _list_url(slug: str, view: str | None, flash: str = "") -> str:
     return f"/lists/{slug}?{urlencode(params)}" if params else f"/lists/{slug}"
 
 
+def _origin_url(
+    from_source: str | None,
+    from_list: str | None,
+    from_home: str | None,
+    view: str | None,
+    flash: str,
+) -> str:
+    """Where an item action sends the reader back to: the page the item was
+    opened from, same order as the item page's own Close."""
+    if from_source:
+        return f"/sources/{from_source}/items?{urlencode({'flash': flash})}"
+    if from_home:
+        return f"/?{urlencode({'flash': flash})}"
+    if from_list:
+        return _list_url(from_list, view, flash)
+    return "/"
+
+
 def _item_context_query(
     from_source: str | None,
     from_list: str | None,
@@ -1459,6 +1477,8 @@ def item_archive(
     item_id: int,
     from_source: str | None = None,
     from_list: str | None = None,
+    from_home: str | None = None,
+    view: str | None = None,
 ):
     conn = connect()
     try:
@@ -1471,13 +1491,10 @@ def item_archive(
     finally:
         conn.close()
     _export_if_pending(item)
-    if from_source:
-        return RedirectResponse(
-            f"/sources/{from_source}/items?flash=Archived", status_code=303
-        )
-    if from_list:
-        return RedirectResponse(f"/lists/{from_list}?flash=Archived", status_code=303)
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse(
+        _origin_url(from_source, from_list, from_home, view, "Archived"),
+        status_code=303,
+    )
 
 
 @app.post("/items/{item_id}/read")
@@ -1485,6 +1502,8 @@ def item_mark_read(
     item_id: int,
     from_list: str,
     from_source: str | None = None,
+    from_home: str | None = None,
+    view: str | None = None,
 ):
     conn = connect()
     try:
@@ -1497,7 +1516,10 @@ def item_mark_read(
     finally:
         conn.close()
     _export_if_pending(item)
-    return RedirectResponse(f"/lists/{from_list}?flash=Read", status_code=303)
+    return RedirectResponse(
+        _origin_url(from_source, from_list, from_home, view, "Read"),
+        status_code=303,
+    )
 
 
 @app.post("/items/{item_id}/unread")
@@ -1537,6 +1559,7 @@ def item_delete(
     item_id: int,
     from_source: str | None = None,
     from_list: str | None = None,
+    from_home: str | None = None,
     view: str | None = None,
 ):
     conn = connect()
@@ -1556,13 +1579,10 @@ def item_delete(
         # lost. Deleting an item never removes its note from the vault
         # otherwise: the vault is the durable copy, not the local database.
         _best_effort_export(item, highlights)
-    if from_source:
-        return RedirectResponse(
-            f"/sources/{from_source}/items?flash=Deleted", status_code=303
-        )
-    if from_list:
-        return RedirectResponse(_list_url(from_list, view, "Deleted"), status_code=303)
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse(
+        _origin_url(from_source, from_list, from_home, view, "Deleted"),
+        status_code=303,
+    )
 
 
 @app.post("/capture")

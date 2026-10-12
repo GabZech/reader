@@ -1149,6 +1149,74 @@ def test_delete_item_removes_everything_the_app_holds_about_it(monkeypatch, tmp_
         assert [call[0] for call in exports] == [item_id]
 
 
+def _redirect_after(client, path: str) -> str:
+    response = client.post(path, follow_redirects=False)
+    assert response.status_code == 303
+    return response.headers["location"]
+
+
+def test_item_actions_opened_from_home_return_to_home(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        context = "from_list=news&from_home=1"
+        assert _redirect_after(client, f"/items/{item_id}/read?{context}") == (
+            "/?flash=Read"
+        )
+        assert _redirect_after(client, f"/items/{item_id}/archive?{context}") == (
+            "/?flash=Archived"
+        )
+        assert _redirect_after(client, f"/items/{item_id}/delete?{context}") == (
+            "/?flash=Deleted"
+        )
+
+
+def test_item_actions_opened_from_a_list_return_to_that_list_and_tab(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        assert _redirect_after(client, f"/items/{item_id}/read?from_list=news") == (
+            "/lists/news?flash=Read"
+        )
+        assert _redirect_after(
+            client, f"/items/{item_id}/read?from_list=news&view=read"
+        ) == "/lists/news?view=read&flash=Read"
+        assert _redirect_after(
+            client, f"/items/{item_id}/archive?from_list=later&view=archive"
+        ) == "/lists/later?view=archive&flash=Archived"
+
+
+def test_item_actions_opened_from_a_source_return_to_its_items(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        source_id = dbmod.source_id_for("https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        assert _redirect_after(
+            client, f"/items/{item_id}/archive?from_source={source_id}"
+        ) == f"/sources/{source_id}/items?flash=Archived"
+        assert _redirect_after(
+            client, f"/items/{item_id}/delete?from_source={source_id}"
+        ) == f"/sources/{source_id}/items?flash=Deleted"
+
+
+def test_home_shows_the_flash_it_was_sent_back_with(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        with_flash = client.get("/?flash=Read")
+        assert 'class="toast"' in with_flash.text
+        assert 'class="toast"' not in client.get("/").text
+
+
+def test_item_page_opened_from_home_keeps_home_in_its_actions(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        page = client.get(f"/items/{item_id}?from_list=news&from_home=1").text
+        assert f"/items/{item_id}/read?from_list=news&amp;from_home=1" in page
+
+
 def test_delete_item_unknown_id_is_404(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         missing = client.post("/items/999999/delete")
