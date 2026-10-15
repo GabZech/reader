@@ -41,4 +41,4 @@ For Development and Maintenance sessions.
 - Use tables, Mermaid diagrams, and headers where they make things clearer than prose.
 - Give a short progress update every few steps, and end with what was done and what comes next.
 - When a task is finished and merged, recommend `/clear`, or `/compact` if context has grown but continuity still matters.
-- A question is not a command: answer it, and don't act on it.
+- A question ("can / could you X?") is not a request: just answer it, don't act on it.
