@@ -890,6 +890,16 @@ def _record_exports(monkeypatch):
     return calls
 
 
+def test_highlight_page_shows_the_text_below_its_buttons(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+        page = client.get(f"/items/{item_id}/highlights/{highlight_id}").text
+        assert page.index("Add section title") < page.index('class="quote"')
+        assert page.index("Delete highlight") < page.index('class="quote"')
+
+
 def test_item_page_has_read_later_button(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")

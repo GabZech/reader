@@ -7,7 +7,6 @@
       <header class="top">
         <h1>Highlight</h1>
       </header>
-      <blockquote class="quote">{{ highlight.text }}</blockquote>
       <section class="list">
         <a class="item" href="{{ section_title_action }}">
           <span class="title">Add section title</span>
@@ -26,4 +25,5 @@
       <form class="danger-zone" method="post" action="{{ delete_action }}">
         <button type="submit" class="btn btn-danger">Delete highlight</button>
       </form>
+      <blockquote class="quote">{{ highlight.text }}</blockquote>
 {% endblock %}
