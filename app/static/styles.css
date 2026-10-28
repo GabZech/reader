@@ -1371,6 +1371,10 @@ form.is-apart {
   color: var(--text);
 }
 
+.danger-zone + .quote {
+  margin-top: 1.75rem;
+}
+
 /* ---------- Overlays ---------- */
 
 .swipe-dialog-backdrop {
