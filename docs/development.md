@@ -49,7 +49,7 @@ uv run pytest
 
 That is what continuous integration runs (`.github/workflows/test.yml`), lint then tests. `pytest`, `ruff`, and `playwright` are dev-only dependencies; the deployed image does not install them.
 
-**Browser tests need Chromium and WebKit.** `tests/test_highlight_browser.py` drives the reader page in a real browser, since highlighting runs in `app/static/app.js`. `tests/test_service_worker_browser.py` runs every offline test twice: in Chromium, and in WebKit, the engine Safari and the installed iPhone app run on, where offline bugs showed that Chromium never did. Install both once with `uv run playwright install --with-deps chromium webkit`; CI does the same before running the tests.
+**Browser tests need Chromium and WebKit.** `tests/test_highlight_browser.py` drives the reader page in a real browser, since highlighting runs in `app/static/app.js`. The browser tests run on WebKit by default, the engine Safari and the installed iPhone app run on, where offline bugs showed that Chromium never did. Before a pull request, add Chromium with `uv run pytest --browsers=webkit,chromium` (CI does this on pull requests; `READER_BROWSERS` sets the same). The swipe tests always use Chromium: they answer requests from inside the test, which WebKit cannot do for redirects, and send finger drags through a Chromium-only channel. Install both browsers once with `uv run playwright install --with-deps chromium webkit`; CI does the same before running the tests.
 
 ## Local config
 
