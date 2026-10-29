@@ -30,7 +30,7 @@ Dark is the default: a reader who has never touched the theme switch in Settings
 
 - **Phone** is the primary reading surface (morning News, most of Read later).
 - **Computer** uses the same chrome, wider column. Favourite channels is the computer-primary list; computer width must not invent a second look.
-- **Offline:** already fetched News and Read later remain readable, and so do the fonts. A page that cannot load and was never cached shows a short "Couldn't load this page" screen with a Try again button, never a blank one. Favourite channels is not an offline must.
+- **Offline:** Read later articles are downloaded ahead, and Home, the lists, pages already opened and the fonts stay readable. A page that cannot load and was never cached shows a short "Couldn't load this page" screen with a Try again button, never a blank one. Favourite channels is not an offline must. While a download runs Home's Settings cog turns, as it does while syncing. On an article, a grey "Offline" label sits beside Close, with "· N to sync" while saves wait; online there is no label. A highlight not yet sent has a dashed amber underline (a dashed outline for an image).
 
 ## Out of scope
 

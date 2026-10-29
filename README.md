@@ -30,7 +30,7 @@ Reader starts from the opposite end: **the reading is yours, and so is everythin
 - **Saves for later.** Send any link to Read later, pick up where you left off, and archive when done.
 - **Reads comfortably.** Swipe a row to mark it read or delete it, and videos play inside their own page with their length shown.
 - **Highlights, including images,** with section titles that travel with them, exported to Obsidian roughly one commit per article.
-- **Keeps working offline.** It is an installable web app (PWA), so anything already opened stays readable without a connection.
+- **Keeps working offline.** It is an installable web app (PWA): saved Read later articles are downloaded ahead and readable without a connection, and highlights made offline are kept on the phone and sent when it is back online.
 
 ## How it works
 

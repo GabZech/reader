@@ -4,14 +4,7 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ## In flight
 
-**Offline reading and highlighting** (behaviour + visual), branch `dev/offline-reading`. Read Later articles readable offline without being opened first; highlights and highlight edits (section and subsection titles, key passage, delete) made offline are kept on the device and sent once back online. Leaves alone: archive, mark as read and swipe moves offline (stay deferred in the roadmap). Feedback rounds: 4+ (latest: titles not saving, Close going Home, deleted highlights coming back. Found with WebKit tests: queue writes lost on quick taps (outbox moved from IndexedDB to localStorage), page catch-up wiping new highlights, buttons waiting for the whole sync, typed titles overwritten; all fixed. The WebKit update-test hangs were a bug in the test's own network relay (sockets closed without shutdown), not the app: 0 failures in 30 runs once fixed, 477 tests green twice. Playwright upgraded to 1.64.1 (WebKit 27.2); browser tests now WebKit by default, Chromium added before a PR. Known: one Chromium-only scroll test (wheel scroll) fails on the new Chromium, to fix before the PR run. Earlier: first try on the iPhone: nothing opened offline; the download ask reached the older worker, and a renamed cache wiped stored pages; fixed). 2 (Read Later and Home opened offline but articles did not: the download was cut short before reaching them; now runs four at once, articles first, and Home’s cog turns while it runs, at the client’s ask).
-
-### Planned
-
-1. Download ahead: Read Later article pages (and images, within a storage cap) cached whenever the app opens online; articles looked up by item number alone when offline; cached copy refreshed after a highlight save; Home and every list page refreshed too. Done: signed off on the iPhone (Read Later and its articles open in airplane mode; cog turns while downloading)
-2. Offline highlights: drawn at once, queued in IndexedDB, replayed when back online; reading position via the same queue; the server returns the existing highlight for an identical span so a replay never duplicates. Built and deployed, awaiting the iPhone try (reading position kept in localStorage, not IndexedDB: written as the page goes away)
-3. Offline highlight page: any highlight's page built on the device from the article's data; section/subsection title, key and delete work offline and queue after the highlight they belong to (temporary id mapped to the real one); an edit to a highlight gone from the server is dropped. Built and deployed, awaiting the iPhone try (one browser run failed once in six locally, unidentified; CI green)
-4. Sync indicator: unsynced highlights look distinct; a small offline / waiting-to-sync indicator. Mockup signed off; after the first try, changed at the client’s ask to a grey label only while offline ("Offline" or "Offline · N to sync"), none online. Dashed amber underline on pending highlights. Stored articles are not refreshed on updates (client’s call: mostly read online, and opening one online refreshes it)
+None.
 
 ## Blocked
 
