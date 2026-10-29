@@ -57,6 +57,10 @@ Choices explicitly put off for later, each with a real trigger to revisit. Remov
 - The service worker only caches a GET after it succeeds once, and every write (highlight, mark read, archive, progress, sync) is fire-and-forget with no retry. On an unstable connection this reads as the app silently not saving. Revisit once the MVP is in daily use on real mobile networks, with two pieces: queue a failed write (in IndexedDB) and replay it when the connection returns, showing a visible "will sync" state instead of swallowing the error; and pre-cache an article's page as soon as it lands on Read later, not only after it has been opened once, so a saved article is readable offline even on a first attempt
 - No visible offline/connectivity state anywhere in the app; a failed action and a slow one currently look the same to the reader. A small persistent indicator (online/offline, syncing) would make the queued-write behaviour above legible instead of mysterious. Bundle with the note above rather than building alone
 
+#### Speed
+
+- Opening the app syncs every source before Home shows what is new, and that takes about 5 seconds: the server checks each feed one after another, then the newsletter mailbox, and an iPhone starts a fresh sync on every reopen. Three ways to shorten it, from least to most work: check several sources at once; skip the sync when the last one was recent (say within 15 minutes); or have the server sync on its own schedule so opening the app never waits. Revisit once offline reading and highlighting is merged
+
 #### Testing
 
 - The test suite has no speed tiering: browser-driven tests run together with everything else every time, and are the slowest by far. Not yet a problem. Revisit once the full run noticeably slows down local iteration: split fast unit tests from browser tests (pytest markers) and consider parallelizing (pytest-xdist)
