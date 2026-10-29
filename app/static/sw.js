@@ -1,4 +1,7 @@
-const CACHE = "reader-shell-v4";
+const CACHE = "reader-shell-v5";
+// Images from other sites in Read Later articles, downloaded ahead (see
+// precache) and pruned to what Read Later still holds.
+const IMAGES = "reader-images-v1";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -23,7 +26,9 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))
+      Promise.all(
+        keys.filter((key) => key !== CACHE && key !== IMAGES).map((key) => caches.delete(key))
+      )
     )
   );
   self.clients.claim();
@@ -33,10 +38,92 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
-  if (url.origin !== location.origin) return;
+  if (url.origin !== location.origin) {
+    if (request.destination === "image") event.respondWith(answerImage(request));
+    return;
+  }
 
   event.respondWith(answer(request));
 });
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "precache") event.waitUntil(precache());
+});
+
+// One stored copy per article, whichever list it was opened from: the
+// address differs only by where Close leads back to.
+function cacheKey(request) {
+  const url = new URL(request.url);
+  return /^\/items\/\d+$/.test(url.pathname) ? url.origin + url.pathname : request;
+}
+
+// Another site's image: the downloaded copy if there is one, so an article
+// reads the same offline, else the network as before.
+async function answerImage(request) {
+  const cached = await caches.match(request, { cacheName: IMAGES });
+  return cached || fetch(request);
+}
+
+let precaching = null;
+
+// Download every Read Later article not stored yet, and its images, so a
+// saved article opens offline without having been opened first.
+function precache() {
+  precaching = precaching || downloadReadLater().finally(() => (precaching = null));
+  return precaching;
+}
+
+async function downloadReadLater() {
+  let listed;
+  try {
+    const response = await fetch("/offline/articles", { cache: "no-store" });
+    if (!response.ok) throw new Error(`status ${response.status}`);
+    listed = (await response.json()).articles;
+  } catch (error) {
+    tell("sw-precache", `failed ${error}`);
+    return;
+  }
+  const pages = await caches.open(CACHE);
+  const images = await caches.open(IMAGES);
+  let pagesAdded = 0;
+  let imagesAdded = 0;
+
+  for (const article of listed) {
+    const key = new URL(article.url, location.origin).href;
+    if (await pages.match(key)) continue;
+    try {
+      const response = await fetch(article.url, { headers: { "X-Reader-Prefetch": "1" } });
+      if (response.ok) {
+        await pages.put(key, response);
+        pagesAdded++;
+      }
+    } catch {
+      /* the next run tries again */
+    }
+  }
+
+  const wanted = new Set(
+    listed.flatMap((article) => article.images.map((src) => new URL(src, location.origin).href))
+  );
+  for (const src of wanted) {
+    if (await images.match(src)) continue;
+    try {
+      // Other sites rarely allow reading their images, so take them opaque:
+      // enough for an <img> to show.
+      const response = await fetch(src, { mode: "no-cors" });
+      if (response.ok || response.type === "opaque") {
+        await images.put(src, response);
+        imagesAdded++;
+      }
+    } catch {
+      /* the next run tries again */
+    }
+  }
+  for (const request of await images.keys()) {
+    if (!wanted.has(request.url)) await images.delete(request);
+  }
+  tell("sw-precache", `pages+${pagesAdded} images+${imagesAdded} of ${listed.length}/${wanted.size}`);
+}
 
 const BOOTED = Date.now();
 let pagesServed = 0;
@@ -68,13 +155,13 @@ async function answer(request) {
       const copy = response.clone();
       caches
         .open(CACHE)
-        .then((cache) => cache.put(request, copy))
+        .then((cache) => cache.put(cacheKey(request), copy))
         .catch(() => {});
     }
     note(`net ${response.status}`);
     return response;
   } catch (error) {
-    const cached = await caches.match(request);
+    const cached = await caches.match(cacheKey(request));
     if (cached) {
       note(`cache after ${error}`);
       return cached;

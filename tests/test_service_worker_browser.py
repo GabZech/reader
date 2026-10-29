@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import http.server
 import socket
 import threading
 import time
 from contextlib import contextmanager
 
+import httpx
 import pytest
 import uvicorn
 from playwright.sync_api import sync_playwright
 
+from app import db as dbmod
 from app.main import app
 
 
@@ -83,6 +86,144 @@ def test_a_page_seen_before_still_opens_offline(phone, monkeypatch, tmp_path):
         phone.goto(f"{origin}/lists")
 
         assert phone.locator("h1", has_text="Lists").count() == 1
+
+
+PIXEL_PNG = bytes.fromhex(
+    "89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+    "1f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4c50000000049454e44ae426082"
+)
+
+
+@contextmanager
+def _image_server():
+    """A second origin serving one image, like a blog's own image host."""
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(PIXEL_PNG)
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_address[1]}", server
+    finally:
+        server.shutdown()
+
+
+def _wait_until_cached(phone, url, cache=None, timeout=15):
+    lookup = f"caches.open('{cache}').then(c => c.match(u))" if cache else "caches.match(u)"
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if phone.evaluate(f"(u) => {lookup}.then(r => !!r)", url):
+            return
+        time.sleep(0.2)
+    raise AssertionError(f"{url} never reached the offline cache")
+
+
+def test_a_read_later_article_never_opened_still_opens_offline(
+    phone, monkeypatch, tmp_path
+):
+    with _live_server(monkeypatch, tmp_path) as (origin, server), _image_server() as (
+        image_origin,
+        image_server,
+    ):
+        item_id = httpx.post(
+            f"{origin}/capture",
+            data={"url": "https://blog.test/offline", "html": "<p>x</p>"},
+        ).json()["item_id"]
+        image_url = f"{image_origin}/pic.png"
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            conn.execute(
+                "UPDATE items SET title = ?, body_html = ? WHERE id = ?",
+                (
+                    "Saved for the plane",
+                    f'<p>Words to read offline</p><p><img src="{image_url}"></p>',
+                    item_id,
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+        _wait_until_cached(phone, image_url, cache="reader-images-v1")
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            assert dbmod.get_item(conn, item_id)["seen_at"] is None
+        finally:
+            conn.close()
+        server.should_exit = True
+        image_server.shutdown()
+        time.sleep(1.5)
+
+        for context in ("?from_list=later", "?from_home=1", ""):
+            phone.goto(f"{origin}/items/{item_id}{context}")
+            assert "Words to read offline" in phone.inner_text(".article-body")
+            phone.wait_for_function(
+                "document.querySelector('.article-body img').complete"
+            )
+            assert phone.evaluate(
+                "document.querySelector('.article-body img').naturalWidth"
+            ) == 1
+
+
+def test_a_highlight_made_online_still_shows_in_the_offline_copy(
+    phone, monkeypatch, tmp_path
+):
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
+        item_id = httpx.post(
+            f"{origin}/capture",
+            data={"url": "https://blog.test/stale", "html": "<p>x</p>"},
+        ).json()["item_id"]
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            conn.execute(
+                "UPDATE items SET body_html = ? WHERE id = ?",
+                ("<p>Highlight me before the plane</p>", item_id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+        phone.evaluate(
+            """() => {
+              const p = document.querySelector(".article-body").children[0];
+              const range = document.createRange();
+              range.setStart(p.firstChild, 0);
+              range.setEnd(p.firstChild, 12);
+              getSelection().removeAllRanges();
+              getSelection().addRange(range);
+              p.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+            }"""
+        )
+        phone.wait_for_selector(".article-body mark.hl")
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            stored = phone.evaluate(
+                "(u) => caches.match(u).then(r => r.text())", f"{origin}/items/{item_id}"
+            )
+            if '"start_offset": 0' in stored:
+                break
+            time.sleep(0.2)
+        server.should_exit = True
+        time.sleep(1.5)
+
+        phone.goto(f"{origin}/items/{item_id}?from_home=1")
+
+        assert phone.inner_text(".article-body mark.hl") == "Highlight me"
 
 
 def test_pages_leave_breadcrumbs_that_reach_the_server(phone, monkeypatch, tmp_path):

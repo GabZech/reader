@@ -34,6 +34,29 @@
     }
   };
 
+  // Ask the service worker to download Read Later ahead, at most every few
+  // minutes, so a saved article opens offline without being opened first.
+  const PRECACHE_EVERY_MS = 5 * 60 * 1000;
+  const precacheReadLater = async () => {
+    if (!("serviceWorker" in navigator) || !navigator.onLine) return;
+    try {
+      const last = Number(localStorage.getItem("reader-precached") || 0);
+      if (Date.now() - last < PRECACHE_EVERY_MS) return;
+      const registration = await navigator.serviceWorker.ready;
+      if (!registration.active) return;
+      registration.active.postMessage({ type: "precache" });
+      localStorage.setItem("reader-precached", String(Date.now()));
+    } catch {
+      /* offline cache is best-effort */
+    }
+  };
+
+  // Fetch this article again so the stored offline copy carries a
+  // highlight just saved; the service worker keeps what comes back.
+  const refreshOfflineCopy = () => {
+    fetch(location.pathname, { headers: { "X-Reader-Prefetch": "1" } }).catch(() => {});
+  };
+
   const syncHome = async () => {
     if (location.pathname !== "/") return;
     if (!navigator.onLine) return;
@@ -589,6 +612,7 @@
         .then((result) => {
           if (!result) return;
           wrapHighlight(blockIndex, 0, blockIndex, 0, result.id, result.has_title, result.is_key);
+          refreshOfflineCopy();
           known.push({
             id: result.id,
             start_block: blockIndex,
@@ -687,6 +711,7 @@
             result.has_title,
             result.is_key
           );
+          refreshOfflineCopy();
           const mergedIds = new Set(overlapping.map((h) => h.id));
           for (let i = known.length - 1; i >= 0; i--) {
             if (mergedIds.has(known[i].id)) known.splice(i, 1);
@@ -781,5 +806,6 @@
   initRestorePosition();
   initHighlightDetail();
   registerWorker();
+  precacheReadLater();
   syncHome();
 })();

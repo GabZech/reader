@@ -40,6 +40,7 @@ from app.db import (
     get_source,
     has_pending_source_notice,
     highlights_for_item,
+    image_urls,
     images_in_block_range,
     init_db,
     insert_list,
@@ -118,6 +119,9 @@ templates.env.globals["sources_notice_pending"] = _sources_notice_pending
 NO_FEED = "We could not find a feed."
 TIMED_NOTE = "Timed list · only recent items"
 UNTIMED_NOTE = "Not timed"
+# Most images the device downloads ahead for Read Later, across all articles:
+# enough for a good stack of saved reading without filling a phone's storage.
+OFFLINE_IMAGE_CAP = 200
 
 
 # Brasilia has had no daylight saving since 2019, so a fixed offset is exact.
@@ -1107,7 +1111,9 @@ def item_page(
     try:
         init_db(conn)
         item = get_item(conn, item_id)
-        if item is not None:
+        # The service worker downloading Read Later ahead is not the reader
+        # opening the article.
+        if item is not None and request.headers.get("X-Reader-Prefetch") != "1":
             mark_item_seen(conn, item_id)
             conn.commit()
         in_read_later = item is not None and is_item_in_list(conn, item_id, "later")
@@ -1661,6 +1667,28 @@ def sync():
     finally:
         conn.close()
     return result
+
+
+@app.get("/offline/articles")
+def offline_articles():
+    """What the service worker downloads ahead so Read Later opens offline:
+    each library article's page and, up to a cap, its images."""
+    articles = []
+    room = OFFLINE_IMAGE_CAP
+    conn = connect()
+    try:
+        init_db(conn)
+        # One article's text at a time: the whole list's at once is what
+        # filled the machine before (see `_item_columns`).
+        for item in items_for_list(conn, "later"):
+            images = []
+            if room:
+                images = image_urls(get_item(conn, item["id"])["body_html"])[:room]
+                room -= len(images)
+            articles.append({"url": f"/items/{item['id']}", "images": images})
+    finally:
+        conn.close()
+    return {"articles": articles}
 
 
 @app.get("/sw.js")
