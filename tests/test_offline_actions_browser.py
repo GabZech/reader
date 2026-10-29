@@ -13,11 +13,13 @@ from test_service_worker_browser import (
     _go_offline,
     _go_online,
     _live_server,
+    _select,
     _wait_for,
     _wait_until_cached,
 )
 
 from app import db as dbmod
+from app import diag
 
 FIRST = "First story"
 SECOND = "Second story"
@@ -374,3 +376,99 @@ def test_a_swipe_made_online_is_still_there_when_the_phone_goes_offline_right_af
         expect(phone.locator(".actions")).to_contain_text("Read (1)")
         phone.goto(f"{origin}/lists/news?view=read")
         expect(_row(phone, FIRST)).to_have_count(1)
+
+
+ROW_FACTS = """(row) => {
+  const link = row.querySelector("a.item");
+  return {
+    item: row.dataset.itemId,
+    list: row.dataset.listSlug,
+    swipe: row.dataset.swipeAction,
+    remove: row.dataset.deleteAction,
+    label: row.querySelector(".swipe-move").textContent.trim(),
+    href: link.getAttribute("href"),
+    classes: link.className,
+    title: row.querySelector(".title").textContent.trim(),
+  };
+}"""
+
+
+def test_a_row_moved_offline_reads_the_same_as_the_one_the_server_renders(
+    phone, monkeypatch, tmp_path
+):
+    # The phone builds the row for the new tab itself; if it drifts from the
+    # server's, the row would swipe or open differently until the next refresh.
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
+        first, _ = _seed_news(tmp_path, [FIRST, SECOND])
+        httpx.post(f"{origin}/items/{first}/later")
+        _ready(phone, origin, "/lists/news?view=read", "/lists/later?view=archive")
+        built = {}
+        for page, tab, swipe_page in (
+            ("news", "read", "/lists/news"),
+            ("later", "archive", "/lists/later"),
+        ):
+            phone.goto(f"{origin}{swipe_page}")
+            _go_offline(phone, server)
+            _left(phone, FIRST)
+            phone.goto(f"{origin}/lists/{page}?view={tab}")
+            built[page] = phone.locator(".item-swipe", has_text=FIRST).evaluate(ROW_FACTS)
+            _go_online(phone, server)
+            _wait_for(lambda: _outbox_empty(phone))
+
+        served = {}
+        for page, tab in (("news", "read"), ("later", "archive")):
+            phone.goto(f"{origin}/lists/{page}?view={tab}")
+            served[page] = phone.locator(".item-swipe", has_text=FIRST).evaluate(ROW_FACTS)
+
+        assert built == served
+
+
+def test_the_lists_page_counts_follow_what_was_moved_offline(phone, monkeypatch, tmp_path):
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
+        _seed_news(tmp_path, [FIRST, SECOND, THIRD])
+        _ready(phone, origin, "/lists/news")
+        phone.goto(f"{origin}/lists")
+        news = phone.locator("a.list-row[href='/lists/news'] .count")
+        expect(news).to_have_text("3")
+        phone.goto(f"{origin}/lists/news")
+        _go_offline(phone, server)
+
+        _left(phone, FIRST)
+        _left(phone, SECOND)
+        phone.goto(f"{origin}/lists")
+        expect(news).to_have_text("1")
+
+        # Read and then unread again leaves the count where it began.
+        phone.goto(f"{origin}/lists/news?view=read")
+        _left(phone, FIRST)
+        phone.goto(f"{origin}/lists")
+        expect(news).to_have_text("2")
+
+
+def test_a_highlight_made_offline_reaches_the_server_before_the_archive_after_it(
+    phone, monkeypatch, tmp_path
+):
+    # Archiving exports the article's highlights, so they must already be there.
+    diag.reset()  # the trace outlives the server, and item ids restart at 1
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
+        first, _ = _seed_news(tmp_path, [FIRST, SECOND])
+        httpx.post(f"{origin}/items/{first}/later")
+        _ready(phone, origin, "/lists/later")
+        phone.goto(f"{origin}/items/{first}?from_list=later")
+        _go_offline(phone, server)
+
+        _select(phone, 0, 0, 8)
+        phone.wait_for_selector(".article-body mark.hl.is-pending")
+        phone.click(".act-archive")
+        phone.wait_for_url(f"{origin}/lists/later")
+
+        _go_online(phone, server)
+        _wait_for(lambda: _titles(tmp_path, "later", archived=True) == [FIRST])
+        trace = [
+            (r["method"], r["path"])
+            for r in httpx.get(f"{origin}/diagnostics?format=json").json()["requests"]
+            if r["method"] == "POST"
+        ]
+        highlight = trace.index(("POST", f"/items/{first}/highlights"))
+        archive = trace.index(("POST", f"/items/{first}/archive"))
+        assert highlight < archive

@@ -313,6 +313,9 @@
     read: "Read",
     unread: "Unread",
   };
+  // Moves the server answered with an error, by outbox key: a tap that just
+  // got one is a failed save, not one waiting for a connection.
+  const refused = new Map();
   const secondTab = (list) => (list === "later" ? "archive" : "read");
   const firstTab = (list) => (list === "later" ? "library" : "unread");
   // Every stored page that shows the item: Home, the lists, both tabs.
@@ -353,7 +356,7 @@
   const sendMove = async (move) => {
     const key = await outbox.add({ kind: "move", body: "", at: Date.now(), ...move });
     const gone = () => !outbox.now().some((entry) => entry.key === key);
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const check = () => {
         if (!gone()) return;
         document.removeEventListener("reader:outbox-changed", check);
@@ -361,14 +364,16 @@
       };
       const giveUp = () => {
         document.removeEventListener("reader:outbox-changed", check);
-        resolve(gone() ? "sent" : "queued");
+        if (gone()) return resolve("sent");
+        if (!refused.has(key)) return resolve("queued");
+        outbox.remove(key).then(() => reject(new Error(`status ${refused.get(key)}`)));
       };
       document.addEventListener("reader:outbox-changed", check);
       const run = flushOutbox();
       if (!run) return giveUp();
       run.then(() => {
         // A run already going may have started before this was added.
-        const again = !gone() && navigator.onLine ? flushOutbox() : null;
+        const again = !gone() && !refused.has(key) && navigator.onLine ? flushOutbox() : null;
         if (again) again.then(giveUp);
         else giveUp();
       });
@@ -386,6 +391,27 @@
       .filter((entry) => entry.kind === "move")
       .forEach((entry) => latest.set(`${entry.item} ${entry.list}`, entry));
     return [...latest.values()];
+  };
+
+  // How many more items each list's first tab holds than the stored pages say,
+  // from the first and last thing done to each item still waiting.
+  const unreadChanges = () => {
+    const byItem = new Map();
+    outbox
+      .now()
+      .filter((entry) => entry.kind === "move")
+      .forEach((entry) => {
+        const key = `${entry.item} ${entry.list}`;
+        byItem.set(key, [...(byItem.get(key) || []), entry]);
+      });
+    const changes = {};
+    byItem.forEach((moves) => {
+      const [first, last] = [moves[0], moves[moves.length - 1]];
+      const was = first.action === "read" || first.action === "archive" ? 1 : 0;
+      const now = last.to === firstTab(last.list) ? 1 : 0;
+      changes[last.list] = (changes[last.list] || 0) + now - was;
+    });
+    return changes;
   };
 
   // A row that left the tab on show, or arrived on it, moves the counts in
@@ -441,6 +467,13 @@
       if (count.textContent === "0") section.remove();
       else layoutHomeList(section);
     });
+    // The Lists page counts what is unread (in the Library, for Read later).
+    if (location.pathname === "/lists") {
+      Object.entries(unreadChanges()).forEach(([list, change]) => {
+        const count = document.querySelector(`a.list-row[href="/lists/${list}"] .count`);
+        if (count && change) count.textContent = String(Math.max(0, Number(count.textContent) + change));
+      });
+    }
     // Opened offline: dimmed like any opened title.
     const seen = new Set(
       outbox.now().filter((entry) => entry.kind === "seen").map((entry) => String(entry.item))
@@ -514,7 +547,10 @@
         } finally {
           clearTimeout(timer);
         }
-        if (response.status >= 500) return;
+        if (response.status >= 500) {
+          if (entry.kind === "move") refused.set(entry.key, response.status);
+          return;
+        }
         if (response.ok || response.type === "opaqueredirect") {
           if (entry.kind === "move") {
             // The pages that showed the item where it was are out of date.
