@@ -221,12 +221,14 @@ def test_updating_from_an_older_worker_downloads_read_later_and_keeps_old_pages(
             conn.commit()
         finally:
             conn.close()
-        phone.goto(f"{origin}/")
+        # Not Home: its sync reloads the page, and a reload that starts just
+        # as the worker claims pages leaves that page with no worker at all.
+        phone.goto(f"{origin}/sources")
         phone.wait_for_function("navigator.serviceWorker.controller !== null")
         _wait_until_cached(phone, f"{origin}/settings")
 
         worker.write_text((APP_STATIC / "sw.js").read_text())
-        phone.goto(f"{origin}/sources")
+        phone.goto(f"{origin}/lists")
         _wait_until_cached(phone, f"{origin}/items/{item_id}")
         _wait_until_cached(phone, f"{origin}/lists/later")
         server.should_exit = True
