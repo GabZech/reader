@@ -61,6 +61,7 @@ from app.db import (
     remove_source_from_list,
     rename_list,
     rename_source,
+    set_highlight_key,
     set_highlight_section_title,
     set_highlight_subsection_title,
     set_item_exported_note_path,
@@ -1300,6 +1301,7 @@ async def item_add_highlight(item_id: int, request: Request):
 
         section_title = None
         subsection_title = None
+        is_key = any(row["is_key"] for row in merging)
         for row in merging:  # already ordered earliest-first
             if section_title is None and row["section_title"]:
                 section_title = row["section_title"]
@@ -1323,6 +1325,8 @@ async def item_add_highlight(item_id: int, request: Request):
             set_highlight_section_title(conn, highlight_id, section_title)
         if subsection_title:
             set_highlight_subsection_title(conn, highlight_id, subsection_title)
+        if is_key:
+            set_highlight_key(conn, highlight_id, True)
         touch_item_highlights(conn, item_id)
         conn.commit()
     finally:
@@ -1354,6 +1358,10 @@ def highlight_detail(request: Request, item_id: int, highlight_id: int):
             "section_title_action": f"/items/{item_id}/highlights/{highlight_id}/section-title",
             "subsection_title_action": (
                 f"/items/{item_id}/highlights/{highlight_id}/subsection-title"
+            ),
+            "key_action": (
+                f"/items/{item_id}/highlights/{highlight_id}/"
+                f"{'unkey' if highlight['is_key'] else 'key'}"
             ),
             "delete_action": f"/items/{item_id}/highlights/{highlight_id}/delete",
         },
@@ -1431,6 +1439,31 @@ async def highlight_subsection_title_submit(
     request: Request, item_id: int, highlight_id: int
 ):
     return await _highlight_title_submit(request, item_id, highlight_id, "subsection")
+
+
+def _set_highlight_key(item_id: int, highlight_id: int, is_key: bool):
+    conn = connect()
+    try:
+        init_db(conn)
+        highlight = get_highlight(conn, item_id, highlight_id)
+        if highlight is None:
+            raise HTTPException(status_code=404)
+        set_highlight_key(conn, highlight_id, is_key)
+        touch_item_highlights(conn, item_id)
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(f"/items/{item_id}#highlight-{highlight_id}", status_code=303)
+
+
+@app.post("/items/{item_id}/highlights/{highlight_id}/key")
+def highlight_mark_key(item_id: int, highlight_id: int):
+    return _set_highlight_key(item_id, highlight_id, True)
+
+
+@app.post("/items/{item_id}/highlights/{highlight_id}/unkey")
+def highlight_unmark_key(item_id: int, highlight_id: int):
+    return _set_highlight_key(item_id, highlight_id, False)
 
 
 @app.post("/items/{item_id}/highlights/{highlight_id}/delete")

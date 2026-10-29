@@ -16,6 +16,7 @@ REPO = "news-highlights"
 BRANCH = "main"
 
 _PATH_DATE = re.compile(r"Highlights/(\d{2}-\d{2}-\d{2}) ")
+KEY_TAG = "#key"
 _UNSAFE_TITLE_CHARS = re.compile(r'[\\/:*?"<>|]')
 
 
@@ -76,6 +77,29 @@ def build_note_markdown(item, highlights) -> str:
 
 
 def _highlight_lines(highlight, body_html) -> list[str]:
+    lines = _plain_highlight_lines(highlight, body_html)
+    if _is_key(highlight) and lines:
+        lines[0] = f"{lines[0]} {KEY_TAG}"
+    return lines
+
+
+def _is_key(highlight) -> bool:
+    try:
+        return bool(highlight["is_key"])
+    except (KeyError, IndexError):
+        return False
+
+
+def _mark(line: str, is_key: bool) -> str:
+    # Obsidian's ==mark== cannot span lines and breaks on padding inside the
+    # marks or on a stray "==" in the text, so those lines stay unmarked.
+    stripped = line.strip()
+    if not is_key or not stripped or "==" in stripped:
+        return line
+    return f"=={stripped}=="
+
+
+def _plain_highlight_lines(highlight, body_html) -> list[str]:
     # A highlight spanning a <ul>/<ol> (or several blocks) arrives with each
     # item on its own line - the browser's range.toString() inserts a
     # newline at each block boundary. The raw newlines carry no depth or
@@ -84,6 +108,8 @@ def _highlight_lines(highlight, body_html) -> list[str]:
     text_lines = [line for line in highlight["text"].split("\n") if line.strip()]
     if not text_lines:
         text_lines = [""]
+    is_key = _is_key(highlight)
+    text_lines = [_mark(line, is_key) for line in text_lines]
 
     try:
         start_block = highlight["start_block"]

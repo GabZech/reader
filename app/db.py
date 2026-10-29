@@ -117,6 +117,8 @@ def init_db(conn: sqlite3.Connection) -> None:
     highlights_columns = {row["name"] for row in conn.execute("PRAGMA table_info(highlights)")}
     if "image_urls" not in highlights_columns:
         conn.execute("ALTER TABLE highlights ADD COLUMN image_urls TEXT")
+    if "is_key" not in highlights_columns:
+        conn.execute("ALTER TABLE highlights ADD COLUMN is_key INTEGER NOT NULL DEFAULT 0")
     item_lists_columns = {row["name"] for row in conn.execute("PRAGMA table_info(item_lists)")}
     if "archived_at" not in item_lists_columns:
         conn.execute("ALTER TABLE item_lists ADD COLUMN archived_at TEXT")
@@ -571,6 +573,13 @@ def set_highlight_subsection_title(
     conn.execute(
         "UPDATE highlights SET subsection_title = ? WHERE id = ?",
         (title, highlight_id),
+    )
+
+
+def set_highlight_key(conn: sqlite3.Connection, highlight_id: int, is_key: bool) -> None:
+    conn.execute(
+        "UPDATE highlights SET is_key = ? WHERE id = ?",
+        (1 if is_key else 0, highlight_id),
     )
 
 
