@@ -3,6 +3,7 @@
 {% block body %}
       <nav class="article-bar" aria-label="Article">
         <a class="bar-close" href="{{ back }}">Close</a>
+        <span class="sync-state" hidden></span>
         <span class="article-bar-right">
           {% if item.url %}
           <a href="{{ item.url }}" rel="noreferrer">Open original</a>

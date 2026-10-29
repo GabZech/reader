@@ -1155,6 +1155,36 @@ form.is-apart {
   color: var(--accent);
 }
 
+/* Offline, or saves still waiting to reach the server (see showSyncState
+   in app.js). Hidden once everything is sent. */
+.article-bar .sync-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 auto 0 -0.25rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.article-bar .sync-state[hidden] {
+  display: none;
+}
+
+.article-bar .sync-state::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+.article-bar .sync-state.is-waiting {
+  color: var(--accent);
+}
+
 .article-bar-right {
   display: flex;
   align-items: center;
@@ -1330,6 +1360,19 @@ form.is-apart {
 .article-body img.hl-image {
   outline: 4px solid var(--highlight-bg);
   outline-offset: 3px;
+}
+
+/* Saved on this phone, not yet on the server. */
+.article-body .hl.is-pending {
+  text-decoration: underline dashed;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.22em;
+}
+
+.article-body img.hl-image.is-pending {
+  outline-style: dashed;
+  outline-color: var(--accent);
 }
 
 .article-body .recovered-image {

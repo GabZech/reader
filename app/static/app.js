@@ -98,6 +98,7 @@
   // outlast the app being closed, and go to the server in order once it is
   // back (see flushOutbox).
   const outbox = (() => {
+    const changed = () => document.dispatchEvent(new Event("reader:outbox-changed"));
     let opened = null;
     const open = () => {
       opened =
@@ -123,9 +124,9 @@
       );
     return {
       all: () => run("readonly", (store) => store.getAll()),
-      add: (entry) => run("readwrite", (store) => store.add(entry)),
+      add: (entry) => run("readwrite", (store) => store.add(entry)).finally(changed),
       put: (entry) => run("readwrite", (store) => store.put(entry)),
-      remove: (key) => run("readwrite", (store) => store.delete(key)),
+      remove: (key) => run("readwrite", (store) => store.delete(key)).finally(changed),
     };
   })();
 
@@ -216,6 +217,7 @@
         .sort((a, b) => b[1].at - a[1].at)
         .slice(0, 100);
       localStorage.setItem(PROGRESS_KEY, JSON.stringify(Object.fromEntries(newest)));
+      document.dispatchEvent(new Event("reader:outbox-changed"));
     } catch {
       /* best-effort */
     }
@@ -315,9 +317,33 @@
     return flushing;
   };
 
+  // The article bar's label: "Offline", or how many saves are still to
+  // reach the server, or nothing once all are sent.
+  const showSyncState = () => {
+    const label = document.querySelector(".sync-state");
+    if (!label) return;
+    const owed = () => {
+      const spots = Object.values(readProgress()).filter((spot) => spot.unsent).length;
+      return outbox
+        .all()
+        .then((entries) => entries.length + spots)
+        .catch(() => spots);
+    };
+    owed().then((count) => {
+      const offline = !navigator.onLine;
+      label.hidden = !offline && count === 0;
+      label.classList.toggle("is-waiting", !offline && count > 0);
+      label.textContent = offline ? "Offline" : `${count} to sync`;
+    });
+  };
+
   const initOutbox = () => {
+    showSyncState();
+    window.addEventListener("offline", showSyncState);
+    document.addEventListener("reader:outbox-changed", showSyncState);
     if (!("indexedDB" in window)) return;
     flushOutbox();
+    window.addEventListener("online", showSyncState);
     window.addEventListener("online", flushOutbox);
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") flushOutbox();

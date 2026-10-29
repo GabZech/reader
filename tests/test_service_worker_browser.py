@@ -642,3 +642,31 @@ def test_a_synced_highlight_can_be_edited_and_deleted_offline(
 
         _wait_for(lambda: len(_highlight_rows(tmp_path)) == 1)
         _wait_for(lambda: _highlight_rows(tmp_path)[0]["subsection_title"] == "Detail")
+
+
+def test_the_article_bar_says_offline_then_what_is_left_to_sync(
+    phone, monkeypatch, tmp_path
+):
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        item_id = _saved_article(origin, tmp_path, "label", "<p>Label me while away</p>")
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+        assert not phone.is_visible(".sync-state")
+
+        phone.context.set_offline(True)
+        phone.wait_for_selector(".sync-state:has-text('Offline')")
+        _select(phone, 0, 0, 8)
+        phone.wait_for_selector(".article-body mark.hl.is-pending")
+        assert phone.inner_text(".sync-state") == "Offline"
+
+        # Back online while the server cannot take it yet: still owed.
+        failing = lambda route: route.fulfill(status=503, body="busy")
+        phone.route(f"{origin}/items/{item_id}/highlights", failing)
+        phone.context.set_offline(False)
+        phone.wait_for_selector(".sync-state.is-waiting:has-text('1 to sync')")
+
+        phone.unroute(f"{origin}/items/{item_id}/highlights", failing)
+        phone.evaluate("window.dispatchEvent(new Event('online'))")
+        phone.wait_for_selector(".sync-state", state="hidden")
+        assert _highlight_texts(tmp_path) == ["Label me"]
