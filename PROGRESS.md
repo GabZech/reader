@@ -4,7 +4,14 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ## In flight
 
-None.
+**Offline reading and highlighting** (behaviour + visual), branch `dev/offline-reading`. Read Later articles readable offline without being opened first; highlights and highlight edits (section and subsection titles, key passage, delete) made offline are kept on the device and sent once back online. Leaves alone: archive, mark as read and swipe moves offline (stay deferred in the roadmap). Feedback rounds: 0.
+
+### Planned
+
+1. Download ahead: Read Later article pages (and images, within a storage cap) cached whenever the app opens online; articles looked up by item number alone when offline; cached copy refreshed after a highlight save. Not started
+2. Offline highlights: drawn at once, queued in IndexedDB, replayed when back online; reading position via the same queue; the server returns the existing highlight for an identical span so a replay never duplicates. Not started
+3. Offline highlight page: any highlight's page built on the device from the article's data; section/subsection title, key and delete work offline and queue after the highlight they belong to (temporary id mapped to the real one); an edit to a highlight gone from the server is dropped. Not started
+4. Sync indicator: unsynced highlights look distinct; a small offline / waiting-to-sync indicator. Mockup first. Not started
 
 ## Blocked
 
