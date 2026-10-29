@@ -247,6 +247,12 @@ def _link_spans(highlight, body_html, base_url) -> list[tuple[int, int, str]]:
     return [(start, end, url) for start, end, url, _ in spans]
 
 
+def highlights_have_links(item, highlights) -> bool:
+    return any(
+        _link_spans(highlight, item["body_html"], item["url"]) for highlight in highlights
+    )
+
+
 def _text_pieces(el, href=None):
     # Text in document order with the href of the link it sits in, matching
     # the text nodes the browser's textContent walks (comments carry none).

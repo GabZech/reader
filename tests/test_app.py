@@ -2891,3 +2891,54 @@ def test_pages_fill_the_whole_iphone_screen_so_the_safe_area_insets_apply(
             viewport = re.search(r'<meta name="viewport" content="([^"]*)"', page)
             assert viewport, path
             assert "viewport-fit=cover" in viewport.group(1), path
+
+
+def _past_export(tmp_path, item_id, linked):
+    # An item exported two days ago whose highlight does or does not cover a link.
+    link = '<a href="https://example.test/post">the post</a>' if linked else "the post"
+    two_days_ago = (datetime.now(UTC) - timedelta(days=2)).isoformat()
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        conn.execute(
+            "UPDATE items SET body_html = ?, highlights_touched_at = ?,"
+            " highlights_exported_at = ? WHERE id = ?",
+            (f"<p>Read {link}.</p>", two_days_ago, two_days_ago, item_id),
+        )
+        conn.execute(
+            "UPDATE highlights SET start_block = 0, start_offset = 0, end_block = 0,"
+            " end_offset = 14, text = 'Read the post.' WHERE item_id = ?",
+            (item_id,),
+        )
+        conn.execute("PRAGMA user_version = 0")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_a_restart_resends_past_notes_whose_highlights_carry_links(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        linked_id, plain_id = _two_highlighted_items(client, tmp_path)
+        _past_export(tmp_path, linked_id, linked=True)
+        _past_export(tmp_path, plain_id, linked=False)
+
+        calls = _record_exports(monkeypatch)
+        from app.main import _run_startup_catch_up
+
+        _run_startup_catch_up()
+
+        assert [call[0] for call in calls] == [linked_id]
+        assert _get_item_row(tmp_path, linked_id)["highlights_exported_at"] is not None
+
+
+def test_the_link_resend_happens_only_once(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        linked_id, _ = _two_highlighted_items(client, tmp_path)
+        _past_export(tmp_path, linked_id, linked=True)
+        from app.main import _run_startup_catch_up
+
+        _run_startup_catch_up()
+        calls = _record_exports(monkeypatch)
+        _run_startup_catch_up()
+
+        assert calls == []
+
