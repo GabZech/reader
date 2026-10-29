@@ -6,6 +6,7 @@ import threading
 import time
 from contextlib import contextmanager
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import httpx
 import pytest
@@ -691,3 +692,51 @@ def test_a_cog_left_turning_by_a_lost_done_message_stops_at_the_next_ask(
         phone.evaluate("window.dispatchEvent(new Event('online'))")
 
         phone.wait_for_selector("#sync-status:not(.is-updating)", timeout=5000)
+
+
+def test_closing_a_pending_highlights_page_returns_to_the_article_with_it(
+    phone, monkeypatch, tmp_path
+):
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        item_id = _saved_article(origin, tmp_path, "close", "<p>Close me and come back</p>")
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/offline/highlight")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+        phone.context.set_offline(True)
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+        _select(phone, 0, 0, 8)
+        phone.wait_for_selector(".article-body mark.hl.is-pending")
+
+        _open_highlight(phone, "Close me")
+        phone.click(".top-edit")
+
+        phone.wait_for_selector(".article-body")
+        assert urlsplit(phone.url).path == f"/items/{item_id}"
+        phone.wait_for_selector(".article-body mark.hl.is-pending")
+        assert [m["text"] for m in _marked(phone)] == ["Close me"]
+
+
+def test_close_leads_back_to_the_article_before_the_page_is_filled_in(
+    phone, monkeypatch, tmp_path
+):
+    # On a phone, filling the page in can take a moment; a Close tapped
+    # meanwhile went to Home.
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        item_id = _saved_article(origin, tmp_path, "early", "<p>Close me early on</p>")
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/offline/highlight")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+        phone.context.set_offline(True)
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+        _select(phone, 0, 0, 8)
+        phone.wait_for_selector(".article-body mark.hl.is-pending")
+        # Stall the outbox on the highlight page only, so it never fills in.
+        phone.add_init_script(
+            "if (location.pathname.includes('/highlights/')) indexedDB.open = () => ({});"
+        )
+
+        _open_highlight(phone, "Close me")
+        phone.click(".top-edit")
+
+        phone.wait_for_selector(".article-body mark.hl.is-pending")
+        assert urlsplit(phone.url).path == f"/items/{item_id}"

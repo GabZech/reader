@@ -968,7 +968,7 @@
             )
           )
           .then(flushOutbox)
-          .catch(() => {});
+          .catch((error) => note("outbox-failed", `keep ${id} ${error}`));
       };
 
       if (!navigator.onLine || overlapping.some((h) => isPending(h.id))) {
@@ -1016,8 +1016,9 @@
           if (current) draw(current);
         });
         now.filter((h) => isPending(h.id)).forEach((h) => draw(h));
+        if (entries.length) note("outbox", `drawn ${now.filter((h) => h.pending).length} of ${entries.length}`);
       })
-      .catch(() => {});
+      .catch((error) => note("outbox-failed", `draw ${error}`));
 
     // Once sent, a pending highlight takes the id the server gave it.
     document.addEventListener("reader:highlight-synced", ({ detail: { entry, result } }) => {
@@ -1184,27 +1185,38 @@
     const back = `${article}#highlight-${highlightId}`;
     const shell = Boolean(document.querySelector("[data-offline-shell]"));
 
-    const fill = (h) => {
+    // Where every link and button leads depends only on this page's own
+    // address: set at once, so a tap before the rest is filled in still lands
+    // in the right place (Close used to lead Home meanwhile).
+    const wire = () => {
       document.querySelector(".top-edit").href = level ? page : back;
-      document.querySelector("blockquote.quote").textContent = h.text;
       if (level) {
-        document.getElementById("highlight-title").value = h[`${level}_title`] || "";
         document.querySelector('[data-highlight-form="title"]').action = `${page}/${level}-title`;
         return;
       }
       const [section, subsection] = document.querySelectorAll("a.item");
       section.href = `${page}/section-title`;
       subsection.href = `${page}/subsection-title`;
+      document.querySelector('[data-highlight-form="key"]').action = `${page}/key`;
+      document.querySelector('[data-highlight-form="delete"]').action = `${page}/delete`;
+    };
+
+    const fill = (h) => {
+      document.querySelector("blockquote.quote").textContent = h.text || "";
+      if (level) {
+        document.getElementById("highlight-title").value = h[`${level}_title`] || "";
+        return;
+      }
       const keyForm = document.querySelector('[data-highlight-form="key"]');
       keyForm.action = `${page}/${h.is_key ? "unkey" : "key"}`;
       keyForm.querySelector("button").innerHTML = document.getElementById(
         h.is_key ? "key-on" : "key-off"
       ).innerHTML;
-      document.querySelector('[data-highlight-form="delete"]').action = `${page}/delete`;
-      document.getElementById("copy-highlight").dataset.copyText = h.text;
+      document.getElementById("copy-highlight").dataset.copyText = h.text || "";
     };
 
     if (shell) {
+      wire();
       Promise.all([
         fetch(article, { headers: { "X-Reader-Prefetch": "1" } }).then((r) => r.text()),
         outbox.all(),
@@ -1217,10 +1229,17 @@
           const h = highlightsOnPhone(saved, entries, article).find(
             (x) => String(x.id) === highlightId
           );
+          note(
+            "highlight-page",
+            `${highlightId} ${h ? "found" : "missing"} saved=${saved.length} outbox=${entries.length}`
+          );
           if (h) fill(h);
           else location.replace(article);
         })
-        .catch(() => location.replace(article));
+        .catch((error) => {
+          note("highlight-page", `${highlightId} failed ${error}`);
+          location.replace(article);
+        });
     }
 
     // Forgetting a highlight that never reached the server: nothing to send.
