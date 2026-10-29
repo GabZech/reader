@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import http.server
 import socket
 import threading
@@ -26,32 +27,177 @@ def _free_port() -> int:
         return sock.getsockname()[1]
 
 
+class _Network:
+    """A relay between the browser and the app that can drop, like airplane
+    mode: every open connection is cut and new ones are refused, so requests
+    fail as a network error and only the service worker can answer.
+    WebKit's own offline switch also refuses pages the worker could serve,
+    which a real iPhone does not do."""
+
+    def __init__(self, upstream_port: int):
+        self.upstream_port = upstream_port
+        self.open: set[socket.socket] = set()
+        self.lock = threading.Lock()
+        self.port = 0
+        self.listener = None
+        self.up()
+
+    def _accept(self, listener):
+        while True:
+            try:
+                client, _ = listener.accept()
+            except OSError:
+                return
+            try:
+                upstream = socket.create_connection(("127.0.0.1", self.upstream_port))
+            except OSError:
+                client.close()
+                continue
+            with self.lock:
+                self.open.update((client, upstream))
+            for a, b in ((client, upstream), (upstream, client)):
+                threading.Thread(target=self._pipe, args=(a, b), daemon=True).start()
+
+    def _pipe(self, source, target):
+        try:
+            while chunk := source.recv(65536):
+                target.sendall(chunk)
+        except OSError:
+            pass
+        finally:
+            for sock in (source, target):
+                with self.lock:
+                    self.open.discard(sock)
+                try:
+                    sock.close()
+                except OSError:
+                    pass
+
+    def down(self):
+        # No listener at all: a connection is refused outright, as in
+        # airplane mode, rather than accepted and dropped.
+        if self.listener is not None:
+            # Shut down first: the thread waiting in accept() otherwise keeps
+            # the port, and going back online cannot bind it again.
+            try:
+                self.listener.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            self.listener.close()
+            self.listener = None
+        with self.lock:
+            cut, self.open = list(self.open), set()
+        for sock in cut:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+                sock.close()
+            except OSError:
+                pass
+
+    def up(self):
+        if self.listener is not None:
+            return
+        listener = socket.socket()
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", self.port))
+        listener.listen(64)
+        self.port = listener.getsockname()[1]
+        self.listener = listener
+        threading.Thread(target=self._accept, args=(listener,), daemon=True).start()
+
+    def close(self):
+        self.down()
+
+
+class _SlowSaves:
+    """Holds back new highlights for a few seconds when switched on, without
+    holding up anything else the server answers."""
+
+    def __init__(self, app):
+        self.app = app
+        self.seconds = 0
+
+    async def __call__(self, scope, receive, send):
+        if (
+            self.seconds
+            and scope["type"] == "http"
+            and scope["method"] == "POST"
+            and scope["path"].endswith("/highlights")
+        ):
+            await asyncio.sleep(self.seconds)
+        await self.app(scope, receive, send)
+
+
 @contextmanager
 def _live_server(monkeypatch, tmp_path):
     monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "reader.db"))
     port = _free_port()
-    server = uvicorn.Server(uvicorn.Config(app, port=port, log_level="warning"))
+    slow_saves = _SlowSaves(app)
+    server = uvicorn.Server(uvicorn.Config(slow_saves, port=port, log_level="warning"))
+    server.slow_saves = slow_saves
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
     deadline = time.monotonic() + 10
     while not server.started and time.monotonic() < deadline:
         time.sleep(0.05)
     assert server.started
+    server.network = _Network(port)
     try:
-        yield f"http://127.0.0.1:{port}", server
+        yield f"http://127.0.0.1:{server.network.port}", server
     finally:
+        server.network.close()
         server.should_exit = True
         thread.join(timeout=10)
 
 
-@pytest.fixture
-def phone():
+# The page learns it is offline the way a phone tells it: navigator.onLine
+# and the offline/online events. Kept per tab, so it holds across pages.
+TELL_ONLINE_STATE = """
+Object.defineProperty(Navigator.prototype, "onLine", {
+  configurable: true,
+  get: () => sessionStorage.getItem("test-offline") !== "1",
+});
+"""
+
+
+def _app_url(server):
+    """The app itself, past the relay: for what another device does."""
+    return f"http://127.0.0.1:{server.network.upstream_port}"
+
+
+def _wait_for_quote(phone, text):
+    # Offline the page fills its passage in a moment after it opens.
+    phone.wait_for_function(
+        "(t) => document.querySelector('blockquote.quote').textContent === t", arg=text
+    )
+
+
+def _go_offline(phone, server):
+    server.network.down()
+    phone.evaluate(
+        "sessionStorage.setItem('test-offline', '1'); window.dispatchEvent(new Event('offline'))"
+    )
+
+
+def _go_online(phone, server):
+    server.network.up()
+    phone.evaluate(
+        "sessionStorage.removeItem('test-offline'); window.dispatchEvent(new Event('online'))"
+    )
+
+
+# WebKit is Safari's engine, which the installed iPhone app runs on: bugs
+# there (saving a form offline, the worker's lifetime) never showed in Chromium.
+@pytest.fixture(params=["chromium", "webkit"])
+def phone(request):
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = getattr(p, request.param).launch()
         try:
-            yield browser.new_context(
+            page = browser.new_context(
                 viewport={"width": 390, "height": 844}, service_workers="allow"
             ).new_page()
+            page.add_init_script(TELL_ONLINE_STATE)
+            yield page
         finally:
             browser.close()
 
@@ -65,6 +211,7 @@ def test_a_page_that_cannot_load_or_be_found_offline_shows_a_retry_page(
     with _live_server(monkeypatch, tmp_path) as (origin, server):
         phone.goto(f"{origin}/")
         phone.wait_for_function("navigator.serviceWorker.controller !== null")
+        server.network.down()
         server.should_exit = True
         time.sleep(1.5)
 
@@ -85,6 +232,7 @@ def test_a_page_seen_before_still_opens_offline(phone, monkeypatch, tmp_path):
         phone.goto(f"{origin}/")
         phone.wait_for_function("navigator.serviceWorker.controller !== null")
         phone.goto(f"{origin}/lists")
+        server.network.down()
         server.should_exit = True
         time.sleep(1.5)
 
@@ -230,8 +378,13 @@ def test_updating_from_an_older_worker_downloads_read_later_and_keeps_old_pages(
 
         worker.write_text((APP_STATIC / "sw.js").read_text())
         phone.goto(f"{origin}/lists")
+        # WebKit sometimes leaves the ask made during the update unanswered;
+        # every page asks, so the download happens by the next one.
+        phone.wait_for_function("navigator.serviceWorker.controller !== null")
+        phone.goto(f"{origin}/sources")
         _wait_until_cached(phone, f"{origin}/items/{item_id}")
         _wait_until_cached(phone, f"{origin}/lists/later")
+        server.network.down()
         server.should_exit = True
         time.sleep(1.5)
 
@@ -315,6 +468,7 @@ def test_a_highlight_made_online_still_shows_in_the_offline_copy(
             if '"start_offset": 0' in stored:
                 break
             time.sleep(0.2)
+        server.network.down()
         server.should_exit = True
         time.sleep(1.5)
 
@@ -437,13 +591,13 @@ def _wait_for(check, timeout=10):
 def test_a_highlight_made_offline_is_kept_and_sent_once_back_online(
     phone, monkeypatch, tmp_path
 ):
-    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
         item_id = _saved_article(
             origin, tmp_path, "plane", "<p>Highlight me on the plane today</p><p>More</p>"
         )
         phone.goto(f"{origin}/settings")
         _wait_until_cached(phone, f"{origin}/items/{item_id}")
-        phone.context.set_offline(True)
+        _go_offline(phone, server)
 
         phone.goto(f"{origin}/items/{item_id}?from_list=later")
         _select(phone, 0, 0, 12)
@@ -458,7 +612,7 @@ def test_a_highlight_made_offline_is_kept_and_sent_once_back_online(
         assert "".join(m["text"] for m in _marked(phone)) == "Highlight me on the plane"
         assert _highlight_texts(tmp_path) == []
 
-        phone.context.set_offline(False)
+        _go_online(phone, server)
         _wait_for(lambda: _highlight_texts(tmp_path) == ["Highlight me on the plane"])
         _wait_for(lambda: all(not m["pending"] and m["id"].isdigit() for m in _marked(phone)))
 
@@ -471,12 +625,12 @@ def test_a_highlight_made_offline_is_kept_and_sent_once_back_online(
 def test_reading_position_offline_is_kept_and_sent_back_online(
     phone, monkeypatch, tmp_path
 ):
-    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
         body = "".join(f"<p>Paragraph {n} " + "word " * 120 + "</p>" for n in range(12))
         item_id = _saved_article(origin, tmp_path, "long", body)
         phone.goto(f"{origin}/settings")
         _wait_until_cached(phone, f"{origin}/items/{item_id}")
-        phone.context.set_offline(True)
+        _go_offline(phone, server)
 
         phone.goto(f"{origin}/items/{item_id}?from_list=later")
         phone.evaluate("document.querySelector('.article-body').children[6].scrollIntoView()")
@@ -488,7 +642,7 @@ def test_reading_position_offline_is_kept_and_sent_back_online(
             "document.querySelector('.article-body').children[6].classList.contains('is-resume')"
         )
 
-        phone.context.set_offline(False)
+        _go_online(phone, server)
         phone.goto(f"{origin}/lists/later")
 
         def sent():
@@ -506,32 +660,26 @@ def test_a_queued_highlight_the_server_refuses_is_dropped_not_retried_forever(
 ):
     # Deleted on another device while this phone was offline: a refusal kept
     # in the queue would hold back every highlight queued after it.
-    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
         gone = _saved_article(origin, tmp_path, "gone", "<p>Deleted elsewhere soon</p>")
         kept = _saved_article(origin, tmp_path, "kept", "<p>Still here afterwards</p>")
         phone.goto(f"{origin}/settings")
         _wait_until_cached(phone, f"{origin}/items/{gone}")
         _wait_until_cached(phone, f"{origin}/items/{kept}")
-        phone.context.set_offline(True)
+        _go_offline(phone, server)
         for item_id in (gone, kept):
             phone.goto(f"{origin}/items/{item_id}")
             _select(phone, 0, 0, 5)
             phone.wait_for_selector(".article-body mark.hl.is-pending")
-        httpx.post(f"{origin}/items/{gone}/delete")
+        # Another device, which still has a connection.
+        httpx.post(f"{_app_url(server)}/items/{gone}/delete")
 
-        phone.context.set_offline(False)
+        _go_online(phone, server)
 
         _wait_for(lambda: _highlight_texts(tmp_path) == ["Still"])
         _wait_for(
-            lambda: phone.evaluate(
-                """() => new Promise((resolve) => {
-                  const open = indexedDB.open("reader", 1);
-                  open.onsuccess = () => {
-                    const all = open.result.transaction("outbox").objectStore("outbox").getAll();
-                    all.onsuccess = () => resolve(all.result.length === 0);
-                  };
-                })"""
-            )
+            lambda: phone.evaluate("JSON.parse(localStorage.getItem('reader-outbox') || '[]').length")
+            == 0
         )
         logged = phone.evaluate(
             "JSON.parse(localStorage.getItem('reader-log') || '[]').map(x => x.e)"
@@ -555,23 +703,23 @@ def _open_highlight(phone, text):
 def test_a_pending_highlight_can_be_titled_keyed_and_deleted_offline(
     phone, monkeypatch, tmp_path
 ):
-    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
         item_id = _saved_article(
             origin, tmp_path, "edits", "<p>First passage to keep</p><p>Second one to drop</p>"
         )
         phone.goto(f"{origin}/settings")
         _wait_until_cached(phone, f"{origin}/offline/highlight")
         _wait_until_cached(phone, f"{origin}/items/{item_id}")
-        phone.context.set_offline(True)
+        _go_offline(phone, server)
         phone.goto(f"{origin}/items/{item_id}?from_list=later")
         _select(phone, 0, 0, 13)
         phone.wait_for_selector(".article-body mark.hl.is-pending")
 
         _open_highlight(phone, "First passage")
-        assert phone.inner_text("blockquote.quote") == "First passage"
+        _wait_for_quote(phone, "First passage")
         phone.click("text=Add section title")
         phone.wait_for_selector("h1:has-text('Section title')")
-        assert phone.inner_text("blockquote.quote") == "First passage"
+        _wait_for_quote(phone, "First passage")
         phone.fill("#highlight-title", "Part one")
         phone.click("button:has-text('Done')")
         phone.wait_for_selector(".article-body .hl-title-marker")
@@ -594,7 +742,7 @@ def test_a_pending_highlight_can_be_titled_keyed_and_deleted_offline(
         _open_highlight(phone, "First passage")
         assert phone.locator("text=Unmark key passage").count() == 1
 
-        phone.context.set_offline(False)
+        _go_online(phone, server)
         phone.goto(f"{origin}/items/{item_id}?from_list=later")
 
         _wait_for(lambda: len(_highlight_rows(tmp_path)) == 1 and _highlight_rows(tmp_path)[0]["is_key"])
@@ -605,7 +753,7 @@ def test_a_pending_highlight_can_be_titled_keyed_and_deleted_offline(
 def test_a_synced_highlight_can_be_edited_and_deleted_offline(
     phone, monkeypatch, tmp_path
 ):
-    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
         item_id = _saved_article(
             origin, tmp_path, "synced", "<p>Already saved passage</p><p>Another saved one</p>"
         )
@@ -623,11 +771,11 @@ def test_a_synced_highlight_can_be_edited_and_deleted_offline(
         phone.goto(f"{origin}/settings")
         _wait_until_cached(phone, f"{origin}/offline/highlight-title/subsection")
         _wait_until_cached(phone, f"{origin}/items/{item_id}")
-        phone.context.set_offline(True)
+        _go_offline(phone, server)
         phone.goto(f"{origin}/items/{item_id}?from_list=later")
 
         _open_highlight(phone, "Already saved")
-        assert phone.inner_text("blockquote.quote") == "Already saved"
+        _wait_for_quote(phone, "Already saved")
         phone.click("text=Add subsection title")
         phone.fill("#highlight-title", "Detail")
         phone.click("button:has-text('Done')")
@@ -638,7 +786,7 @@ def test_a_synced_highlight_can_be_edited_and_deleted_offline(
         _wait_for(lambda: [m["text"] for m in _marked(phone)] == ["Already saved"])
         assert len(_highlight_rows(tmp_path)) == 2
 
-        phone.context.set_offline(False)
+        _go_online(phone, server)
         phone.goto(f"{origin}/lists/later")
 
         _wait_for(lambda: len(_highlight_rows(tmp_path)) == 1)
@@ -648,14 +796,14 @@ def test_a_synced_highlight_can_be_edited_and_deleted_offline(
 def test_the_article_bar_says_offline_and_what_waits_only_while_offline(
     phone, monkeypatch, tmp_path
 ):
-    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
         item_id = _saved_article(origin, tmp_path, "label", "<p>Label me while away</p>")
         phone.goto(f"{origin}/settings")
         _wait_until_cached(phone, f"{origin}/items/{item_id}")
         phone.goto(f"{origin}/items/{item_id}?from_list=later")
         assert not phone.is_visible(".sync-state")
 
-        phone.context.set_offline(True)
+        _go_offline(phone, server)
         phone.wait_for_selector(".sync-state:has-text('Offline')")
         assert phone.inner_text(".sync-state") == "Offline"
         _select(phone, 0, 0, 8)
@@ -664,7 +812,7 @@ def test_the_article_bar_says_offline_and_what_waits_only_while_offline(
         # Online the label goes at once, sent yet or not.
         failing = lambda route: route.fulfill(status=503, body="busy")
         phone.route(f"{origin}/items/{item_id}/highlights", failing)
-        phone.context.set_offline(False)
+        _go_online(phone, server)
         phone.wait_for_selector(".sync-state", state="hidden")
 
         phone.unroute(f"{origin}/items/{item_id}/highlights", failing)
@@ -697,12 +845,12 @@ def test_a_cog_left_turning_by_a_lost_done_message_stops_at_the_next_ask(
 def test_closing_a_pending_highlights_page_returns_to_the_article_with_it(
     phone, monkeypatch, tmp_path
 ):
-    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
         item_id = _saved_article(origin, tmp_path, "close", "<p>Close me and come back</p>")
         phone.goto(f"{origin}/settings")
         _wait_until_cached(phone, f"{origin}/offline/highlight")
         _wait_until_cached(phone, f"{origin}/items/{item_id}")
-        phone.context.set_offline(True)
+        _go_offline(phone, server)
         phone.goto(f"{origin}/items/{item_id}?from_list=later")
         _select(phone, 0, 0, 8)
         phone.wait_for_selector(".article-body mark.hl.is-pending")
@@ -721,12 +869,12 @@ def test_close_leads_back_to_the_article_before_the_page_is_filled_in(
 ):
     # On a phone, filling the page in can take a moment; a Close tapped
     # meanwhile went to Home.
-    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
         item_id = _saved_article(origin, tmp_path, "early", "<p>Close me early on</p>")
         phone.goto(f"{origin}/settings")
         _wait_until_cached(phone, f"{origin}/offline/highlight")
         _wait_until_cached(phone, f"{origin}/items/{item_id}")
-        phone.context.set_offline(True)
+        _go_offline(phone, server)
         phone.goto(f"{origin}/items/{item_id}?from_list=later")
         _select(phone, 0, 0, 8)
         phone.wait_for_selector(".article-body mark.hl.is-pending")
@@ -740,3 +888,177 @@ def test_close_leads_back_to_the_article_before_the_page_is_filled_in(
 
         phone.wait_for_selector(".article-body mark.hl.is-pending")
         assert urlsplit(phone.url).path == f"/items/{item_id}"
+
+
+# The phone's database answering slowly, as on a phone opening it cold.
+SLOW_PHONE_DATABASE = """
+const realOpen = IDBFactory.prototype.open;
+IDBFactory.prototype.open = function (...args) {
+  const real = realOpen.apply(this, args);
+  const slow = { result: null, error: null, onsuccess: null, onerror: null, onupgradeneeded: null };
+  real.onupgradeneeded = (e) => {
+    slow.result = real.result;
+    if (slow.onupgradeneeded) slow.onupgradeneeded(e);
+  };
+  real.onsuccess = () =>
+    setTimeout(() => {
+      slow.result = real.result;
+      if (slow.onsuccess) slow.onsuccess();
+    }, 1500);
+  real.onerror = () => {
+    slow.error = real.error;
+    if (slow.onerror) slow.onerror();
+  };
+  return slow;
+};
+"""
+
+
+def test_a_highlight_made_right_after_opening_an_article_is_not_wiped(
+    phone, monkeypatch, tmp_path
+):
+    # The page catches up with the phone's queue a moment after opening; a
+    # highlight made before that catch-up finished was removed by it.
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
+        item_id = _saved_article(origin, tmp_path, "quick", "<p>Highlight me straight away</p>")
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+        phone.add_init_script(SLOW_PHONE_DATABASE)
+        _go_offline(phone, server)
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+
+        _select(phone, 0, 0, 12)
+        phone.wait_for_timeout(2500)
+
+        assert [m["text"] for m in _marked(phone)] == ["Highlight me"]
+        phone.reload()
+        phone.wait_for_selector(".article-body mark.hl.is-pending", timeout=5000)
+        assert [m["text"] for m in _marked(phone)] == ["Highlight me"]
+
+
+def test_a_highlight_page_button_returns_at_once_while_saves_are_still_sending(
+    phone, monkeypatch, tmp_path
+):
+    # Done, Delete and the key button used to wait for every queued save to
+    # reach the server first: on a slow connection, tapping seemed to do
+    # nothing (a title tapped five times was sent five times).
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
+        item_id = _saved_article(origin, tmp_path, "slow", "<p>Key me while it is slow</p>")
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/offline/highlight")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+        _go_offline(phone, server)
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+        _select(phone, 0, 0, 6)
+        phone.wait_for_selector(".article-body mark.hl.is-pending")
+        _open_highlight(phone, "Key me")
+        _wait_for_quote(phone, "Key me")
+
+        server.slow_saves.seconds = 4
+        _go_online(phone, server)
+        phone.click("text=Mark as key passage")
+
+        phone.wait_for_url(lambda url: url.endswith(f"/items/{item_id}") or f"/items/{item_id}#highlight-" in url, timeout=1500)
+        _wait_for(
+            lambda: [(r["text"], r["is_key"]) for r in _highlight_rows(tmp_path)]
+            == [("Key me", 1)],
+            timeout=20,
+        )
+
+
+def test_the_whole_offline_highlighting_journey(phone, monkeypatch, tmp_path):
+    # The reader's own steps on the phone, end to end, as reported back.
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
+        item_id = _saved_article(
+            origin, tmp_path, "journey", "<p>Keep this passage safe</p><p>Drop this one later</p>"
+        )
+        article = f"{origin}/items/{item_id}"
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/offline/highlight-title/section")
+        phone.goto(f"{article}?from_list=later")
+        # A phone's database is slow to answer when a page opens.
+        phone.add_init_script(SLOW_PHONE_DATABASE)
+
+        _go_offline(phone, server)
+        phone.goto(f"{article}?from_list=later")
+        _select(phone, 0, 0, 14)
+        _select(phone, 1, 0, 13)
+        _wait_for(lambda: len(_marked(phone)) == 2)
+
+        _open_highlight(phone, "Keep this pass")
+        _wait_for_quote(phone, "Keep this pass")
+        phone.click("text=Add section title")
+        phone.wait_for_selector("h1:has-text('Section title')")
+        _wait_for_quote(phone, "Keep this pass")
+        phone.fill("#highlight-title", "Part one")
+        phone.click("button:has-text('Done')")
+        phone.wait_for_selector(".article-body .hl-title-marker", timeout=5000)
+
+        _open_highlight(phone, "Keep this pass")
+        phone.click(".top-edit")
+        phone.wait_for_selector(".article-body mark.hl", timeout=5000)
+        assert urlsplit(phone.url).path == f"/items/{item_id}"
+
+        _open_highlight(phone, "Keep this pass")
+        _wait_for_quote(phone, "Keep this pass")
+        phone.click("text=Mark as key passage")
+        phone.wait_for_selector(".article-body .hl-key-marker", timeout=5000)
+
+        _open_highlight(phone, "Drop this one")
+        phone.click("text=Delete highlight")
+        phone.wait_for_url(lambda url: urlsplit(url).path == f"/items/{item_id}", timeout=5000)
+        _wait_for(lambda: [m["text"] for m in _marked(phone)] == ["Keep this pass"])
+
+        phone.goto(f"{origin}/lists/later")
+        phone.goto(f"{article}?from_list=later")
+        phone.wait_for_selector(".article-body .hl-key-marker")
+        assert phone.locator(".article-body .hl-title-marker").count() == 1
+        assert [m["text"] for m in _marked(phone)] == ["Keep this pass"]
+        assert phone.inner_text(".sync-state").startswith("Offline · ")
+
+        _go_online(phone, server)
+        phone.wait_for_selector(".sync-state", state="hidden")
+        _wait_for(
+            lambda: [(r["text"], r["section_title"], r["is_key"]) for r in _highlight_rows(tmp_path)]
+            == [("Keep this pass", "Part one", 1)],
+            timeout=15,
+        )
+        phone.wait_for_timeout(1000)
+
+        _go_offline(phone, server)
+        phone.goto(f"{origin}/lists/later")
+        phone.goto(f"{article}?from_list=later")
+        phone.wait_for_selector(".article-body .hl-key-marker")
+        assert [m["text"] for m in _marked(phone)] == ["Keep this pass"]
+        assert phone.locator(".article-body .hl-title-marker").count() == 1
+
+
+def test_a_title_typed_before_the_page_fills_in_is_kept(phone, monkeypatch, tmp_path):
+    # Offline the title page fills in the current title a moment after it
+    # opens; it used to overwrite what the reader had started typing.
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
+        item_id = _saved_article(origin, tmp_path, "typed", "<p>Title me quickly</p>")
+        httpx.post(
+            f"{origin}/items/{item_id}/highlights",
+            data={"start_block": "0", "start_offset": "0", "end_block": "0", "end_offset": "8", "text": "Title me"},
+        )
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/offline/highlight-title/section")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+        _go_offline(phone, server)
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+        # The title page takes a moment to fill itself in, as on a phone.
+        phone.add_init_script(
+            """if (location.pathname.endsWith("-title")) {
+              const real = window.fetch;
+              window.fetch = (...args) =>
+                new Promise((resolve) => setTimeout(() => resolve(real(...args)), 1500));
+            }"""
+        )
+        _open_highlight(phone, "Title me")
+        phone.click("text=Add section title")
+        phone.wait_for_selector("h1:has-text('Section title')")
+        phone.fill("#highlight-title", "Typed first")
+        _wait_for_quote(phone, "Title me")
+
+        assert phone.input_value("#highlight-title") == "Typed first"

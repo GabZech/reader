@@ -86,49 +86,112 @@
 
   // Fetch an article again so the stored offline copy carries a highlight
   // just saved; the service worker keeps what comes back.
-  const refreshOfflineCopy = (path = location.pathname) => {
-    fetch(path, { headers: { "X-Reader-Prefetch": "1" } }).catch(() => {});
+  const refreshOfflineCopy = (path = location.pathname) =>
+    fetch(path, { headers: { "X-Reader-Prefetch": "1" } })
+      .then((r) => r.ok)
+      .catch(() => false);
+
+  // Articles whose saves reached the server but whose stored copy was not
+  // fetched again yet: kept across pages, since leaving a page cuts a run
+  // short and an old copy would bring back what was deleted.
+  const STALE_KEY = "reader-stale-copies";
+  const staleCopies = () => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem(STALE_KEY) || "[]"));
+    } catch {
+      return new Set();
+    }
+  };
+  const markStale = (path, stale) => {
+    const all = staleCopies();
+    if (stale) all.add(path);
+    else all.delete(path);
+    try {
+      localStorage.setItem(STALE_KEY, JSON.stringify([...all]));
+    } catch {
+      /* best-effort */
+    }
   };
 
   const note = (event, detail) => {
     if (window.readerLog) window.readerLog(event, detail);
   };
 
-  // Highlights made without a connection wait here, in IndexedDB so they
-  // outlast the app being closed, and go to the server in order once it is
-  // back (see flushOutbox).
+  // Highlights made without a connection, and edits to highlights, wait
+  // here and go to the server in order once it is back (see flushOutbox).
+  // In localStorage, whose writes are done the moment they are made: an
+  // IndexedDB write still under way when the reader tapped on to another
+  // page was lost, and the highlight with it.
   const outbox = (() => {
+    const KEY = "reader-outbox";
     const changed = () => document.dispatchEvent(new Event("reader:outbox-changed"));
-    let opened = null;
-    const open = () => {
-      opened =
-        opened ||
-        new Promise((resolve, reject) => {
-          const request = indexedDB.open("reader", 1);
-          request.onupgradeneeded = () =>
-            request.result.createObjectStore("outbox", { keyPath: "key", autoIncrement: true });
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
-      return opened;
+    const read = () => {
+      try {
+        return JSON.parse(localStorage.getItem(KEY) || "[]");
+      } catch {
+        return [];
+      }
     };
-    const run = (mode, work) =>
-      open().then(
-        (db) =>
-          new Promise((resolve, reject) => {
-            const tx = db.transaction("outbox", mode);
-            const request = work(tx.objectStore("outbox"));
-            tx.oncomplete = () => resolve(request.result);
-            tx.onerror = () => reject(tx.error);
-          })
-      );
+    const write = (entries) => localStorage.setItem(KEY, JSON.stringify(entries));
+    const nextKey = (entries) => entries.reduce((max, e) => Math.max(max, e.key), 0) + 1;
+    // Promises, so callers need not care where the outbox lives.
+    const attempt = (work) => {
+      try {
+        return Promise.resolve(work());
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    };
     return {
-      all: () => run("readonly", (store) => store.getAll()),
-      add: (entry) => run("readwrite", (store) => store.add(entry)).finally(changed),
-      put: (entry) => run("readwrite", (store) => store.put(entry)),
-      remove: (key) => run("readwrite", (store) => store.delete(key)).finally(changed),
+      all: () => attempt(read),
+      add: (entry) =>
+        attempt(() => {
+          const entries = read();
+          const key = nextKey(entries);
+          write([...entries, { ...entry, key }]);
+          return key;
+        }).finally(changed),
+      put: (entry) =>
+        attempt(() => write(read().map((e) => (e.key === entry.key ? entry : e)))),
+      remove: (key) => attempt(() => write(read().filter((e) => e.key !== key))).finally(changed),
     };
   })();
+
+  // Saves queued by an earlier version, which kept them in IndexedDB: moved
+  // over once, so none is lost in the update.
+  const moveOldOutbox = () => {
+    if (!("indexedDB" in window)) return;
+    try {
+      if (localStorage.getItem("reader-outbox-moved")) return;
+    } catch {
+      return;
+    }
+    const request = indexedDB.open("reader", 1);
+    request.onupgradeneeded = () =>
+      request.result.createObjectStore("outbox", { keyPath: "key", autoIncrement: true });
+    request.onsuccess = () => {
+      const db = request.result;
+      const all = db.transaction("outbox").objectStore("outbox").getAll();
+      all.onsuccess = () => {
+        const old = all.result || [];
+        old
+          .reduce((done, entry) => {
+            const { key: _old, ...rest } = entry;
+            return done.then(() => outbox.add(rest));
+          }, Promise.resolve())
+          .then(() => {
+            localStorage.setItem("reader-outbox-moved", "1");
+            db.close();
+            indexedDB.deleteDatabase("reader");
+            if (old.length) {
+              note("outbox", `moved ${old.length} from the old store`);
+              flushOutbox();
+            }
+          })
+          .catch(() => {});
+      };
+    };
+  };
 
   // A highlight saved on this phone but not yet on the server carries a
   // temporary id starting with "p" until it syncs.
@@ -236,7 +299,6 @@
     if (flushing || !navigator.onLine) return flushing;
     flushing = (async () => {
       await pendingDrawn;
-      const touched = new Set();
       // Real ids for highlights sent in this run, for the edits after them.
       const realIds = {};
       for (const entry of await outbox.all()) {
@@ -284,13 +346,15 @@
               new CustomEvent("reader:highlight-synced", { detail: { entry, result } })
             );
           }
-          touched.add(entry.article);
+          markStale(entry.article, true);
         } else {
           note("outbox-dropped", `${url} ${response.status}`);
         }
         await outbox.remove(entry.key);
       }
-      touched.forEach((path) => refreshOfflineCopy(path));
+      for (const path of staleCopies()) {
+        if (await refreshOfflineCopy(path)) markStale(path, false);
+      }
 
       const spots = readProgress();
       for (const [path, spot] of Object.entries(spots)) {
@@ -342,7 +406,7 @@
     showSyncState();
     window.addEventListener("offline", showSyncState);
     document.addEventListener("reader:outbox-changed", showSyncState);
-    if (!("indexedDB" in window)) return;
+    moveOldOutbox();
     flushOutbox();
     window.addEventListener("online", showSyncState);
     window.addEventListener("online", flushOutbox);
@@ -1008,14 +1072,21 @@
       .then((entries) => {
         const now = highlightsOnPhone(saved, entries, location.pathname);
         const byId = new Map(now.map((h) => [String(h.id), h]));
-        [...known].forEach((h) => {
-          const current = byId.get(String(h.id));
-          if (current && !current.pending) return;
-          unwrapHighlight(h.id);
-          known.splice(known.indexOf(h), 1);
-          if (current) draw(current);
-        });
-        now.filter((h) => isPending(h.id)).forEach((h) => draw(h));
+        // Only what the page opened with: a highlight made while this was
+        // being read is already right, and is not in `entries` yet.
+        const openedWith = new Set(saved.map((h) => String(h.id)));
+        [...known]
+          .filter((h) => openedWith.has(String(h.id)))
+          .forEach((h) => {
+            const current = byId.get(String(h.id));
+            if (current && !current.pending) return;
+            unwrapHighlight(h.id);
+            known.splice(known.indexOf(h), 1);
+            if (current) draw(current);
+          });
+        now
+          .filter((h) => isPending(h.id) && !known.some((k) => k.id === h.id))
+          .forEach((h) => draw(h));
         if (entries.length) note("outbox", `drawn ${now.filter((h) => h.pending).length} of ${entries.length}`);
       })
       .catch((error) => note("outbox-failed", `draw ${error}`));
@@ -1204,7 +1275,9 @@
     const fill = (h) => {
       document.querySelector("blockquote.quote").textContent = h.text || "";
       if (level) {
-        document.getElementById("highlight-title").value = h[`${level}_title`] || "";
+        // Never over what the reader already started typing.
+        const input = document.getElementById("highlight-title");
+        if (!input.dataset.typed) input.value = h[`${level}_title`] || "";
         return;
       }
       const keyForm = document.querySelector('[data-highlight-form="key"]');
@@ -1217,6 +1290,8 @@
 
     if (shell) {
       wire();
+      const input = document.getElementById("highlight-title");
+      if (input) input.addEventListener("input", () => (input.dataset.typed = "1"), { once: true });
       Promise.all([
         fetch(article, { headers: { "X-Reader-Prefetch": "1" } }).then((r) => r.text()),
         outbox.all(),
@@ -1273,9 +1348,10 @@
           const title = document.getElementById("highlight-title").value.trim();
           queued = queueEdit(article, highlightId, `${level}-title`, title);
         }
+        // Leave as soon as it is kept: the page we go to sends it (waiting
+        // for every queued save made a tap seem to do nothing).
         queued
-          .catch(() => showToast("Couldn't save"))
-          .then(flushOutbox)
+          .catch((error) => note("outbox-failed", `${kind} ${highlightId} ${error}`))
           .finally(() => (location.href = then));
       });
     });
