@@ -66,4 +66,4 @@ Choices explicitly put off for later, each with a real trigger to revisit. Remov
 
 #### Testing
 
-- The test suite has no speed tiering: browser-driven tests run together with everything else every time, and are the slowest by far. Not yet a problem. Revisit once the full run noticeably slows down local iteration: split fast unit tests from browser tests (pytest markers) and consider parallelizing (pytest-xdist)
+- The browser tests are the slow part of the suite (about 100 of 450 tests, most of a 3 to 4 minute run), and CI is where the whole suite runs, so a failing push costs a few minutes. Tiers exist (`-m "not browser"` runs the rest in under 20 seconds). Still to do: run the browser tests in parallel (`pytest-xdist`, measured first so it does not make them flaky), replace their fixed waits with waits for the event, and let the swipe tests use a real server so they can run on WebKit like the others. Revisit when waiting on CI starts to slow changes down
