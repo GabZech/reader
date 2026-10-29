@@ -140,11 +140,10 @@ async function eachAtOnce(things, work) {
 async function downloadReadLater() {
   let listed;
   let lists;
-  let version;
   try {
     const response = await fetch("/offline/articles", { cache: "no-store" });
     if (!response.ok) throw new Error(`status ${response.status}`);
-    ({ articles: listed, pages: lists, version } = await response.json());
+    ({ articles: listed, pages: lists } = await response.json());
   } catch (error) {
     tell("sw-precache", `failed ${error}`);
     return;
@@ -156,24 +155,17 @@ async function downloadReadLater() {
   let pagesAdded = 0;
   let imagesAdded = 0;
 
-  // Which version of the app stored the articles kept so far: after an
-  // update they are all fetched again, not only the new ones.
-  const versionKey = new URL("/offline/version", location.origin).href;
-  const stored = await pages.match(versionKey);
-  const sameVersion = stored && (await stored.text()) === version;
-
   // Articles first: they are what the reader cannot get any other way.
+  // One already stored is kept as is; opening it online refreshes it.
   await eachAtOnce(listed, async (article) => {
     const key = new URL(article.url, location.origin).href;
-    if (sameVersion && (await pages.match(key))) return;
+    if (await pages.match(key)) return;
     const response = await fetch(article.url, { headers: { "X-Reader-Prefetch": "1" } });
     if (response.ok) {
       await pages.put(key, response);
       pagesAdded++;
     }
   });
-
-  if (version) await pages.put(versionKey, new Response(version));
 
   // Home and the lists change all the time: always store a fresh copy, and
   // keep the one from last time when that fails.

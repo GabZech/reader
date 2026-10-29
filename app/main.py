@@ -1714,9 +1714,7 @@ def offline_articles():
             articles.append({"url": f"/items/{item['id']}", "images": images})
     finally:
         conn.close()
-    # A new version re-downloads every article: copies stored before it
-    # lack what its pages need.
-    return {"version": git_sha(), "pages": pages, "articles": articles}
+    return {"pages": pages, "articles": articles}
 
 
 # Empty copies of the highlight page and its title pages. The service worker

@@ -671,38 +671,6 @@ def test_the_article_bar_says_offline_and_what_waits_only_while_offline(
         _wait_for(lambda: _highlight_texts(tmp_path) == ["Label me"])
 
 
-def test_a_new_version_downloads_read_later_again(phone, monkeypatch, tmp_path):
-    # A copy stored before an update lacks what the new version's pages need
-    # (the bar's label, the highlight text for offline highlight pages).
-    monkeypatch.setattr(mainmod, "git_sha", lambda: "first")
-    with _live_server(monkeypatch, tmp_path) as (origin, _server):
-        item_id = _saved_article(origin, tmp_path, "versions", "<p>Stored before</p>")
-        phone.goto(f"{origin}/settings")
-        _wait_until_cached(phone, f"{origin}/items/{item_id}")
-
-        monkeypatch.setattr(mainmod, "git_sha", lambda: "second")
-        conn = dbmod.connect(tmp_path / "reader.db")
-        try:
-            conn.execute(
-                "UPDATE items SET body_html = ? WHERE id = ?", ("<p>Stored after</p>", item_id)
-            )
-            conn.commit()
-        finally:
-            conn.close()
-        # A fresh worker, as after the phone puts it to sleep: it asks again.
-        cdp = phone.context.new_cdp_session(phone)
-        cdp.send("ServiceWorker.enable")
-        cdp.send("ServiceWorker.stopAllWorkers")
-        phone.goto(f"{origin}/settings")
-
-        _wait_for(
-            lambda: "Stored after"
-            in phone.evaluate(
-                "(u) => caches.match(u).then(r => r.text())", f"{origin}/items/{item_id}"
-            )
-        )
-
-
 def test_a_cog_left_turning_by_a_lost_done_message_stops_at_the_next_ask(
     phone, monkeypatch, tmp_path
 ):
