@@ -57,6 +57,8 @@
               write(list);
             } catch (_) {}
           };
+          // app.js notes what happened to saves made offline here too.
+          window.readerLog = log;
           let sending = false;
           const flush = () => {
             if (sending || !navigator.onLine) return;

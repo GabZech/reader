@@ -369,3 +369,170 @@ def test_pages_record_where_the_bar_sits_while_scrolling(phone, monkeypatch, tmp
         scrolled = next(d for d in geo if d.startswith("scroll "))
         for part in ("ih=", "sh=", "vv=", "y=", "safe=", "bar=", "standalone="):
             assert part in scrolled
+
+
+def _saved_article(origin, tmp_path, slug, body_html):
+    item_id = httpx.post(
+        f"{origin}/capture", data={"url": f"https://blog.test/{slug}", "html": "<p>x</p>"}
+    ).json()["item_id"]
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        conn.execute("UPDATE items SET body_html = ? WHERE id = ?", (body_html, item_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return item_id
+
+
+def _select(phone, block, start, end):
+    phone.evaluate(
+        """([block, start, end]) => {
+          const p = document.querySelector(".article-body").children[block];
+          const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+          const at = (offset) => {
+            let pos = 0;
+            for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+              if (pos + n.textContent.length >= offset) return [n, offset - pos];
+              pos += n.textContent.length;
+            }
+          };
+          const range = document.createRange();
+          range.setStart(...at(start));
+          walker.currentNode = p;
+          range.setEnd(...at(end));
+          getSelection().removeAllRanges();
+          getSelection().addRange(range);
+          p.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+        }""",
+        [block, start, end],
+    )
+
+
+def _marked(phone):
+    return phone.evaluate(
+        """() => [...document.querySelectorAll(".article-body mark.hl")].map((m) => ({
+          text: m.textContent, id: m.dataset.highlightId, pending: m.classList.contains("is-pending"),
+        }))"""
+    )
+
+
+def _highlight_texts(tmp_path):
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        return [r["text"] for r in conn.execute("SELECT text FROM highlights ORDER BY id")]
+    finally:
+        conn.close()
+
+
+def _wait_for(check, timeout=10):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if check():
+            return
+        time.sleep(0.2)
+    raise AssertionError("never happened")
+
+
+def test_a_highlight_made_offline_is_kept_and_sent_once_back_online(
+    phone, monkeypatch, tmp_path
+):
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        item_id = _saved_article(
+            origin, tmp_path, "plane", "<p>Highlight me on the plane today</p><p>More</p>"
+        )
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+        phone.context.set_offline(True)
+
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+        _select(phone, 0, 0, 12)
+        phone.wait_for_selector(".article-body mark.hl.is-pending")
+        # A second, overlapping one joins the first on the phone.
+        _select(phone, 0, 6, 25)
+        _wait_for(lambda: "".join(m["text"] for m in _marked(phone)) == "Highlight me on the plane")
+        assert {m["pending"] for m in _marked(phone)} == {True}
+
+        phone.reload()
+        phone.wait_for_selector(".article-body mark.hl.is-pending")
+        assert "".join(m["text"] for m in _marked(phone)) == "Highlight me on the plane"
+        assert _highlight_texts(tmp_path) == []
+
+        phone.context.set_offline(False)
+        _wait_for(lambda: _highlight_texts(tmp_path) == ["Highlight me on the plane"])
+        _wait_for(lambda: all(not m["pending"] and m["id"].isdigit() for m in _marked(phone)))
+
+        phone.reload()
+        phone.wait_for_selector(".article-body mark.hl")
+        assert "".join(m["text"] for m in _marked(phone)) == "Highlight me on the plane"
+        assert _highlight_texts(tmp_path) == ["Highlight me on the plane"]
+
+
+def test_reading_position_offline_is_kept_and_sent_back_online(
+    phone, monkeypatch, tmp_path
+):
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        body = "".join(f"<p>Paragraph {n} " + "word " * 120 + "</p>" for n in range(12))
+        item_id = _saved_article(origin, tmp_path, "long", body)
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+        phone.context.set_offline(True)
+
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+        phone.evaluate("document.querySelector('.article-body').children[6].scrollIntoView()")
+        phone.wait_for_timeout(500)
+        phone.goto(f"{origin}/lists/later")
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+
+        assert phone.evaluate(
+            "document.querySelector('.article-body').children[6].classList.contains('is-resume')"
+        )
+
+        phone.context.set_offline(False)
+        phone.goto(f"{origin}/lists/later")
+
+        def sent():
+            conn = dbmod.connect(tmp_path / "reader.db")
+            try:
+                return dbmod.get_item(conn, item_id)["progress_index"] == 6
+            finally:
+                conn.close()
+
+        _wait_for(sent)
+
+
+def test_a_queued_highlight_the_server_refuses_is_dropped_not_retried_forever(
+    phone, monkeypatch, tmp_path
+):
+    # Deleted on another device while this phone was offline: a refusal kept
+    # in the queue would hold back every highlight queued after it.
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        gone = _saved_article(origin, tmp_path, "gone", "<p>Deleted elsewhere soon</p>")
+        kept = _saved_article(origin, tmp_path, "kept", "<p>Still here afterwards</p>")
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/items/{gone}")
+        _wait_until_cached(phone, f"{origin}/items/{kept}")
+        phone.context.set_offline(True)
+        for item_id in (gone, kept):
+            phone.goto(f"{origin}/items/{item_id}")
+            _select(phone, 0, 0, 5)
+            phone.wait_for_selector(".article-body mark.hl.is-pending")
+        httpx.post(f"{origin}/items/{gone}/delete")
+
+        phone.context.set_offline(False)
+
+        _wait_for(lambda: _highlight_texts(tmp_path) == ["Still"])
+        _wait_for(
+            lambda: phone.evaluate(
+                """() => new Promise((resolve) => {
+                  const open = indexedDB.open("reader", 1);
+                  open.onsuccess = () => {
+                    const all = open.result.transaction("outbox").objectStore("outbox").getAll();
+                    all.onsuccess = () => resolve(all.result.length === 0);
+                  };
+                })"""
+            )
+        )
+        logged = phone.evaluate(
+            "JSON.parse(localStorage.getItem('reader-log') || '[]').map(x => x.e)"
+        )
+        assert "outbox-dropped" in logged

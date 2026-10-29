@@ -89,3 +89,75 @@ def test_a_prefetched_article_is_not_marked_seen(monkeypatch, tmp_path):
         assert _get_item_row(tmp_path, item_id)["seen_at"] is None
         client.get(f"/items/{item_id}")
         assert _get_item_row(tmp_path, item_id)["seen_at"] is not None
+
+
+def _highlight_rows(tmp_path):
+    from app import db as dbmod
+
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        return conn.execute("SELECT * FROM highlights ORDER BY id").fetchall()
+    finally:
+        conn.close()
+
+
+def _post_highlight(client, item_id, start, end, text, merge_ids=()):
+    return client.post(
+        f"/items/{item_id}/highlights",
+        data={
+            "start_block": "0",
+            "start_offset": str(start),
+            "end_block": "0",
+            "end_offset": str(end),
+            "text": text,
+            "merge_id": [str(m) for m in merge_ids],
+        },
+    )
+
+
+def test_sending_the_same_highlight_again_returns_the_one_already_saved(
+    monkeypatch, tmp_path
+):
+    # A phone that sent a queued highlight but lost the reply sends it again.
+    with _client(monkeypatch, tmp_path) as client:
+        item_id = _capture(client, "twice")
+        _set_body_html(tmp_path, item_id, "<p>A sentence worth keeping twice over</p>")
+        first = _post_highlight(client, item_id, 0, 10, "A sentence")
+        client.post(f"/items/{item_id}/highlights/{first.json()['id']}/key")
+
+        again = _post_highlight(client, item_id, 0, 10, "A sentence")
+
+        assert again.status_code == 200
+        assert again.json() == {**first.json(), "is_key": True}
+        assert len(_highlight_rows(tmp_path)) == 1
+
+
+def test_resending_a_merge_that_already_went_through_returns_the_merged_highlight(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        item_id = _capture(client, "merge-twice")
+        _set_body_html(tmp_path, item_id, "<p>A sentence worth keeping twice over</p>")
+        small = _post_highlight(client, item_id, 0, 5, "A sen").json()["id"]
+        merged = _post_highlight(client, item_id, 0, 10, "A sentence", [small])
+
+        again = _post_highlight(client, item_id, 0, 10, "A sentence", [small])
+
+        assert again.status_code == 200
+        assert again.json()["id"] == merged.json()["id"]
+        assert len(_highlight_rows(tmp_path)) == 1
+
+
+def test_a_merge_naming_a_highlight_deleted_elsewhere_still_saves(monkeypatch, tmp_path):
+    # Highlighted over an older highlight offline, while another device
+    # deleted that older one.
+    with _client(monkeypatch, tmp_path) as client:
+        item_id = _capture(client, "gone")
+        _set_body_html(tmp_path, item_id, "<p>A sentence worth keeping twice over</p>")
+        older = _post_highlight(client, item_id, 0, 5, "A sen").json()["id"]
+        client.post(f"/items/{item_id}/highlights/{older}/delete")
+
+        saved = _post_highlight(client, item_id, 0, 10, "A sentence", [older])
+
+        assert saved.status_code == 200
+        assert [row["text"] for row in _highlight_rows(tmp_path)] == ["A sentence"]

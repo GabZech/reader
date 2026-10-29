@@ -1288,7 +1288,21 @@ async def item_add_highlight(item_id: int, request: Request):
         overlapping = overlapping_highlights(
             conn, item_id, start_block, start_offset, end_block, end_offset
         )
+        # The exact same span saved already: a phone sending a queued
+        # highlight again after losing the reply. Answer with that one.
+        span = (start_block, start_offset, end_block, end_offset)
+        for row in overlapping:
+            if (row["start_block"], row["start_offset"], row["end_block"], row["end_offset"]) == span:
+                return {
+                    "ok": True,
+                    "id": row["id"],
+                    "has_title": bool(row["section_title"] or row["subsection_title"]),
+                    "is_key": bool(row["is_key"]),
+                }
         overlapping_ids = {row["id"] for row in overlapping}
+        # A claimed id that no longer exists was deleted elsewhere while
+        # the phone was offline: nothing left to merge, not a bad claim.
+        merge_ids = [row["id"] for row in get_highlights_by_ids(conn, item_id, merge_ids)]
         merge_id_set = set(merge_ids)
         if not merge_id_set <= overlapping_ids:
             raise HTTPException(status_code=400)

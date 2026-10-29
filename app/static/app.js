@@ -84,10 +84,140 @@
     }
   };
 
-  // Fetch this article again so the stored offline copy carries a
-  // highlight just saved; the service worker keeps what comes back.
-  const refreshOfflineCopy = () => {
-    fetch(location.pathname, { headers: { "X-Reader-Prefetch": "1" } }).catch(() => {});
+  // Fetch an article again so the stored offline copy carries a highlight
+  // just saved; the service worker keeps what comes back.
+  const refreshOfflineCopy = (path = location.pathname) => {
+    fetch(path, { headers: { "X-Reader-Prefetch": "1" } }).catch(() => {});
+  };
+
+  const note = (event, detail) => {
+    if (window.readerLog) window.readerLog(event, detail);
+  };
+
+  // Highlights made without a connection wait here, in IndexedDB so they
+  // outlast the app being closed, and go to the server in order once it is
+  // back (see flushOutbox).
+  const outbox = (() => {
+    let opened = null;
+    const open = () => {
+      opened =
+        opened ||
+        new Promise((resolve, reject) => {
+          const request = indexedDB.open("reader", 1);
+          request.onupgradeneeded = () =>
+            request.result.createObjectStore("outbox", { keyPath: "key", autoIncrement: true });
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      return opened;
+    };
+    const run = (mode, work) =>
+      open().then(
+        (db) =>
+          new Promise((resolve, reject) => {
+            const tx = db.transaction("outbox", mode);
+            const request = work(tx.objectStore("outbox"));
+            tx.oncomplete = () => resolve(request.result);
+            tx.onerror = () => reject(tx.error);
+          })
+      );
+    return {
+      all: () => run("readonly", (store) => store.getAll()),
+      add: (entry) => run("readwrite", (store) => store.add(entry)),
+      remove: (key) => run("readwrite", (store) => store.delete(key)),
+    };
+  })();
+
+  // The last reading spot per article on this phone. Kept in localStorage,
+  // not the outbox: it is written as the page goes away, too late for an
+  // IndexedDB write to be sure to land. `unsent` marks one still owed to the
+  // server.
+  const PROGRESS_KEY = "reader-progress";
+  const readProgress = () => {
+    try {
+      return JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  };
+  const writeProgress = (all) => {
+    try {
+      const newest = Object.entries(all)
+        .sort((a, b) => b[1].at - a[1].at)
+        .slice(0, 100);
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(Object.fromEntries(newest)));
+    } catch {
+      /* best-effort */
+    }
+  };
+
+  // Drawn pending highlights must be on the page before any is sent, or
+  // one synced meanwhile would be drawn twice; initHighlights replaces this.
+  let pendingDrawn = Promise.resolve();
+  let flushing = null;
+
+  // Send what was saved offline: queued highlights in the order they were
+  // made, then reading spots. A refusal (the article or passage changed on
+  // another device meanwhile) is dropped and noted in Diagnostics; no
+  // connection, or the server failing, leaves the rest for next time.
+  const flushOutbox = () => {
+    if (flushing || !navigator.onLine) return flushing;
+    flushing = (async () => {
+      await pendingDrawn;
+      const touched = new Set();
+      for (const entry of await outbox.all()) {
+        let response;
+        try {
+          response = await fetch(entry.url, { method: "POST", body: new URLSearchParams(entry.body) });
+        } catch {
+          return;
+        }
+        if (response.status >= 500) return;
+        if (response.ok) {
+          const result = await response.json();
+          document.dispatchEvent(
+            new CustomEvent("reader:highlight-synced", { detail: { entry, result } })
+          );
+          touched.add(entry.article);
+        } else {
+          note("outbox-dropped", `${entry.url} ${response.status}`);
+        }
+        await outbox.remove(entry.key);
+      }
+      touched.forEach((path) => refreshOfflineCopy(path));
+
+      const spots = readProgress();
+      for (const [path, spot] of Object.entries(spots)) {
+        if (!spot.unsent) continue;
+        let response;
+        try {
+          response = await fetch(`${path}/progress`, {
+            method: "POST",
+            body: new URLSearchParams({ index: String(spot.index) }),
+          });
+        } catch {
+          return;
+        }
+        if (response.status >= 500) return;
+        const latest = readProgress();
+        if (latest[path] && latest[path].at === spot.at) {
+          latest[path].unsent = false;
+          writeProgress(latest);
+        }
+      }
+    })()
+      .catch(() => {})
+      .finally(() => (flushing = null));
+    return flushing;
+  };
+
+  const initOutbox = () => {
+    if (!("indexedDB" in window)) return;
+    flushOutbox();
+    window.addEventListener("online", flushOutbox);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") flushOutbox();
+    });
   };
 
   const syncHome = async () => {
@@ -368,6 +498,10 @@
 
     const sendProgress = () => {
       if (currentIndex < 0) return;
+      const spots = readProgress();
+      spots[location.pathname] = { index: currentIndex, at: Date.now(), unsent: !navigator.onLine };
+      writeProgress(spots);
+      if (!navigator.onLine) return;
       const data = new URLSearchParams({ index: String(currentIndex) });
       try {
         navigator.sendBeacon(saveUrl, data);
@@ -399,7 +533,13 @@
     const highlight = hashMatch
       ? body.querySelector(`[data-highlight-id="${hashMatch[1]}"]`)
       : null;
-    const resumeIndex = parseInt(body.dataset.progressIndex || "", 10);
+    // The page's own spot is the server's; offline it comes from the stored
+    // copy and can be older than where the reader got to on this phone.
+    const mine = readProgress()[location.pathname];
+    const resumeIndex =
+      mine && (!navigator.onLine || mine.unsent)
+        ? mine.index
+        : parseInt(body.dataset.progressIndex || "", 10);
     const resumeBlock =
       Number.isInteger(resumeIndex) && resumeIndex >= 2 ? blocks[resumeIndex] : null;
 
@@ -601,9 +741,126 @@
       });
     };
 
+    // A highlight saved on this phone but not yet on the server carries a
+    // temporary id starting with "p" until it syncs.
+    const isPending = (id) => String(id).startsWith("p");
+    const newPendingId = () =>
+      `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+    // Draw a highlight over `span`, replacing the ones it merged, and keep
+    // `known` in step.
+    const draw = (span, id, hasTitle, isKey, merged, pending, mergeIds = []) => {
+      merged.forEach((h) => unwrapHighlight(h.id));
+      const marks = wrapHighlight(...span, id, hasTitle, isKey);
+      if (pending) {
+        marks.forEach((mark) => mark.classList.add("is-pending"));
+        body
+          .querySelectorAll(`img.hl-image[data-highlight-id="${id}"]`)
+          .forEach((img) => img.classList.add("is-pending"));
+      }
+      const gone = new Set(merged.map((h) => h.id));
+      for (let i = known.length - 1; i >= 0; i--) {
+        if (gone.has(known[i].id)) known.splice(i, 1);
+      }
+      const [startBlock, startOffset, endBlock, endOffset] = span;
+      known.push({
+        id,
+        start_block: startBlock,
+        start_offset: startOffset,
+        end_block: endBlock,
+        end_offset: endOffset,
+        has_title: hasTitle,
+        is_key: isKey,
+        merge_ids: mergeIds,
+      });
+    };
+
+    // Save a highlight. Without a connection, or when it merges one still
+    // waiting to sync (so the two reach the server in order), it is drawn at
+    // once as pending and kept in the outbox. Online, the page changes only
+    // once the server confirms: a refused save leaves it exactly as it was.
+    const saveHighlight = (span, text, overlapping) => {
+      const [startBlock, startOffset, endBlock, endOffset] = span;
+      const mergeIds = overlapping.flatMap((h) => (isPending(h.id) ? h.merge_ids : [h.id]));
+      const data = new URLSearchParams({
+        start_block: String(startBlock),
+        start_offset: String(startOffset),
+        end_block: String(endBlock),
+        end_offset: String(endOffset),
+        text,
+      });
+      mergeIds.forEach((id) => data.append("merge_id", String(id)));
+
+      const keep = () => {
+        const id = newPendingId();
+        const hasTitle = overlapping.some((h) => h.has_title);
+        const isKey = overlapping.some((h) => h.is_key);
+        draw(span, id, hasTitle, isKey, overlapping, true, mergeIds);
+        const replaced = new Set(overlapping.filter((h) => isPending(h.id)).map((h) => h.id));
+        return outbox
+          .all()
+          .then((entries) =>
+            Promise.all(
+              entries.filter((e) => replaced.has(e.pendingId)).map((e) => outbox.remove(e.key))
+            )
+          )
+          .then(() =>
+            outbox.add({
+              url: saveUrl,
+              article: location.pathname,
+              pendingId: id,
+              body: data.toString(),
+              span,
+              mergeIds,
+              hasTitle,
+              isKey,
+            })
+          )
+          .then(flushOutbox)
+          .catch(() => {});
+      };
+
+      if (!navigator.onLine || overlapping.some((h) => isPending(h.id))) {
+        keep();
+        return;
+      }
+      fetch(saveUrl, { method: "POST", body: data }).then((r) => {
+        if (!r.ok) return null;
+        return r.json().then((result) => {
+          draw(span, result.id, result.has_title, result.is_key, overlapping, false);
+          refreshOfflineCopy();
+        });
+      }, keep);
+    };
+
+    // Pending highlights from earlier visits, over the stored page.
+    pendingDrawn = outbox
+      .all()
+      .then((entries) => {
+        entries
+          .filter((e) => e.article === location.pathname)
+          .forEach((e) => {
+            const merged = known.filter((h) => e.mergeIds.includes(h.id));
+            draw(e.span, e.pendingId, e.hasTitle, e.isKey, merged, true, e.mergeIds);
+          });
+      })
+      .catch(() => {});
+
+    // Once sent, a pending highlight takes the id the server gave it.
+    document.addEventListener("reader:highlight-synced", ({ detail: { entry, result } }) => {
+      if (entry.article !== location.pathname) return;
+      const pending = known.filter((h) => h.id === entry.pendingId);
+      if (!pending.length && known.some((h) => h.id === result.id)) return;
+      draw(entry.span, result.id, result.has_title, result.is_key, pending, false);
+    });
+
     body.addEventListener("click", (event) => {
       const mark = event.target.closest("mark.hl, .hl-title-marker, .hl-key-marker");
       if (!mark || !mark.dataset.highlightId) return;
+      if (isPending(mark.dataset.highlightId)) {
+        showToast("Will sync when you're back online");
+        return;
+      }
       location.href = `${location.pathname}/highlights/${mark.dataset.highlightId}`;
     });
 
@@ -624,34 +881,17 @@
       const img = event.target.closest("img");
       if (!img || !body.contains(img)) return;
       if (img.dataset.highlightId) {
+        if (isPending(img.dataset.highlightId)) {
+          showToast("Will sync when you're back online");
+          return;
+        }
         location.href = `${location.pathname}/highlights/${img.dataset.highlightId}`;
         return;
       }
       const blockIndex = blockIndexOf(img);
       if (blockIndex < 0 || !isImageOnly(blocks[blockIndex])) return;
 
-      const data = new URLSearchParams({
-        start_block: String(blockIndex),
-        start_offset: "0",
-        end_block: String(blockIndex),
-        end_offset: "0",
-        text: "",
-      });
-      fetch(saveUrl, { method: "POST", body: data })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((result) => {
-          if (!result) return;
-          wrapHighlight(blockIndex, 0, blockIndex, 0, result.id, result.has_title, result.is_key);
-          refreshOfflineCopy();
-          known.push({
-            id: result.id,
-            start_block: blockIndex,
-            start_offset: 0,
-            end_block: blockIndex,
-            end_offset: 0,
-          });
-        })
-        .catch(() => {});
+      saveHighlight([blockIndex, 0, blockIndex, 0], "", []);
     });
 
     const handleFinishedSelection = () => {
@@ -715,46 +955,7 @@
         : text;
       if (!finalText.trim()) return;
 
-      const data = new URLSearchParams({
-        start_block: String(unionStart[0]),
-        start_offset: String(unionStart[1]),
-        end_block: String(unionEnd[0]),
-        end_offset: String(unionEnd[1]),
-        text: finalText,
-      });
-      overlapping.forEach((h) => data.append("merge_id", String(h.id)));
-
-      // The DOM is only touched once the server confirms the save: no
-      // optimistic mark, so a rejected or failed save leaves the page
-      // exactly as it was instead of showing a phantom, unsaved highlight.
-      fetch(saveUrl, { method: "POST", body: data })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((result) => {
-          if (!result) return;
-          overlapping.forEach((h) => unwrapHighlight(h.id));
-          wrapHighlight(
-            unionStart[0],
-            unionStart[1],
-            unionEnd[0],
-            unionEnd[1],
-            result.id,
-            result.has_title,
-            result.is_key
-          );
-          refreshOfflineCopy();
-          const mergedIds = new Set(overlapping.map((h) => h.id));
-          for (let i = known.length - 1; i >= 0; i--) {
-            if (mergedIds.has(known[i].id)) known.splice(i, 1);
-          }
-          known.push({
-            id: result.id,
-            start_block: unionStart[0],
-            start_offset: unionStart[1],
-            end_block: unionEnd[0],
-            end_offset: unionEnd[1],
-          });
-        })
-        .catch(() => {});
+      saveHighlight([...unionStart, ...unionEnd], finalText, overlapping);
     };
 
     // mouseup covers a fresh press-and-drag selection. On a touch device,
@@ -836,6 +1037,7 @@
   initRestorePosition();
   initHighlightDetail();
   registerWorker();
+  initOutbox();
   precacheReadLater();
   syncHome();
 })();
