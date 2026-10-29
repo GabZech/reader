@@ -26,3 +26,14 @@ def pytest_generate_tests(metafunc):
     if "engine" in metafunc.fixturenames:
         engines = [e.strip() for e in metafunc.config.getoption("browsers").split(",") if e.strip()]
         metafunc.parametrize("engine", engines)
+
+
+# Fixtures that start a real browser. A test using any of them is marked
+# `browser`, so the fast tier is `pytest -m "not browser"`.
+BROWSER_FIXTURES = {"phone", "browser_page", "touch_phone"}
+
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        if BROWSER_FIXTURES & set(item.fixturenames):
+            item.add_marker("browser")
