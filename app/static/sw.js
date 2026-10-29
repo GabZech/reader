@@ -22,7 +22,9 @@ self.addEventListener("install", (event) => {
       ])
     )
   );
-  self.skipWaiting();
+  // No skipWaiting here: a new worker taking over while a page is still
+  // loading left that page's last files unanswered in WebKit (Safari), and
+  // the page hung. The page tells it to take over once it has loaded.
 });
 
 self.addEventListener("activate", (event) => {
@@ -53,7 +55,9 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "precache") event.waitUntil(precache());
+  if (!event.data) return;
+  if (event.data.type === "precache") event.waitUntil(precache());
+  if (event.data.type === "take-over") self.skipWaiting();
 });
 
 // One stored copy per article, whichever list it was opened from: the
