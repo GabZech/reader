@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 from playwright.sync_api import sync_playwright
-from test_service_worker_browser import _live_server, phone  # noqa: F401
+from test_service_worker_browser import _live_server
 
 
 @pytest.fixture

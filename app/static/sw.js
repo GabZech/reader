@@ -57,10 +57,15 @@ self.addEventListener("message", (event) => {
 });
 
 // One stored copy per article, whichever list it was opened from: the
-// address differs only by where Close leads back to.
+// address differs only by where Close leads back to. And one per page
+// whatever banner an action sent the reader back with (?flash=Archived):
+// offline, that address finds the stored page without it.
 function cacheKey(request) {
   const url = new URL(request.url);
-  return /^\/items\/\d+$/.test(url.pathname) ? url.origin + url.pathname : request;
+  if (/^\/items\/\d+$/.test(url.pathname)) return url.origin + url.pathname;
+  if (!url.searchParams.has("flash")) return request;
+  url.searchParams.delete("flash");
+  return url.href;
 }
 
 // A highlight's page, or its section or subsection title page.
@@ -228,7 +233,8 @@ async function answer(request) {
   }
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    // A page with a banner carries it in its markup: only the plain page is kept.
+    if (response.ok && !new URL(request.url).searchParams.has("flash")) {
       const copy = response.clone();
       caches
         .open(CACHE)

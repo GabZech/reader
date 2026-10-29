@@ -10,9 +10,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import httpx
-import pytest
 import uvicorn
-from playwright.sync_api import sync_playwright
 
 from app import db as dbmod
 from app import main as mainmod
@@ -159,16 +157,6 @@ def _live_server(monkeypatch, tmp_path):
         thread.join(timeout=10)
 
 
-# The page learns it is offline the way a phone tells it: navigator.onLine
-# and the offline/online events. Kept per tab, so it holds across pages.
-TELL_ONLINE_STATE = """
-Object.defineProperty(Navigator.prototype, "onLine", {
-  configurable: true,
-  get: () => sessionStorage.getItem("test-offline") !== "1",
-});
-"""
-
-
 def _app_url(server):
     """The app itself, past the relay: for what another device does."""
     return f"http://127.0.0.1:{server.network.upstream_port}"
@@ -193,23 +181,6 @@ def _go_online(phone, server):
     phone.evaluate(
         "sessionStorage.removeItem('test-offline'); window.dispatchEvent(new Event('online'))"
     )
-
-
-# WebKit is Safari's engine, which the installed iPhone app runs on: bugs
-# there (saving a form offline, the worker's lifetime) never showed in
-# Chromium. Which engines run is set in conftest.py.
-@pytest.fixture
-def phone(engine):
-    with sync_playwright() as p:
-        browser = getattr(p, engine).launch()
-        try:
-            page = browser.new_context(
-                viewport={"width": 390, "height": 844}, service_workers="allow"
-            ).new_page()
-            page.add_init_script(TELL_ONLINE_STATE)
-            yield page
-        finally:
-            browser.close()
 
 
 def test_a_page_that_cannot_load_or_be_found_offline_shows_a_retry_page(

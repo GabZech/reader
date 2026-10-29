@@ -12,6 +12,9 @@ from __future__ import annotations
 
 import os
 
+import pytest
+from playwright.sync_api import sync_playwright
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -37,3 +40,30 @@ def pytest_collection_modifyitems(items):
     for item in items:
         if BROWSER_FIXTURES & set(item.fixturenames):
             item.add_marker("browser")
+
+
+# The page learns it is offline the way a phone tells it: navigator.onLine
+# and the offline/online events. Kept per tab, so it holds across pages.
+TELL_ONLINE_STATE = """
+Object.defineProperty(Navigator.prototype, "onLine", {
+  configurable: true,
+  get: () => sessionStorage.getItem("test-offline") !== "1",
+});
+"""
+
+
+# WebKit is Safari's engine, which the installed iPhone app runs on: bugs
+# there (saving a form offline, the worker's lifetime) never showed in
+# Chromium. Which engines run is set by --browsers, above.
+@pytest.fixture
+def phone(engine):
+    with sync_playwright() as p:
+        browser = getattr(p, engine).launch()
+        try:
+            page = browser.new_context(
+                viewport={"width": 390, "height": 844}, service_workers="allow"
+            ).new_page()
+            page.add_init_script(TELL_ONLINE_STATE)
+            yield page
+        finally:
+            browser.close()

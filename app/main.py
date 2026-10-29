@@ -1151,31 +1151,45 @@ def item_page(
     else:
         back = "/"
     context_query = _item_context_query(from_source, from_list, from_home, view)
+    later_action = (
+        f"/items/{item_id}/later{context_query}" if from_list != "later" else None
+    )
+    archive_action = f"/items/{item_id}/archive{context_query}"
+    mark_read_action = (
+        f"/items/{item_id}/read{context_query}"
+        if from_list and from_list != "later"
+        else None
+    )
     # What each button does when the phone is offline (see initItemActions in
-    # app.js): the list the item moves in, where to go next, and which of the
-    # rows in the page's <template>s it becomes.
+    # app.js): the address it posts to, the list the item moves in, where to
+    # go next, and which of the page's <template> rows it becomes.
+    archive_move = {
+        "item": item_id,
+        "list": "later",
+        "action": "archive",
+        "url": archive_action,
+        "then": _origin_url(from_source, from_list, from_home, view, "Archived"),
+        "row": "moved-row-archive",
+    }
     moves = {
         "later": {
             "item": item_id,
             "list": "later",
             "action": "later",
+            "url": later_action,
             "then": f"/items/{item_id}{context_query}",
             "row": "moved-row-later",
-            "archive": f"/items/{item_id}/archive{context_query}",
+            # Saving offline unlocks this button.
+            "archive": archive_move,
         },
-        "archive": {
-            "item": item_id,
-            "list": "later",
-            "action": "archive",
-            "then": _origin_url(from_source, from_list, from_home, view, "Archived"),
-            "row": "moved-row-archive",
-        },
+        "archive": archive_move,
     }
-    if from_list and from_list != "later":
+    if mark_read_action:
         moves["read"] = {
             "item": item_id,
             "list": from_list,
             "action": "read",
+            "url": mark_read_action,
             "then": _origin_url(from_source, from_list, from_home, view, "Read"),
             "row": "moved-row-read",
         }
@@ -1188,23 +1202,15 @@ def item_page(
             "video_id": youtube_video_id(item["url"]),
             "back": back,
             "in_read_later": in_read_later,
-            "later_action": (
-                f"/items/{item_id}/later{context_query}"
-                if from_list != "later"
-                else None
-            ),
-            "archive_action": f"/items/{item_id}/archive{context_query}",
+            "later_action": later_action,
+            "archive_action": archive_action,
             "delete_action": f"/items/{item_id}/delete{context_query}",
             "progress_action": f"/items/{item_id}/progress",
             "highlight_action": f"/items/{item_id}/highlights",
             "highlights_json": highlights_json,
             "moves": moves,
             "read_list": from_list if "read" in moves else None,
-            "mark_read_action": (
-                f"/items/{item_id}/read{context_query}"
-                if from_list and from_list != "later"
-                else None
-            ),
+            "mark_read_action": mark_read_action,
         },
     )
 

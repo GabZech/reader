@@ -144,6 +144,14 @@
     };
     return {
       all: () => attempt(read),
+      // Straight away, for the pages that apply what waits as they open.
+      now: () => {
+        try {
+          return read();
+        } catch {
+          return [];
+        }
+      },
       add: (entry) =>
         attempt(() => {
           const entries = read();
@@ -291,6 +299,169 @@
   let pendingDrawn = Promise.resolve();
   let flushing = null;
 
+  // Archiving, moving back to Library, marking read or unread and saving to
+  // Read later work without a connection. Each is a "move" in the outbox,
+  // sent in order with the highlights; meanwhile the stored pages show it
+  // done (applyMoves), and it goes on showing after a reload.
+  const MOVE_GIVE_UP_MS = 15 * 1000;
+  // Where the item lands: the tab of its list, by name.
+  const MOVE_TO = { archive: "archive", unarchive: "library", later: "library", read: "read", unread: "unread" };
+  const MOVE_FLASH = {
+    archive: "Archived",
+    unarchive: "Moved to Library",
+    later: "Saved to Read later",
+    read: "Read",
+    unread: "Unread",
+  };
+  const secondTab = (list) => (list === "later" ? "archive" : "read");
+  const firstTab = (list) => (list === "later" ? "library" : "unread");
+  // Every stored page that shows the item: Home, the lists, both tabs.
+  const pagesAround = (list) => ["/", "/lists", `/lists/${list}`, `/lists/${list}?view=${secondTab(list)}`];
+
+  // What a row offers once it has moved: its swipe, and the tab it is on.
+  const AFTER_MOVE = {
+    read: (id, list) => ({ swipe: `/items/${id}/unread?from_list=${list}`, label: "Mark as unread", view: "read" }),
+    unread: (id, list) => ({ swipe: `/items/${id}/read?from_list=${list}`, label: "Mark as read", view: "" }),
+    archive: (id) => ({ swipe: `/items/${id}/unarchive`, label: "Move to Library", view: "archive" }),
+    library: (id) => ({ swipe: `/items/${id}/archive?from_list=later`, label: "Archive", view: "" }),
+  };
+
+  // The row as it reads on the tab the item moves to, made from the one just
+  // swiped: the same row with its link and swipes pointing the other way.
+  const rowAfterMove = (row, list, to) => {
+    const id = row.dataset.itemId;
+    const next = AFTER_MOVE[to](id, list);
+    const copy = row.cloneNode(true);
+    copy.classList.remove("is-leaving", "is-more", "is-swiping-left", "is-swiping-right");
+    ["hidden", "style", "data-busy"].forEach((name) => copy.removeAttribute(name));
+    const link = copy.querySelector("a.item");
+    ["style", "hidden"].forEach((name) => link.removeAttribute(name));
+    link.classList.remove("is-more");
+    const view = next.view ? `&view=${next.view}` : "";
+    link.setAttribute("href", `/items/${id}?from_list=${list}${view}`);
+    copy.dataset.swipeAction = next.swipe;
+    copy.dataset.deleteAction = `/items/${id}/delete?from_list=${list}${view}`;
+    const label = copy.querySelector(".swipe-move");
+    if (label) label.textContent = next.label;
+    return copy.outerHTML;
+  };
+
+  // Done at once and sent when it can be: queued behind whatever already waits
+  // (a highlight must reach the server before the archive that exports it).
+  // Resolves "sent" or "queued". Waits for this move only, not for the pages
+  // refreshed after it.
+  const sendMove = async (move) => {
+    const key = await outbox.add({ kind: "move", body: "", at: Date.now(), ...move });
+    const gone = () => !outbox.now().some((entry) => entry.key === key);
+    return new Promise((resolve) => {
+      const check = () => {
+        if (!gone()) return;
+        document.removeEventListener("reader:outbox-changed", check);
+        resolve("sent");
+      };
+      const giveUp = () => {
+        document.removeEventListener("reader:outbox-changed", check);
+        resolve(gone() ? "sent" : "queued");
+      };
+      document.addEventListener("reader:outbox-changed", check);
+      const run = flushOutbox();
+      if (!run) return giveUp();
+      run.then(() => {
+        // A run already going may have started before this was added.
+        const again = !gone() && navigator.onLine ? flushOutbox() : null;
+        if (again) again.then(giveUp);
+        else giveUp();
+      });
+    });
+  };
+
+  const queuedFlash = (action) => `${MOVE_FLASH[action]} · will sync`;
+
+  // The moves still waiting, one per item and list: the last said wins, so
+  // read and then unread leaves it unread.
+  const waitingMoves = () => {
+    const latest = new Map();
+    outbox
+      .now()
+      .filter((entry) => entry.kind === "move")
+      .forEach((entry) => latest.set(`${entry.item} ${entry.list}`, entry));
+    return [...latest.values()];
+  };
+
+  // A row that left the tab on show, or arrived on it, moves the counts in
+  // the tab labels; `arrived` is 1 or -1.
+  const shiftTabCounts = (arrived) => {
+    document.querySelectorAll(".actions a").forEach((tab) => {
+      const delta = tab.classList.contains("is-active") ? arrived : -arrived;
+      tab.textContent = tab.textContent.replace(/\((\d+)\)/, (_, n) => `(${Math.max(0, Number(n) + delta)})`);
+    });
+  };
+
+  // Make the page show the moves still waiting. Safe to run on a page that
+  // already shows them: a row not there is not taken away, one there is not added.
+  const applyMoves = () => {
+    const moves = waitingMoves();
+    const found = /^\/lists\/([^/]+)$/.exec(location.pathname);
+    if (found && moves.length) {
+      const list = found[1];
+      const view = new URLSearchParams(location.search).get("view");
+      const tab = view === secondTab(list) ? view : firstTab(list);
+      const section = document.querySelector("section.list");
+      if (section) {
+        moves
+          .filter((move) => move.list === list)
+          .forEach((move) => {
+            const row = section.querySelector(`.item-swipe[data-item-id="${move.item}"]`);
+            if (move.to !== tab) {
+              if (!row) return;
+              row.remove();
+              shiftTabCounts(-1);
+            } else if (!row && move.row) {
+              section.insertAdjacentHTML("afterbegin", move.row);
+              shiftTabCounts(1);
+            }
+          });
+      }
+    }
+    // Home shows only what is unread, so a moved item only ever leaves it.
+    document.querySelectorAll("section[data-list]").forEach((section) => {
+      const list = section.dataset.list;
+      let left = 0;
+      moves
+        .filter((move) => move.list === list && move.to !== firstTab(list))
+        .forEach((move) => {
+          const row = section.querySelector(`.item-swipe[data-item-id="${move.item}"]`);
+          if (!row) return;
+          row.remove();
+          left++;
+        });
+      const count = section.querySelector(".count");
+      if (!left || !count) return;
+      count.textContent = String(Math.max(0, Number(count.textContent) - left));
+      if (count.textContent === "0") section.remove();
+      else layoutHomeList(section);
+    });
+    // Opened offline: dimmed like any opened title.
+    const seen = new Set(
+      outbox.now().filter((entry) => entry.kind === "seen").map((entry) => String(entry.item))
+    );
+    if (seen.size) {
+      document.querySelectorAll("a.item[data-item-id]").forEach((link) => {
+        if (seen.has(link.dataset.itemId)) link.classList.add("is-seen");
+      });
+    }
+  };
+
+  // An article opened without a connection is not marked opened on the
+  // server; it is told once the connection returns.
+  const initSeen = () => {
+    const found = /^\/items\/(\d+)$/.exec(location.pathname);
+    if (!found || navigator.onLine) return;
+    const item = Number(found[1]);
+    if (outbox.now().some((entry) => entry.kind === "seen" && entry.item === item)) return;
+    outbox.add({ kind: "seen", item, url: `/items/${item}` }).catch(() => {});
+  };
+
   // Send what was saved offline: queued highlights in the order they were
   // made, then reading spots. A refusal (the article or passage changed on
   // another device meanwhile) is dropped and noted in Diagnostics; no
@@ -302,6 +473,17 @@
       // Real ids for highlights sent in this run, for the edits after them.
       const realIds = {};
       for (const entry of await outbox.all()) {
+        // Opened offline: the server learns it by being asked for the page.
+        if (entry.kind === "seen") {
+          try {
+            const response = await fetch(entry.url);
+            if (response.status >= 500) return;
+          } catch {
+            return;
+          }
+          await outbox.remove(entry.key);
+          continue;
+        }
         let url = entry.url;
         let highlightId = entry.highlightId;
         if (isEdit(entry)) {
@@ -315,20 +497,29 @@
           url = `${entry.article}/highlights/${highlightId}/${entry.action}`;
         }
         let response;
+        // A connection that hangs must not hold up the taps waiting on it.
+        const controller = new AbortController();
+        const timer = entry.kind === "move" ? setTimeout(() => controller.abort(), MOVE_GIVE_UP_MS) : 0;
         try {
-          // The edit routes answer with a redirect back to the article:
-          // that is success, and nothing else needs to load.
+          // The edit and move routes answer with a redirect: that is
+          // success, and nothing else needs to load.
           response = await fetch(url, {
             method: "POST",
             body: new URLSearchParams(entry.body),
             redirect: "manual",
+            signal: controller.signal,
           });
         } catch {
           return;
+        } finally {
+          clearTimeout(timer);
         }
         if (response.status >= 500) return;
         if (response.ok || response.type === "opaqueredirect") {
-          if (isEdit(entry)) {
+          if (entry.kind === "move") {
+            // The pages that showed the item where it was are out of date.
+            pagesAround(entry.list).forEach((path) => markStale(path, true));
+          } else if (isEdit(entry)) {
             document.dispatchEvent(
               new CustomEvent("reader:edit-synced", { detail: { entry, highlightId } })
             );
@@ -346,7 +537,7 @@
               new CustomEvent("reader:highlight-synced", { detail: { entry, result } })
             );
           }
-          markStale(entry.article, true);
+          if (entry.kind !== "move") markStale(entry.article, true);
         } else {
           note("outbox-dropped", `${url} ${response.status}`);
         }
@@ -393,7 +584,7 @@
     const spots = Object.values(readProgress()).filter((spot) => spot.unsent).length;
     outbox
       .all()
-      .then((entries) => entries.length + spots)
+      .then((entries) => entries.filter((entry) => entry.kind !== "seen").length + spots)
       .catch(() => spots)
       .then((count) => {
         if (navigator.onLine) return;
@@ -522,21 +713,33 @@
       }, 220);
     };
 
-    const failed = (row) => {
+    const failed = (row, message = "Couldn't save") => {
       setX(row, 0, true);
       delete row.dataset.busy;
-      showToast("Couldn't save");
+      showToast(message);
+    };
+
+    // What the swipe does, written down before the row starts to slide.
+    const swipeMove = (row) => {
+      const url = row.dataset.swipeAction;
+      const action = new URL(url, location.origin).pathname.split("/").pop();
+      const list = row.dataset.listSlug;
+      const to = MOVE_TO[action];
+      return { item: Number(row.dataset.itemId), list, action, to, url, row: rowAfterMove(row, list, to) };
     };
 
     const runMove = async (row) => {
       row.dataset.busy = "1";
+      const move = swipeMove(row);
       setX(row, -row.offsetWidth, true);
+      let outcome;
       try {
-        await post(row.dataset.swipeAction);
+        outcome = await sendMove(move);
       } catch {
         failed(row);
         return;
       }
+      if (outcome === "queued") showToast(queuedFlash(move.action));
       bumpCounts(row, true);
       removeRow(row);
     };
@@ -583,8 +786,9 @@
         close();
         try {
           await post(row.dataset.deleteAction);
-        } catch {
-          failed(row);
+        } catch (error) {
+          // Deleting is the one thing not kept for later: it cannot be undone.
+          failed(row, error instanceof TypeError ? "Delete needs a connection" : undefined);
           return;
         }
         bumpCounts(row, false);
@@ -666,6 +870,67 @@
           event.preventDefault();
         }
       });
+    });
+  };
+
+  // The article's Read later, Archive and Mark as read buttons. Pressed
+  // offline they are kept and the page moves on as if they had been sent.
+  const initItemActions = () => {
+    const bind = (form, spec) => {
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const button = form.querySelector("button");
+        if (button) button.disabled = true;
+        const template = document.getElementById(spec.row);
+        let outcome;
+        try {
+          outcome = await sendMove({
+            item: spec.item,
+            list: spec.list,
+            action: spec.action,
+            to: MOVE_TO[spec.action],
+            url: spec.url,
+            row: template ? template.innerHTML.trim() : "",
+          });
+        } catch {
+          if (button) button.disabled = false;
+          showToast("Couldn't save");
+          return;
+        }
+        if (outcome === "queued" && spec.action === "later") {
+          // Stay on the article: it now says it is saved.
+          showSaved(form, spec);
+          if (button) button.disabled = false;
+          showToast(queuedFlash("later"));
+          return;
+        }
+        const next = new URL(spec.then, location.origin);
+        if (outcome === "queued") next.searchParams.set("flash", queuedFlash(spec.action));
+        location.assign(next.pathname + next.search);
+      });
+    };
+
+    // Read later pressed: the button says so and Archive appears.
+    const showSaved = (form, spec) => {
+      const button = form.querySelector("button");
+      button.textContent = "Saved to Read later";
+      button.classList.add("is-active");
+      if (!spec.archive || document.querySelector(".act-archive")) return;
+      const archive = document.createElement("form");
+      archive.method = "post";
+      archive.action = spec.archive.url;
+      archive.innerHTML = '<button type="submit" class="act-archive">Archive</button>';
+      form.after(archive);
+      bind(archive, spec.archive);
+    };
+
+    const waiting = waitingMoves();
+    document.querySelectorAll("form[data-move]").forEach((form) => {
+      const spec = JSON.parse(form.dataset.move);
+      bind(form, spec);
+      if (spec.action === "later" && waiting.some((m) => m.item === spec.item && m.list === "later")) {
+        showSaved(form, spec);
+      }
     });
   };
 
@@ -1379,7 +1644,11 @@
   };
 
   const toast = document.querySelector(".toast");
-  if (toast) {
+  const flash = new URL(location.href).searchParams.get("flash");
+  // A page the phone had stored carries no banner of its own: show the one
+  // in its address.
+  if (flash && !toast) showToast(flash);
+  if (toast || flash) {
     if (window.history && window.history.replaceState) {
       const url = new URL(location.href);
       if (url.searchParams.has("flash")) {
@@ -1387,11 +1656,14 @@
         window.history.replaceState({}, "", url);
       }
     }
-    setTimeout(() => toast.classList.add("is-hidden"), 5000);
   }
+  if (toast) setTimeout(() => toast.classList.add("is-hidden"), 5000);
 
   initThemeToggle();
+  applyMoves();
   initSwipe();
+  initItemActions();
+  initSeen();
   initReadingProgress();
   initHighlights();
   initRestorePosition();

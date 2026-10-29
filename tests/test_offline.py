@@ -233,7 +233,7 @@ def test_list_rows_say_which_item_and_list_they_are(monkeypatch, tmp_path):
         home = client.get("/").text
 
         assert f'data-item-id="{item_id}"' in page
-        assert 'data-list="news"' in page
+        assert 'data-list-slug="news"' in page
         assert f'data-item-id="{item_id}"' in home
         assert '<section class="list" data-list="news"' in home
 
@@ -255,6 +255,10 @@ def test_the_article_page_carries_what_its_buttons_do_offline(monkeypatch, tmp_p
         assert by_action["archive"]["list"] == "later"
         assert by_action["archive"]["then"] == "/lists/news?flash=Archived"
         assert by_action["later"]["then"] == f"/items/{item_id}?from_list=news"
+        assert by_action["read"]["url"] == f"/items/{item_id}/read?from_list=news"
+        assert by_action["later"]["url"] == f"/items/{item_id}/later?from_list=news"
+        # Saving to Read later offline unlocks Archive, so it carries that move.
+        assert by_action["later"]["archive"] == by_action["archive"]
         # The row each button's item becomes on the tab it lands on.
         templates = dict(
             re.findall(r'<template id="(moved-row-\w+)">(.*?)</template>', page, re.DOTALL)

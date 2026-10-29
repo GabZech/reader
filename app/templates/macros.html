@@ -18,7 +18,7 @@
 {% else %}
 {% set swipe_action, swipe_label = "/items/" ~ item.id ~ "/read?from_list=" ~ list_slug, "Mark as read" %}
 {% endif %}
-        <div class="item-swipe{% if extra %} is-more{% endif %}"{% if extra %} hidden{% endif %} data-item-id="{{ item.id }}"{% if list_slug and not source_id %} data-list="{{ list_slug }}"{% endif %} data-delete-action="/items/{{ item.id }}/delete{{ context }}"{% if swipe_action %} data-swipe-action="{{ swipe_action }}"{% endif %}>
+        <div class="item-swipe{% if extra %} is-more{% endif %}"{% if extra %} hidden{% endif %} data-item-id="{{ item.id }}"{% if list_slug and not source_id %} data-list-slug="{{ list_slug }}"{% endif %} data-delete-action="/items/{{ item.id }}/delete{{ context }}"{% if swipe_action %} data-swipe-action="{{ swipe_action }}"{% endif %}>
           <div class="swipe-under swipe-delete" aria-hidden="true">Delete</div>
           {% if swipe_action %}
           <div class="swipe-under swipe-move" aria-hidden="true">{{ swipe_label }}</div>
