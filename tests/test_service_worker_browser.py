@@ -196,11 +196,12 @@ def _go_online(phone, server):
 
 
 # WebKit is Safari's engine, which the installed iPhone app runs on: bugs
-# there (saving a form offline, the worker's lifetime) never showed in Chromium.
-@pytest.fixture(params=["chromium", "webkit"])
-def phone(request):
+# there (saving a form offline, the worker's lifetime) never showed in
+# Chromium. Which engines run is set in conftest.py.
+@pytest.fixture
+def phone(engine):
     with sync_playwright() as p:
-        browser = getattr(p, request.param).launch()
+        browser = getattr(p, engine).launch()
         try:
             page = browser.new_context(
                 viewport={"width": 390, "height": 844}, service_workers="allow"
