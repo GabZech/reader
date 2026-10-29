@@ -42,7 +42,7 @@ A change to what the client sees needs a screenshot of the intended look, signed
 
 ### 4. Build
 
-A branch per change. Behaviour: write the failing test first. Then the code, then the tests it touches, the fast tier (`uv run pytest -m "not browser"`) and lint, per `docs/development.md`. The full suite is CI's gate before every deploy: never run it locally without being asked. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
+A branch per change. Behaviour: write the failing test first. Then the code, then lint. Run only a test you are writing or fixing, to see it fail and then pass; the existing suite is CI's job, which gates every deploy, so do not run it locally unless asked. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
 
 ### 5. Try
 
