@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Highlight{% endblock %}
 {% block body %}
+      {% if offline_shell %}<div hidden data-offline-shell></div>{% endif %}
       <div class="top-bar">
         <a class="top-edit" href="{{ back }}">Close</a>
       </div>
@@ -20,7 +21,7 @@
             <span class="byline">Same rule, one level under a section title</span>
           </span>
         </a>
-        <form method="post" action="{{ key_action }}">
+        <form method="post" action="{{ key_action }}" data-highlight-form="key">
           <button type="submit" class="item">
             {% if highlight.is_key %}
             <span class="title">Unmark key passage</span>
@@ -37,8 +38,19 @@
         </form>
       </section>
       <button type="button" class="btn" id="copy-highlight" data-copy-text="{{ highlight.text }}">Copy text</button>
-      <form class="danger-zone" method="post" action="{{ delete_action }}">
+      <form class="danger-zone" method="post" action="{{ delete_action }}" data-highlight-form="delete">
         <button type="submit" class="btn btn-danger">Delete highlight</button>
       </form>
       <blockquote class="quote">{{ highlight.text }}</blockquote>
+      {% if offline_shell %}
+      {# The key button's two states, for app.js to pick from offline. #}
+      <template id="key-off"><span class="title">Mark as key passage</span>
+            <span class="sub">
+              <span class="byline">Shows in Obsidian as a yellow mark tagged #key</span>
+            </span></template>
+      <template id="key-on"><span class="title">Unmark key passage</span>
+            <span class="sub">
+              <span class="byline">Back to a normal highlight</span>
+            </span></template>
+      {% endif %}
 {% endblock %}

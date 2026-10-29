@@ -161,3 +161,45 @@ def test_a_merge_naming_a_highlight_deleted_elsewhere_still_saves(monkeypatch, t
 
         assert saved.status_code == 200
         assert [row["text"] for row in _highlight_rows(tmp_path)] == ["A sentence"]
+
+
+def test_the_article_page_carries_each_highlights_text_and_titles_safely(
+    monkeypatch, tmp_path
+):
+    # The phone builds a highlight's page offline from the stored article.
+    import json
+    import re
+
+    with _client(monkeypatch, tmp_path) as client:
+        item_id = _capture(client, "carries")
+        _set_body_html(tmp_path, item_id, "<p>Ends here &lt;/script&gt; and more</p>")
+        hid = _post_highlight(client, item_id, 0, 19, "Ends here </script>").json()["id"]
+        client.post(
+            f"/items/{item_id}/highlights/{hid}/section-title", data={"title": "Part one"}
+        )
+
+        page = client.get(f"/items/{item_id}").text
+
+        raw = re.search(
+            r'<script type="application/json" id="highlights-data">(.*?)</script>', page, re.DOTALL
+        ).group(1)
+        [carried] = json.loads(raw)
+        assert carried["text"] == "Ends here </script>"
+        assert carried["section_title"] == "Part one"
+        assert carried["subsection_title"] is None
+
+
+def test_offline_highlight_page_templates_are_downloaded_with_the_lists(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        pages = client.get("/offline/articles").json()["pages"]
+        for path in (
+            "/offline/highlight",
+            "/offline/highlight-title/section",
+            "/offline/highlight-title/subsection",
+        ):
+            assert path in pages
+            shell = client.get(path)
+            assert shell.status_code == 200
+            assert "data-offline-shell" in shell.text

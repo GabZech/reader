@@ -63,6 +63,19 @@ function cacheKey(request) {
   return /^\/items\/\d+$/.test(url.pathname) ? url.origin + url.pathname : request;
 }
 
+// A highlight's page, or its section or subsection title page.
+const HIGHLIGHT_PAGE = /^\/items\/\d+\/highlights\/([^/]+)(?:\/(section|subsection)-title)?$/;
+
+// The empty copy of a highlight page that app.js fills in on the phone (see
+// OFFLINE_SHELLS in app/main.py), when the page itself cannot be had.
+function highlightShell(request) {
+  if (request.mode !== "navigate") return null;
+  const found = HIGHLIGHT_PAGE.exec(new URL(request.url).pathname);
+  if (!found) return null;
+  const path = found[2] ? `/offline/highlight-title/${found[2]}` : "/offline/highlight";
+  return { pending: found[1].startsWith("p"), path };
+}
+
 // Another site's image: the downloaded copy if there is one, so an article
 // reads the same offline, else the network as before.
 async function answerImage(request) {
@@ -196,6 +209,15 @@ async function answer(request) {
     const up = Math.round((Date.now() - BOOTED) / 1000);
     tell("sw-nav", `${where} ${what} ${Date.now() - started}ms #${++pagesServed} up=${up}s`);
   };
+  // A highlight still waiting to sync has no page on the server yet.
+  const shell = highlightShell(request);
+  if (shell && shell.pending) {
+    const filled = await caches.match(new URL(shell.path, location.origin).href);
+    if (filled) {
+      note("shell");
+      return filled;
+    }
+  }
   try {
     const response = await fetch(request);
     if (response.ok) {
@@ -208,6 +230,13 @@ async function answer(request) {
     note(`net ${response.status}`);
     return response;
   } catch (error) {
+    // Offline a highlight's page is always built on the phone: a copy kept
+    // from an earlier visit would miss edits made since.
+    const filled = shell && (await caches.match(new URL(shell.path, location.origin).href));
+    if (filled) {
+      note(`shell after ${error}`);
+      return filled;
+    }
     const cached = await caches.match(cacheKey(request));
     if (cached) {
       note(`cache after ${error}`);

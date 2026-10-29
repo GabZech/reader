@@ -1132,10 +1132,16 @@ def item_page(
                 "end_offset": h["end_offset"],
                 "has_title": bool(h["section_title"] or h["subsection_title"]),
                 "is_key": bool(h["is_key"]),
+                # The rest is for building the highlight's own page offline.
+                "text": h["text"],
+                "section_title": h["section_title"],
+                "subsection_title": h["subsection_title"],
             }
             for h in highlights
         ]
-    )
+        # Lands inside a <script> element: highlighted text holding
+        # "</script>" must not end it early.
+    ).replace("</", "<\\/")
     if from_source and item["source_id"] == from_source:
         back = f"/sources/{from_source}/items"
     elif from_home:
@@ -1693,7 +1699,11 @@ def offline_articles():
     conn = connect()
     try:
         init_db(conn)
-        pages = ["/", "/lists"] + [f"/lists/{row['slug']}" for row in lists_for_home_edit(conn)]
+        pages = (
+            ["/", "/lists"]
+            + [f"/lists/{row['slug']}" for row in lists_for_home_edit(conn)]
+            + list(OFFLINE_SHELLS)
+        )
         # One article's text at a time: the whole list's at once is what
         # filled the machine before (see `_item_columns`).
         for item in items_for_list(conn, "later"):
@@ -1705,6 +1715,53 @@ def offline_articles():
     finally:
         conn.close()
     return {"pages": pages, "articles": articles}
+
+
+# Empty copies of the highlight page and its title pages. The service worker
+# keeps them and app.js fills one in when a highlight's own page cannot be
+# fetched: offline, or a highlight still waiting to sync.
+OFFLINE_SHELLS = (
+    "/offline/highlight",
+    "/offline/highlight-title/section",
+    "/offline/highlight-title/subsection",
+)
+
+
+@app.get("/offline/highlight")
+def offline_highlight_shell(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "highlight.html",
+        {
+            "nav": "home",
+            "offline_shell": True,
+            "highlight": {"text": "", "is_key": False},
+            "back": "/",
+            "section_title_action": "#",
+            "subsection_title_action": "#",
+            "key_action": "#",
+            "delete_action": "#",
+        },
+    )
+
+
+@app.get("/offline/highlight-title/{level}")
+def offline_highlight_title_shell(request: Request, level: str):
+    if level not in ("section", "subsection"):
+        raise HTTPException(status_code=404)
+    return templates.TemplateResponse(
+        request,
+        "highlight_title.html",
+        {
+            "nav": "home",
+            "offline_shell": True,
+            "label": "Section title" if level == "section" else "Subsection title",
+            "text": "",
+            "title": "",
+            "back": "/",
+            "save_action": "#",
+        },
+    )
 
 
 @app.get("/sw.js")

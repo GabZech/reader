@@ -536,3 +536,109 @@ def test_a_queued_highlight_the_server_refuses_is_dropped_not_retried_forever(
             "JSON.parse(localStorage.getItem('reader-log') || '[]').map(x => x.e)"
         )
         assert "outbox-dropped" in logged
+
+
+def _highlight_rows(tmp_path):
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        return [dict(r) for r in conn.execute("SELECT * FROM highlights ORDER BY id")]
+    finally:
+        conn.close()
+
+
+def _open_highlight(phone, text):
+    phone.click(f".article-body mark.hl >> text={text}")
+    phone.wait_for_selector("h1:has-text('Highlight')")
+
+
+def test_a_pending_highlight_can_be_titled_keyed_and_deleted_offline(
+    phone, monkeypatch, tmp_path
+):
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        item_id = _saved_article(
+            origin, tmp_path, "edits", "<p>First passage to keep</p><p>Second one to drop</p>"
+        )
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/offline/highlight")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+        phone.context.set_offline(True)
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+        _select(phone, 0, 0, 13)
+        phone.wait_for_selector(".article-body mark.hl.is-pending")
+
+        _open_highlight(phone, "First passage")
+        assert phone.inner_text("blockquote.quote") == "First passage"
+        phone.click("text=Add section title")
+        phone.wait_for_selector("h1:has-text('Section title')")
+        assert phone.inner_text("blockquote.quote") == "First passage"
+        phone.fill("#highlight-title", "Part one")
+        phone.click("button:has-text('Done')")
+        phone.wait_for_selector(".article-body .hl-title-marker")
+
+        _open_highlight(phone, "First passage")
+        phone.click("text=Mark as key passage")
+        phone.wait_for_selector(".article-body .hl-key-marker")
+
+        _select(phone, 1, 0, 10)
+        phone.wait_for_selector(".article-body mark.hl >> text=Second one")
+        _open_highlight(phone, "Second one")
+        phone.click("text=Delete highlight")
+        phone.wait_for_selector(".article-body")
+        _wait_for(lambda: len(_marked(phone)) == 1)
+
+        phone.reload()
+        phone.wait_for_selector(".article-body .hl-key-marker")
+        assert phone.locator(".article-body .hl-title-marker").count() == 1
+        assert [m["text"] for m in _marked(phone)] == ["First passage"]
+        _open_highlight(phone, "First passage")
+        assert phone.locator("text=Unmark key passage").count() == 1
+
+        phone.context.set_offline(False)
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+
+        _wait_for(lambda: len(_highlight_rows(tmp_path)) == 1 and _highlight_rows(tmp_path)[0]["is_key"])
+        [row] = _highlight_rows(tmp_path)
+        assert (row["text"], row["section_title"], row["is_key"]) == ("First passage", "Part one", 1)
+
+
+def test_a_synced_highlight_can_be_edited_and_deleted_offline(
+    phone, monkeypatch, tmp_path
+):
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        item_id = _saved_article(
+            origin, tmp_path, "synced", "<p>Already saved passage</p><p>Another saved one</p>"
+        )
+        for block, end, text in ((0, 13, "Already saved"), (1, 13, "Another saved")):
+            httpx.post(
+                f"{origin}/items/{item_id}/highlights",
+                data={
+                    "start_block": str(block),
+                    "start_offset": "0",
+                    "end_block": str(block),
+                    "end_offset": str(end),
+                    "text": text,
+                },
+            )
+        phone.goto(f"{origin}/settings")
+        _wait_until_cached(phone, f"{origin}/offline/highlight-title/subsection")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+        phone.context.set_offline(True)
+        phone.goto(f"{origin}/items/{item_id}?from_list=later")
+
+        _open_highlight(phone, "Already saved")
+        assert phone.inner_text("blockquote.quote") == "Already saved"
+        phone.click("text=Add subsection title")
+        phone.fill("#highlight-title", "Detail")
+        phone.click("button:has-text('Done')")
+        phone.wait_for_selector(".article-body .hl-title-marker")
+        _open_highlight(phone, "Another saved")
+        phone.click("text=Delete highlight")
+        phone.wait_for_selector(".article-body")
+        _wait_for(lambda: [m["text"] for m in _marked(phone)] == ["Already saved"])
+        assert len(_highlight_rows(tmp_path)) == 2
+
+        phone.context.set_offline(False)
+        phone.goto(f"{origin}/lists/later")
+
+        _wait_for(lambda: len(_highlight_rows(tmp_path)) == 1)
+        _wait_for(lambda: _highlight_rows(tmp_path)[0]["subsection_title"] == "Detail")
