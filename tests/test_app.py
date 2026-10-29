@@ -1282,6 +1282,239 @@ def test_highlight_detail_page_shows_its_text(monkeypatch, tmp_path):
         assert "Delete highlight" in page.text
 
 
+def test_highlight_page_offers_to_mark_as_key_and_then_to_unmark(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+        url = f"/items/{item_id}/highlights/{highlight_id}"
+
+        page = client.get(url).text
+        assert "Mark as key passage" in page
+        assert "Unmark key passage" not in page
+        assert page.index("Add subsection title") < page.index("Mark as key passage")
+        assert page.index("Mark as key passage") < page.index('class="quote"')
+        assert f'action="{url}/key"' in page
+
+        client.post(f"{url}/key")
+        page = client.get(url).text
+        assert "Unmark key passage" in page
+        assert "Mark as key passage" not in page
+        assert f'action="{url}/unkey"' in page
+
+
+def test_the_article_page_tells_the_script_which_highlights_are_key(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        key_id = _save_highlight(client, item_id, start_offset=0, end_offset=5)
+        plain_id = _save_highlight(client, item_id, start_offset=10, end_offset=15)
+        client.post(f"/items/{item_id}/highlights/{key_id}/key")
+
+        page = client.get(f"/items/{item_id}").text
+        data = json.loads(
+            page.split('id="highlights-data"', 1)[1].split(">", 1)[1].split("</script>", 1)[0]
+        )
+        assert {h["id"]: h["is_key"] for h in data} == {key_id: True, plain_id: False}
+
+
+def test_saving_over_a_key_highlight_reports_the_merged_one_as_key(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        key_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+        client.post(f"/items/{item_id}/highlights/{key_id}/key")
+
+        merged = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "20",
+                "text": "longer",
+                "merge_id": [str(key_id)],
+            },
+        )
+        assert merged.json()["is_key"] is True
+        plain = _save_highlight(client, item_id, start_offset=30, end_offset=35)
+        saved = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "40",
+                "end_block": "0",
+                "end_offset": "45",
+                "text": "other",
+            },
+        )
+        assert saved.json()["is_key"] is False
+        assert plain
+
+
+def _key_flag(tmp_path, highlight_id):
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        return conn.execute(
+            "SELECT is_key FROM highlights WHERE id = ?", (highlight_id,)
+        ).fetchone()["is_key"]
+    finally:
+        conn.close()
+
+
+def test_marking_and_unmarking_a_highlight_as_key_persists(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+        assert _key_flag(tmp_path, highlight_id) == 0
+
+        client.post(f"/items/{item_id}/highlights/{highlight_id}/key")
+        assert _key_flag(tmp_path, highlight_id) == 1
+
+        client.post(f"/items/{item_id}/highlights/{highlight_id}/unkey")
+        assert _key_flag(tmp_path, highlight_id) == 0
+
+
+def test_marking_as_key_twice_leaves_it_marked(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+
+        for _ in range(2):
+            client.post(f"/items/{item_id}/highlights/{highlight_id}/key")
+        assert _key_flag(tmp_path, highlight_id) == 1
+
+        for _ in range(2):
+            client.post(f"/items/{item_id}/highlights/{highlight_id}/unkey")
+        assert _key_flag(tmp_path, highlight_id) == 0
+
+
+def test_marking_as_key_redirects_back_to_that_highlight(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+
+        for action in ("key", "unkey"):
+            saved = client.post(
+                f"/items/{item_id}/highlights/{highlight_id}/{action}",
+                follow_redirects=False,
+            )
+            assert saved.status_code == 303
+            assert saved.headers["location"] == f"/items/{item_id}#highlight-{highlight_id}"
+
+
+def test_marking_an_unknown_highlight_as_key_is_404(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        for action in ("key", "unkey"):
+            missing = client.post(f"/items/{item_id}/highlights/999999/{action}")
+            assert missing.status_code == 404
+
+
+def test_marking_as_key_marks_touched_but_does_not_export_immediately(
+    monkeypatch, tmp_path
+):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+        _reject_any_export(monkeypatch, "marking as key must not export immediately")
+        conn = dbmod.connect(tmp_path / "reader.db")
+        conn.execute("UPDATE items SET highlights_touched_at = NULL WHERE id = ?", (item_id,))
+        conn.commit()
+        conn.close()
+
+        client.post(f"/items/{item_id}/highlights/{highlight_id}/key")
+
+        after = _get_item_row(tmp_path, item_id)
+        assert after["highlights_touched_at"] is not None
+        assert after["highlights_exported_at"] is None
+
+
+def test_a_key_highlight_reaches_the_export_marked_as_key(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        key_id = _save_highlight(client, item_id, start_offset=0, end_offset=5)
+        _save_highlight(client, item_id, start_offset=10, end_offset=15)
+        client.post(f"/items/{item_id}/highlights/{key_id}/key")
+        calls = _record_exports(monkeypatch)
+
+        client.post(f"/items/{item_id}/read?from_list=news")
+
+        assert calls, "the read trigger should have exported the note"
+        flags = [row["is_key"] for row in calls[-1][1]]
+        assert flags == [1, 0]
+
+
+def test_merging_highlights_keeps_key_when_any_of_them_was_key(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        early_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+        later_id = _save_highlight(client, item_id, start_offset=20, end_offset=30)
+        client.post(f"/items/{item_id}/highlights/{later_id}/key")
+
+        merged = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "30",
+                "text": "bridges both",
+                "merge_id": [str(early_id), str(later_id)],
+            },
+        )
+        assert merged.status_code == 200
+        assert _key_flag(tmp_path, merged.json()["id"]) == 1
+
+
+def test_merging_plain_highlights_stays_plain(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        early_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+        later_id = _save_highlight(client, item_id, start_offset=20, end_offset=30)
+
+        merged = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "30",
+                "text": "bridges both",
+                "merge_id": [str(early_id), str(later_id)],
+            },
+        )
+        assert _key_flag(tmp_path, merged.json()["id"]) == 0
+
+
+def test_init_db_adds_the_key_column_once_and_keeps_existing_highlights(tmp_path):
+    conn = dbmod.connect(tmp_path / "reader.db")
+    dbmod.init_db(conn)
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys = OFF")
+    conn.execute(
+        "INSERT INTO items (id, source_id, guid, title) VALUES (1, 'src', 'g1', 'T')"
+    )
+    conn.execute(
+        "INSERT INTO highlights (item_id, start_block, start_offset, end_block, end_offset,"
+        " text, created_at) VALUES (1, 0, 0, 0, 5, 'Hello', 'x')"
+    )
+    conn.execute("ALTER TABLE highlights DROP COLUMN is_key")
+    dbmod.init_db(conn)
+    dbmod.init_db(conn)
+    row = conn.execute("SELECT text, is_key FROM highlights").fetchone()
+    assert row["text"] == "Hello"
+    assert row["is_key"] == 0
+
+
 def test_highlight_detail_unknown_id_is_404(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")

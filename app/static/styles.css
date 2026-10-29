@@ -641,6 +641,7 @@ button.item {
 }
 
 .list:not(.is-flat) > .item + .item,
+.list:not(.is-flat) > .item + form .item,
 .list:not(.is-flat) > form + form .item,
 .list:not(.is-flat) > form + .item {
   border-top: 1px solid var(--line);
@@ -1313,6 +1314,14 @@ form.is-apart {
   content: "\00A7";
   color: var(--accent);
   font-weight: 700;
+  font-size: 0.85em;
+  margin-right: 0.2em;
+  cursor: pointer;
+}
+
+.article-body .hl-key-marker::before {
+  content: "\2605";
+  color: var(--accent);
   font-size: 0.85em;
   margin-right: 0.2em;
   cursor: pointer;

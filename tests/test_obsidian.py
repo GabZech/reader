@@ -28,6 +28,7 @@ def _highlight(
     image_urls=None,
     start_block=0,
     end_block=0,
+    is_key=0,
 ):
     return {
         "text": text,
@@ -36,6 +37,7 @@ def _highlight(
         "image_urls": json.dumps(image_urls) if image_urls else None,
         "start_block": start_block,
         "end_block": end_block,
+        "is_key": is_key,
     }
 
 
@@ -239,6 +241,85 @@ def test_build_note_markdown_groups_by_sticky_section_title():
     assert lines.index("### Section B") > lines.index("#### Sub one")
     # A new section resets any active subsection heading.
     assert "#### Sub one" not in lines[lines.index("### Section B") :]
+
+
+def _bullets(highlights, item=None):
+    md = build_note_markdown(item or _item(), highlights)
+    return md.split("## Highlights\n", 1)[1].splitlines()
+
+
+def test_build_note_markdown_marks_a_key_highlight_and_tags_it():
+    lines = _bullets([_highlight("Agents spawn agents.", is_key=1)])
+    assert "- ==Agents spawn agents.== #key" in lines
+
+
+def test_build_note_markdown_leaves_a_plain_highlight_untouched():
+    lines = _bullets([_highlight("Agents spawn agents.", is_key=0)])
+    assert "- Agents spawn agents." in lines
+    assert "==" not in "\n".join(lines)
+    assert "#key" not in "\n".join(lines)
+
+
+def test_build_note_markdown_tolerates_a_highlight_without_the_key_field():
+    plain = _highlight("Agents spawn agents.")
+    del plain["is_key"]
+    assert "- Agents spawn agents." in _bullets([plain])
+
+
+def test_build_note_markdown_wraps_each_line_of_a_multiline_key_highlight():
+    lines = _bullets([_highlight("First line.\nSecond line.", is_key=1)])
+    assert "- ==First line.== #key" in lines
+    assert "  - ==Second line.==" in lines
+    assert "".join(lines).count("#key") == 1
+
+
+def test_build_note_markdown_tags_the_parent_bullet_of_a_key_list_highlight():
+    body = "<ul><li>One</li><li>Two<ul><li>Nested</li></ul></li></ul>"
+    highlight = _highlight("One\nTwo\nNested", is_key=1)
+    lines = _bullets([highlight], _item(body_html=body))
+    assert lines[-4:] == ["- #key", "  - ==One==", "  - ==Two==", "    - ==Nested=="]
+
+
+def test_build_note_markdown_marks_each_line_of_a_key_highlight_with_lead_in_text():
+    body = "<p>Notes:</p>\n<ul>\n<li>Bullet one</li>\n<li>Bullet two</li>\n</ul>"
+    highlight = _highlight(
+        "Notes:\n\nBullet one\nBullet two\n", start_block=0, end_block=1, is_key=1
+    )
+    lines = _bullets([highlight], _item(body_html=body))
+    idx = lines.index("- ==Notes:== #key")
+    assert lines[idx + 1 : idx + 3] == ["  - ==Bullet one==", "  - ==Bullet two=="]
+
+
+def test_build_note_markdown_tags_an_image_only_key_highlight_without_a_mark():
+    highlight = _highlight("", image_urls=["https://example.test/a.png"], is_key=1)
+    lines = _bullets([highlight])
+    assert "- ![](https://example.test/a.png) #key" in lines
+    assert "==" not in "\n".join(lines)
+
+
+def test_build_note_markdown_keeps_images_unmarked_after_key_text():
+    highlight = _highlight(
+        "Caption.", image_urls=["https://example.test/a.png"], is_key=1
+    )
+    lines = _bullets([highlight])
+    assert "- ==Caption.== #key" in lines
+    assert "- ![](https://example.test/a.png)" in lines
+
+
+def test_build_note_markdown_skips_the_mark_on_a_line_containing_equals_signs():
+    lines = _bullets([_highlight("Use a == b to compare.", is_key=1)])
+    assert "- Use a == b to compare. #key" in lines
+
+
+def test_build_note_markdown_trims_space_inside_the_mark():
+    lines = _bullets([_highlight("  Padded sentence.  ", is_key=1)])
+    assert "- ==Padded sentence.== #key" in lines
+
+
+def test_build_note_markdown_key_highlight_still_sits_under_its_section_title():
+    highlights = [_highlight("Important one.", section_title="Section A", is_key=1)]
+    lines = _bullets(highlights)
+    assert lines.index("### Section A") < lines.index("- ==Important one.== #key")
 
 
 def test_export_note_creates_when_no_existing_file(monkeypatch):

@@ -444,7 +444,8 @@
       endBlock,
       endOffset,
       highlightId,
-      hasTitle = false
+      hasTitle = false,
+      isKey = false
     ) => {
       const marks = [];
       for (let b = startBlock; b <= endBlock; b++) {
@@ -469,14 +470,19 @@
         });
       }
       // A highlight carrying a section or subsection title gets a small §
-      // just before it. The element stays empty (CSS draws the §) so it adds
-      // no text: highlights are stored as character offsets into a block.
-      if (hasTitle && marks.length > 0) {
+      // just before it, and a key highlight a small ★ after that. The
+      // elements stay empty (CSS draws the symbols) so they add no text:
+      // highlights are stored as character offsets into a block.
+      const addMarker = (className) => {
         const marker = document.createElement("span");
-        marker.className = "hl-title-marker";
+        marker.className = className;
         marker.setAttribute("aria-hidden", "true");
         if (highlightId != null) marker.dataset.highlightId = String(highlightId);
         marks[0].before(marker);
+      };
+      if (marks.length > 0) {
+        if (hasTitle) addMarker("hl-title-marker");
+        if (isKey) addMarker("hl-key-marker");
       }
       return marks;
     };
@@ -502,7 +508,7 @@
       saved = [];
     }
     saved.forEach((h) => {
-      wrapHighlight(h.start_block, h.start_offset, h.end_block, h.end_offset, h.id, h.has_title);
+      wrapHighlight(h.start_block, h.start_offset, h.end_block, h.end_offset, h.id, h.has_title, h.is_key);
     });
     // Live record of what's on the page, kept in sync as saves/merges
     // happen so a second overlapping selection in the same visit (before
@@ -525,7 +531,10 @@
 
     const unwrapHighlight = (highlightId) => {
       body
-        .querySelectorAll(`.hl-title-marker[data-highlight-id="${highlightId}"]`)
+        .querySelectorAll(
+          `.hl-title-marker[data-highlight-id="${highlightId}"],` +
+            `.hl-key-marker[data-highlight-id="${highlightId}"]`
+        )
         .forEach((marker) => marker.remove());
       body.querySelectorAll(`mark.hl[data-highlight-id="${highlightId}"]`).forEach((mark) => {
         const parent = mark.parentNode;
@@ -540,7 +549,7 @@
     };
 
     body.addEventListener("click", (event) => {
-      const mark = event.target.closest("mark.hl, .hl-title-marker");
+      const mark = event.target.closest("mark.hl, .hl-title-marker, .hl-key-marker");
       if (!mark || !mark.dataset.highlightId) return;
       location.href = `${location.pathname}/highlights/${mark.dataset.highlightId}`;
     });
@@ -579,7 +588,7 @@
         .then((r) => (r.ok ? r.json() : null))
         .then((result) => {
           if (!result) return;
-          wrapHighlight(blockIndex, 0, blockIndex, 0, result.id, result.has_title);
+          wrapHighlight(blockIndex, 0, blockIndex, 0, result.id, result.has_title, result.is_key);
           known.push({
             id: result.id,
             start_block: blockIndex,
@@ -675,7 +684,8 @@
             unionEnd[0],
             unionEnd[1],
             result.id,
-            result.has_title
+            result.has_title,
+            result.is_key
           );
           const mergedIds = new Set(overlapping.map((h) => h.id));
           for (let i = known.length - 1; i >= 0; i--) {
