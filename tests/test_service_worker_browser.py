@@ -670,3 +670,25 @@ def test_the_article_bar_says_offline_then_what_is_left_to_sync(
         phone.evaluate("window.dispatchEvent(new Event('online'))")
         phone.wait_for_selector(".sync-state", state="hidden")
         assert _highlight_texts(tmp_path) == ["Label me"]
+
+
+def test_a_cog_left_turning_by_a_lost_done_message_stops_at_the_next_ask(
+    phone, monkeypatch, tmp_path
+):
+    # During an update the worker that finished the download no longer
+    # controls the page, and its "done" never arrived: the cog kept turning.
+    phone.add_init_script("sessionStorage.setItem('reader-synced', '1')")
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        phone.goto(f"{origin}/")
+        phone.wait_for_function("navigator.serviceWorker.controller !== null")
+        phone.wait_for_selector("#sync-status:not(.is-updating)")
+        phone.evaluate(
+            """() => navigator.serviceWorker.dispatchEvent(
+              new MessageEvent("message", { data: { type: "downloading", running: true } })
+            )"""
+        )
+        phone.wait_for_selector("#sync-status.is-updating")
+
+        phone.evaluate("window.dispatchEvent(new Event('online'))")
+
+        phone.wait_for_selector("#sync-status:not(.is-updating)", timeout=5000)

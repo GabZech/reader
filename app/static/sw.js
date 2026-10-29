@@ -99,7 +99,12 @@ function precache() {
     announce(true);
     return precaching;
   }
-  if (Date.now() - precachedAt < PRECACHE_GAP_MS) return Promise.resolve();
+  // Nothing to do: say so, which also stops a cog still turning because a
+  // "done" went astray.
+  if (Date.now() - precachedAt < PRECACHE_GAP_MS) {
+    announce(false);
+    return Promise.resolve();
+  }
   announce(true);
   precaching = downloadReadLater().finally(() => {
     precaching = null;
@@ -109,9 +114,11 @@ function precache() {
   return precaching;
 }
 
+// Every open page, not only those this worker controls: during an update the
+// page passes to the new worker while this one is still downloading.
 function announce(running) {
   self.clients
-    .matchAll()
+    .matchAll({ includeUncontrolled: true })
     .then((pages) => pages.forEach((page) => page.postMessage({ type: "downloading", running })))
     .catch(() => {});
 }
