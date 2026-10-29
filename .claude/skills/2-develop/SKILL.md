@@ -17,7 +17,7 @@ Client-facing voice follows the **questioning** skill.
 
 - Foundation is accepted
 - Any product change: feature, fix, UI tweak, chore
-- The suite is green. A red baseline is reported as already red, never silently fixed or worked around
+- CI is green on `main`. A red baseline is reported as already red, never silently fixed or worked around
 
 ## Artifacts
 
@@ -42,7 +42,7 @@ A change to what the client sees needs a screenshot of the intended look, signed
 
 ### 4. Build
 
-A branch per change. Behaviour: write the failing test first. Then the code, then `uv run pytest` and the local checks in `docs/development.md`. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
+A branch per change. Behaviour: write the failing test first. Then the code, then lint. Run each new or changed test once, to see it fail and then pass; run nothing else locally and repeat nothing unless asked. CI runs the suite and gates every deploy. The exception: rerun a test CI reported failing, or one that fails only sometimes, to reproduce and diagnose it. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
 
 ### 5. Try
 

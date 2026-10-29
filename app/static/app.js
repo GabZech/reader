@@ -34,16 +34,394 @@
     }
   };
 
+  // The Settings cog on Home turns inside two thin arrows while Home syncs
+  // or Read Later downloads for offline; it stops once both are done.
+  const busy = { syncing: false, downloading: false };
+  const showBusy = () => {
+    const status = document.getElementById("sync-status");
+    if (!status) return;
+    const on = busy.syncing || busy.downloading;
+    status.classList.toggle("is-updating", on);
+    status.setAttribute("aria-label", on ? "Settings (updating)" : "Settings");
+  };
+
+  // An iPhone can stop the worker mid-download, and then no "done" ever
+  // comes: stop turning after a while rather than forever.
+  const DOWNLOAD_GIVE_UP_MS = 2 * 60 * 1000;
+  let downloadTimer = null;
+  const setDownloading = (running) => {
+    clearTimeout(downloadTimer);
+    busy.downloading = running;
+    if (running) downloadTimer = setTimeout(() => setDownloading(false), DOWNLOAD_GIVE_UP_MS);
+    showBusy();
+  };
+
+  // Ask the service worker to download Read Later ahead, so a saved article
+  // opens offline without being opened first. The worker spaces out the runs.
+  // Asking again when a new worker takes over (the one that got the first
+  // ask may be the older worker it replaced), and on coming back to the app
+  // or the network, so a download cut short gets finished.
+  const precacheReadLater = async () => {
+    if (!("serviceWorker" in navigator)) return;
+    const ask = () => {
+      if (!navigator.onLine) return;
+      const worker = navigator.serviceWorker.controller;
+      if (worker) worker.postMessage({ type: "precache" });
+    };
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "downloading") setDownloading(event.data.running);
+    });
+    navigator.serviceWorker.addEventListener("controllerchange", ask);
+    window.addEventListener("online", ask);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") ask();
+    });
+    try {
+      await navigator.serviceWorker.ready;
+      ask();
+    } catch {
+      /* offline cache is best-effort */
+    }
+  };
+
+  // Fetch an article again so the stored offline copy carries a highlight
+  // just saved; the service worker keeps what comes back.
+  const refreshOfflineCopy = (path = location.pathname) =>
+    fetch(path, { headers: { "X-Reader-Prefetch": "1" } })
+      .then((r) => r.ok)
+      .catch(() => false);
+
+  // Articles whose saves reached the server but whose stored copy was not
+  // fetched again yet: kept across pages, since leaving a page cuts a run
+  // short and an old copy would bring back what was deleted.
+  const STALE_KEY = "reader-stale-copies";
+  const staleCopies = () => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem(STALE_KEY) || "[]"));
+    } catch {
+      return new Set();
+    }
+  };
+  const markStale = (path, stale) => {
+    const all = staleCopies();
+    if (stale) all.add(path);
+    else all.delete(path);
+    try {
+      localStorage.setItem(STALE_KEY, JSON.stringify([...all]));
+    } catch {
+      /* best-effort */
+    }
+  };
+
+  const note = (event, detail) => {
+    if (window.readerLog) window.readerLog(event, detail);
+  };
+
+  // Highlights made without a connection, and edits to highlights, wait
+  // here and go to the server in order once it is back (see flushOutbox).
+  // In localStorage, whose writes are done the moment they are made: an
+  // IndexedDB write still under way when the reader tapped on to another
+  // page was lost, and the highlight with it.
+  const outbox = (() => {
+    const KEY = "reader-outbox";
+    const changed = () => document.dispatchEvent(new Event("reader:outbox-changed"));
+    const read = () => {
+      try {
+        return JSON.parse(localStorage.getItem(KEY) || "[]");
+      } catch {
+        return [];
+      }
+    };
+    const write = (entries) => localStorage.setItem(KEY, JSON.stringify(entries));
+    const nextKey = (entries) => entries.reduce((max, e) => Math.max(max, e.key), 0) + 1;
+    // Promises, so callers need not care where the outbox lives.
+    const attempt = (work) => {
+      try {
+        return Promise.resolve(work());
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    };
+    return {
+      all: () => attempt(read),
+      add: (entry) =>
+        attempt(() => {
+          const entries = read();
+          const key = nextKey(entries);
+          write([...entries, { ...entry, key }]);
+          return key;
+        }).finally(changed),
+      put: (entry) =>
+        attempt(() => write(read().map((e) => (e.key === entry.key ? entry : e)))),
+      remove: (key) => attempt(() => write(read().filter((e) => e.key !== key))).finally(changed),
+    };
+  })();
+
+  // Saves queued by an earlier version, which kept them in IndexedDB: moved
+  // over once, so none is lost in the update.
+  const moveOldOutbox = () => {
+    if (!("indexedDB" in window)) return;
+    try {
+      if (localStorage.getItem("reader-outbox-moved")) return;
+    } catch {
+      return;
+    }
+    const request = indexedDB.open("reader", 1);
+    request.onupgradeneeded = () =>
+      request.result.createObjectStore("outbox", { keyPath: "key", autoIncrement: true });
+    request.onsuccess = () => {
+      const db = request.result;
+      const all = db.transaction("outbox").objectStore("outbox").getAll();
+      all.onsuccess = () => {
+        const old = all.result || [];
+        old
+          .reduce((done, entry) => {
+            const { key: _old, ...rest } = entry;
+            return done.then(() => outbox.add(rest));
+          }, Promise.resolve())
+          .then(() => {
+            localStorage.setItem("reader-outbox-moved", "1");
+            db.close();
+            indexedDB.deleteDatabase("reader");
+            if (old.length) {
+              note("outbox", `moved ${old.length} from the old store`);
+              flushOutbox();
+            }
+          })
+          .catch(() => {});
+      };
+    };
+  };
+
+  // A highlight saved on this phone but not yet on the server carries a
+  // temporary id starting with "p" until it syncs.
+  const isPending = (id) => String(id).startsWith("p");
+  const newPendingId = () =>
+    `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  // Outbox entries are either a new highlight or an edit to one (a title,
+  // the key mark, a delete); entries from before edits existed have no kind.
+  const isEdit = (entry) => entry.kind === "edit";
+  const byStart = (a, b) => a.start_block - b.start_block || a.start_offset - b.start_offset;
+
+  // `action` is the edit route's last part: key, unkey, delete,
+  // section-title or subsection-title.
+  const queueEdit = (article, highlightId, action, title = null) =>
+    outbox.add({
+      kind: "edit",
+      article,
+      highlightId,
+      action,
+      title,
+      body: title == null ? "" : new URLSearchParams({ title }).toString(),
+    });
+
+  // An article's highlights as they stand on this phone: what its page was
+  // rendered with, then every outbox entry for it in order. A pending
+  // highlight that merges saved ones takes their titles and key mark, as
+  // the server will. `pending` marks one with anything still to send.
+  const highlightsOnPhone = (saved, entries, article) => {
+    let list = saved.map((h) => ({ ...h, pending: false }));
+    entries
+      .filter((e) => e.article === article)
+      .forEach((e) => {
+        if (isEdit(e)) {
+          const h = list.find((x) => String(x.id) === String(e.highlightId));
+          if (!h) return;
+          if (e.action === "delete") {
+            list = list.filter((x) => x !== h);
+            return;
+          }
+          if (e.action === "key" || e.action === "unkey") h.is_key = e.action === "key";
+          if (e.action === "section-title") h.section_title = e.title || null;
+          if (e.action === "subsection-title") h.subsection_title = e.title || null;
+          h.has_title = Boolean(h.section_title || h.subsection_title);
+          h.pending = true;
+          return;
+        }
+        const merged = list.filter((x) => e.mergeIds.includes(x.id)).sort(byStart);
+        list = list.filter((x) => !merged.includes(x));
+        const [startBlock, startOffset, endBlock, endOffset] = e.span;
+        const first = (field) => (merged.find((x) => x[field]) || {})[field] || null;
+        const section = first("section_title");
+        const subsection = first("subsection_title");
+        list.push({
+          id: e.pendingId,
+          start_block: startBlock,
+          start_offset: startOffset,
+          end_block: endBlock,
+          end_offset: endOffset,
+          text: new URLSearchParams(e.body).get("text") || "",
+          section_title: section,
+          subsection_title: subsection,
+          has_title: Boolean(section || subsection) || Boolean(e.hasTitle && !merged.length),
+          is_key: merged.some((x) => x.is_key) || Boolean(e.isKey && !merged.length),
+          merge_ids: e.mergeIds,
+          pending: true,
+        });
+      });
+    return list;
+  };
+
+  // The last reading spot per article on this phone. Kept in localStorage,
+  // not the outbox: it is written as the page goes away, too late for an
+  // IndexedDB write to be sure to land. `unsent` marks one still owed to the
+  // server.
+  const PROGRESS_KEY = "reader-progress";
+  const readProgress = () => {
+    try {
+      return JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  };
+  const writeProgress = (all) => {
+    try {
+      const newest = Object.entries(all)
+        .sort((a, b) => b[1].at - a[1].at)
+        .slice(0, 100);
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(Object.fromEntries(newest)));
+      document.dispatchEvent(new Event("reader:outbox-changed"));
+    } catch {
+      /* best-effort */
+    }
+  };
+
+  // Drawn pending highlights must be on the page before any is sent, or
+  // one synced meanwhile would be drawn twice; initHighlights replaces this.
+  let pendingDrawn = Promise.resolve();
+  let flushing = null;
+
+  // Send what was saved offline: queued highlights in the order they were
+  // made, then reading spots. A refusal (the article or passage changed on
+  // another device meanwhile) is dropped and noted in Diagnostics; no
+  // connection, or the server failing, leaves the rest for next time.
+  const flushOutbox = () => {
+    if (flushing || !navigator.onLine) return flushing;
+    flushing = (async () => {
+      await pendingDrawn;
+      // Real ids for highlights sent in this run, for the edits after them.
+      const realIds = {};
+      for (const entry of await outbox.all()) {
+        let url = entry.url;
+        let highlightId = entry.highlightId;
+        if (isEdit(entry)) {
+          if (isPending(highlightId)) highlightId = realIds[highlightId];
+          // Its highlight was refused or never sent: nothing to edit.
+          if (highlightId == null) {
+            note("outbox-dropped", `${entry.action} ${entry.highlightId} never synced`);
+            await outbox.remove(entry.key);
+            continue;
+          }
+          url = `${entry.article}/highlights/${highlightId}/${entry.action}`;
+        }
+        let response;
+        try {
+          // The edit routes answer with a redirect back to the article:
+          // that is success, and nothing else needs to load.
+          response = await fetch(url, {
+            method: "POST",
+            body: new URLSearchParams(entry.body),
+            redirect: "manual",
+          });
+        } catch {
+          return;
+        }
+        if (response.status >= 500) return;
+        if (response.ok || response.type === "opaqueredirect") {
+          if (isEdit(entry)) {
+            document.dispatchEvent(
+              new CustomEvent("reader:edit-synced", { detail: { entry, highlightId } })
+            );
+          } else {
+            const result = await response.json();
+            realIds[entry.pendingId] = result.id;
+            // Kept in the outbox too, in case this run stops before the
+            // edits that follow are sent.
+            for (const later of await outbox.all()) {
+              if (isEdit(later) && later.highlightId === entry.pendingId) {
+                await outbox.put({ ...later, highlightId: result.id });
+              }
+            }
+            document.dispatchEvent(
+              new CustomEvent("reader:highlight-synced", { detail: { entry, result } })
+            );
+          }
+          markStale(entry.article, true);
+        } else {
+          note("outbox-dropped", `${url} ${response.status}`);
+        }
+        await outbox.remove(entry.key);
+      }
+      for (const path of staleCopies()) {
+        if (await refreshOfflineCopy(path)) markStale(path, false);
+      }
+
+      const spots = readProgress();
+      for (const [path, spot] of Object.entries(spots)) {
+        if (!spot.unsent) continue;
+        let response;
+        try {
+          response = await fetch(`${path}/progress`, {
+            method: "POST",
+            body: new URLSearchParams({ index: String(spot.index) }),
+          });
+        } catch {
+          return;
+        }
+        if (response.status >= 500) return;
+        const latest = readProgress();
+        if (latest[path] && latest[path].at === spot.at) {
+          latest[path].unsent = false;
+          writeProgress(latest);
+        }
+      }
+    })()
+      .catch(() => {})
+      .finally(() => (flushing = null));
+    return flushing;
+  };
+
+  // The article bar's label, only while offline: "Offline", and how many
+  // saves wait for the connection. Online they go at once, so no label.
+  const showSyncState = () => {
+    const label = document.querySelector(".sync-state");
+    if (!label) return;
+    if (navigator.onLine) {
+      label.hidden = true;
+      return;
+    }
+    const spots = Object.values(readProgress()).filter((spot) => spot.unsent).length;
+    outbox
+      .all()
+      .then((entries) => entries.length + spots)
+      .catch(() => spots)
+      .then((count) => {
+        if (navigator.onLine) return;
+        label.textContent = count ? `Offline · ${count} to sync` : "Offline";
+        label.hidden = false;
+      });
+  };
+
+  const initOutbox = () => {
+    showSyncState();
+    window.addEventListener("offline", showSyncState);
+    document.addEventListener("reader:outbox-changed", showSyncState);
+    moveOldOutbox();
+    flushOutbox();
+    window.addEventListener("online", showSyncState);
+    window.addEventListener("online", flushOutbox);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") flushOutbox();
+    });
+  };
+
   const syncHome = async () => {
     if (location.pathname !== "/") return;
     if (!navigator.onLine) return;
     if (sessionStorage.getItem("reader-synced") === "1") return;
-    // The Settings cog turns inside two thin arrows while Home updates.
-    const status = document.getElementById("sync-status");
     const updating = (on) => {
-      if (!status) return;
-      status.classList.toggle("is-updating", on);
-      status.setAttribute("aria-label", on ? "Settings (updating)" : "Settings");
+      busy.syncing = on;
+      showBusy();
     };
     updating(true);
     sessionStorage.setItem("reader-synced", "1");
@@ -315,6 +693,10 @@
 
     const sendProgress = () => {
       if (currentIndex < 0) return;
+      const spots = readProgress();
+      spots[location.pathname] = { index: currentIndex, at: Date.now(), unsent: !navigator.onLine };
+      writeProgress(spots);
+      if (!navigator.onLine) return;
       const data = new URLSearchParams({ index: String(currentIndex) });
       try {
         navigator.sendBeacon(saveUrl, data);
@@ -342,11 +724,17 @@
     if (!body) return;
     const blocks = Array.from(body.children);
 
-    const hashMatch = /^#highlight-(\d+)$/.exec(location.hash);
+    const hashMatch = /^#highlight-([a-z0-9]+)$/.exec(location.hash);
     const highlight = hashMatch
       ? body.querySelector(`[data-highlight-id="${hashMatch[1]}"]`)
       : null;
-    const resumeIndex = parseInt(body.dataset.progressIndex || "", 10);
+    // The page's own spot is the server's; offline it comes from the stored
+    // copy and can be older than where the reader got to on this phone.
+    const mine = readProgress()[location.pathname];
+    const resumeIndex =
+      mine && (!navigator.onLine || mine.unsent)
+        ? mine.index
+        : parseInt(body.dataset.progressIndex || "", 10);
     const resumeBlock =
       Number.isInteger(resumeIndex) && resumeIndex >= 2 ? blocks[resumeIndex] : null;
 
@@ -548,6 +936,176 @@
       });
     };
 
+    // Draw a highlight from its state (see highlightsOnPhone), replacing the
+    // ones it merged, and keep `known` in step.
+    const draw = (h, merged = []) => {
+      merged.forEach((m) => unwrapHighlight(m.id));
+      const span = [h.start_block, h.start_offset, h.end_block, h.end_offset];
+      const marks = wrapHighlight(...span, h.id, h.has_title, h.is_key);
+      if (h.pending) {
+        marks.forEach((mark) => mark.classList.add("is-pending"));
+        body
+          .querySelectorAll(`img.hl-image[data-highlight-id="${h.id}"]`)
+          .forEach((img) => img.classList.add("is-pending"));
+      }
+      const gone = new Set(merged.map((m) => m.id));
+      for (let i = known.length - 1; i >= 0; i--) {
+        if (gone.has(known[i].id) || known[i].id === h.id) known.splice(i, 1);
+      }
+      known.push({ ...h });
+    };
+
+    // Save a highlight. Without a connection, or when it merges one still
+    // waiting to sync (so the two reach the server in order), it is drawn at
+    // once as pending and kept in the outbox. Online, the page changes only
+    // once the server confirms: a refused save leaves it exactly as it was.
+    const saveHighlight = (span, text, overlapping) => {
+      const [startBlock, startOffset, endBlock, endOffset] = span;
+      const mergeIds = overlapping.flatMap((h) => (isPending(h.id) ? h.merge_ids : [h.id]));
+      const data = new URLSearchParams({
+        start_block: String(startBlock),
+        start_offset: String(startOffset),
+        end_block: String(endBlock),
+        end_offset: String(endOffset),
+        text,
+      });
+      mergeIds.forEach((id) => data.append("merge_id", String(id)));
+
+      const keep = () => {
+        const id = newPendingId();
+        const ordered = [...overlapping].sort(byStart);
+        const first = (list, field) => (list.find((h) => h[field]) || {})[field] || null;
+        const state = {
+          id,
+          start_block: startBlock,
+          start_offset: startOffset,
+          end_block: endBlock,
+          end_offset: endOffset,
+          text,
+          section_title: first(ordered, "section_title"),
+          subsection_title: first(ordered, "subsection_title"),
+          is_key: ordered.some((h) => h.is_key),
+          merge_ids: mergeIds,
+          pending: true,
+        };
+        state.has_title = Boolean(state.section_title || state.subsection_title);
+        draw(state, overlapping);
+
+        // The server carries titles and the key mark over only from saved
+        // highlights it merges; what came from pending ones is sent as edits.
+        const saved = ordered.filter((h) => !isPending(h.id));
+        const edits = [];
+        if (state.is_key && !saved.some((h) => h.is_key)) edits.push(["key", null]);
+        ["section", "subsection"].forEach((level) => {
+          const title = state[`${level}_title`];
+          if (title && title !== first(saved, `${level}_title`)) {
+            edits.push([`${level}-title`, title]);
+          }
+        });
+        const replaced = new Set(overlapping.filter((h) => isPending(h.id)).map((h) => h.id));
+        return outbox
+          .all()
+          .then((entries) =>
+            Promise.all(
+              entries
+                .filter((e) => replaced.has(isEdit(e) ? e.highlightId : e.pendingId))
+                .map((e) => outbox.remove(e.key))
+            )
+          )
+          .then(() =>
+            outbox.add({
+              url: saveUrl,
+              article: location.pathname,
+              pendingId: id,
+              body: data.toString(),
+              span,
+              mergeIds,
+              hasTitle: state.has_title,
+              isKey: state.is_key,
+            })
+          )
+          .then(() =>
+            edits.reduce(
+              (done, [action, title]) =>
+                done.then(() => queueEdit(location.pathname, id, action, title)),
+              Promise.resolve()
+            )
+          )
+          .then(flushOutbox)
+          .catch((error) => note("outbox-failed", `keep ${id} ${error}`));
+      };
+
+      if (!navigator.onLine || overlapping.some((h) => isPending(h.id))) {
+        keep();
+        return;
+      }
+      fetch(saveUrl, { method: "POST", body: data }).then((r) => {
+        if (!r.ok) return null;
+        return r.json().then((result) => {
+          const ordered = [...overlapping].sort(byStart);
+          const first = (field) => (ordered.find((h) => h[field]) || {})[field] || null;
+          draw(
+            {
+              id: result.id,
+              start_block: startBlock,
+              start_offset: startOffset,
+              end_block: endBlock,
+              end_offset: endOffset,
+              text,
+              section_title: first("section_title"),
+              subsection_title: first("subsection_title"),
+              has_title: result.has_title,
+              is_key: result.is_key,
+              pending: false,
+            },
+            overlapping
+          );
+          refreshOfflineCopy();
+        });
+      }, keep);
+    };
+
+    // What changed on this phone since the page was rendered (or stored):
+    // highlights deleted, merged or edited offline, and pending new ones.
+    pendingDrawn = outbox
+      .all()
+      .then((entries) => {
+        const now = highlightsOnPhone(saved, entries, location.pathname);
+        const byId = new Map(now.map((h) => [String(h.id), h]));
+        // Only what the page opened with: a highlight made while this was
+        // being read is already right, and is not in `entries` yet.
+        const openedWith = new Set(saved.map((h) => String(h.id)));
+        [...known]
+          .filter((h) => openedWith.has(String(h.id)))
+          .forEach((h) => {
+            const current = byId.get(String(h.id));
+            if (current && !current.pending) return;
+            unwrapHighlight(h.id);
+            known.splice(known.indexOf(h), 1);
+            if (current) draw(current);
+          });
+        now
+          .filter((h) => isPending(h.id) && !known.some((k) => k.id === h.id))
+          .forEach((h) => draw(h));
+        if (entries.length) note("outbox", `drawn ${now.filter((h) => h.pending).length} of ${entries.length}`);
+      })
+      .catch((error) => note("outbox-failed", `draw ${error}`));
+
+    // Once sent, a pending highlight takes the id the server gave it.
+    document.addEventListener("reader:highlight-synced", ({ detail: { entry, result } }) => {
+      if (entry.article !== location.pathname) return;
+      const pending = known.find((h) => h.id === entry.pendingId);
+      if (!pending) return;
+      // Its own edits, if any, follow in this same run.
+      draw({ ...pending, id: result.id, pending: false }, [pending]);
+    });
+    document.addEventListener("reader:edit-synced", ({ detail: { entry, highlightId } }) => {
+      if (entry.article !== location.pathname) return;
+      body
+        .querySelectorAll(`[data-highlight-id="${highlightId}"]`)
+        .forEach((el) => el.classList.remove("is-pending"));
+    });
+
     body.addEventListener("click", (event) => {
       const mark = event.target.closest("mark.hl, .hl-title-marker, .hl-key-marker");
       if (!mark || !mark.dataset.highlightId) return;
@@ -577,27 +1135,7 @@
       const blockIndex = blockIndexOf(img);
       if (blockIndex < 0 || !isImageOnly(blocks[blockIndex])) return;
 
-      const data = new URLSearchParams({
-        start_block: String(blockIndex),
-        start_offset: "0",
-        end_block: String(blockIndex),
-        end_offset: "0",
-        text: "",
-      });
-      fetch(saveUrl, { method: "POST", body: data })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((result) => {
-          if (!result) return;
-          wrapHighlight(blockIndex, 0, blockIndex, 0, result.id, result.has_title, result.is_key);
-          known.push({
-            id: result.id,
-            start_block: blockIndex,
-            start_offset: 0,
-            end_block: blockIndex,
-            end_offset: 0,
-          });
-        })
-        .catch(() => {});
+      saveHighlight([blockIndex, 0, blockIndex, 0], "", []);
     });
 
     const handleFinishedSelection = () => {
@@ -661,45 +1199,7 @@
         : text;
       if (!finalText.trim()) return;
 
-      const data = new URLSearchParams({
-        start_block: String(unionStart[0]),
-        start_offset: String(unionStart[1]),
-        end_block: String(unionEnd[0]),
-        end_offset: String(unionEnd[1]),
-        text: finalText,
-      });
-      overlapping.forEach((h) => data.append("merge_id", String(h.id)));
-
-      // The DOM is only touched once the server confirms the save: no
-      // optimistic mark, so a rejected or failed save leaves the page
-      // exactly as it was instead of showing a phantom, unsaved highlight.
-      fetch(saveUrl, { method: "POST", body: data })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((result) => {
-          if (!result) return;
-          overlapping.forEach((h) => unwrapHighlight(h.id));
-          wrapHighlight(
-            unionStart[0],
-            unionStart[1],
-            unionEnd[0],
-            unionEnd[1],
-            result.id,
-            result.has_title,
-            result.is_key
-          );
-          const mergedIds = new Set(overlapping.map((h) => h.id));
-          for (let i = known.length - 1; i >= 0; i--) {
-            if (mergedIds.has(known[i].id)) known.splice(i, 1);
-          }
-          known.push({
-            id: result.id,
-            start_block: unionStart[0],
-            start_offset: unionStart[1],
-            end_block: unionEnd[0],
-            end_offset: unionEnd[1],
-          });
-        })
-        .catch(() => {});
+      saveHighlight([...unionStart, ...unionEnd], finalText, overlapping);
     };
 
     // mouseup covers a fresh press-and-drag selection. On a touch device,
@@ -741,6 +1241,122 @@
     });
   };
 
+  // A highlight's page and its title pages. Offline, or for a highlight
+  // still waiting to sync, the service worker answers with an empty copy
+  // (data-offline-shell) that is filled in here from the stored article and
+  // the outbox; and the buttons queue their change instead of posting it.
+  const initHighlightPage = () => {
+    const found = /^\/items\/(\d+)\/highlights\/([a-z0-9]+)(?:\/(section|subsection)-title)?$/.exec(
+      location.pathname
+    );
+    if (!found) return;
+    const [, itemId, highlightId, level] = found;
+    const article = `/items/${itemId}`;
+    const page = `${article}/highlights/${highlightId}`;
+    const back = `${article}#highlight-${highlightId}`;
+    const shell = Boolean(document.querySelector("[data-offline-shell]"));
+
+    // Where every link and button leads depends only on this page's own
+    // address: set at once, so a tap before the rest is filled in still lands
+    // in the right place (Close used to lead Home meanwhile).
+    const wire = () => {
+      document.querySelector(".top-edit").href = level ? page : back;
+      if (level) {
+        document.querySelector('[data-highlight-form="title"]').action = `${page}/${level}-title`;
+        return;
+      }
+      const [section, subsection] = document.querySelectorAll("a.item");
+      section.href = `${page}/section-title`;
+      subsection.href = `${page}/subsection-title`;
+      document.querySelector('[data-highlight-form="key"]').action = `${page}/key`;
+      document.querySelector('[data-highlight-form="delete"]').action = `${page}/delete`;
+    };
+
+    const fill = (h) => {
+      document.querySelector("blockquote.quote").textContent = h.text || "";
+      if (level) {
+        // Never over what the reader already started typing.
+        const input = document.getElementById("highlight-title");
+        if (!input.dataset.typed) input.value = h[`${level}_title`] || "";
+        return;
+      }
+      const keyForm = document.querySelector('[data-highlight-form="key"]');
+      keyForm.action = `${page}/${h.is_key ? "unkey" : "key"}`;
+      keyForm.querySelector("button").innerHTML = document.getElementById(
+        h.is_key ? "key-on" : "key-off"
+      ).innerHTML;
+      document.getElementById("copy-highlight").dataset.copyText = h.text || "";
+    };
+
+    if (shell) {
+      wire();
+      const input = document.getElementById("highlight-title");
+      if (input) input.addEventListener("input", () => (input.dataset.typed = "1"), { once: true });
+      Promise.all([
+        fetch(article, { headers: { "X-Reader-Prefetch": "1" } }).then((r) => r.text()),
+        outbox.all(),
+      ])
+        .then(([html, entries]) => {
+          const data = new DOMParser()
+            .parseFromString(html, "text/html")
+            .getElementById("highlights-data");
+          const saved = JSON.parse((data && data.textContent) || "[]");
+          const h = highlightsOnPhone(saved, entries, article).find(
+            (x) => String(x.id) === highlightId
+          );
+          note(
+            "highlight-page",
+            `${highlightId} ${h ? "found" : "missing"} saved=${saved.length} outbox=${entries.length}`
+          );
+          if (h) fill(h);
+          else location.replace(article);
+        })
+        .catch((error) => {
+          note("highlight-page", `${highlightId} failed ${error}`);
+          location.replace(article);
+        });
+    }
+
+    // Forgetting a highlight that never reached the server: nothing to send.
+    const forgetPending = () =>
+      outbox
+        .all()
+        .then((entries) =>
+          Promise.all(
+            entries
+              .filter((e) => (isEdit(e) ? e.highlightId : e.pendingId) === highlightId)
+              .map((e) => outbox.remove(e.key))
+          )
+        );
+
+    document.querySelectorAll("[data-highlight-form]").forEach((form) => {
+      form.addEventListener("submit", (event) => {
+        if (!shell && navigator.onLine && !isPending(highlightId)) return;
+        event.preventDefault();
+        const kind = form.dataset.highlightForm;
+        let queued;
+        let then = back;
+        if (kind === "delete") {
+          queued = isPending(highlightId)
+            ? forgetPending()
+            : queueEdit(article, highlightId, "delete");
+          then = article;
+        } else if (kind === "key") {
+          const action = form.action.endsWith("/unkey") ? "unkey" : "key";
+          queued = queueEdit(article, highlightId, action);
+        } else {
+          const title = document.getElementById("highlight-title").value.trim();
+          queued = queueEdit(article, highlightId, `${level}-title`, title);
+        }
+        // Leave as soon as it is kept: the page we go to sends it (waiting
+        // for every queued save made a tap seem to do nothing).
+        queued
+          .catch((error) => note("outbox-failed", `${kind} ${highlightId} ${error}`))
+          .finally(() => (location.href = then));
+      });
+    });
+  };
+
   const initHighlightDetail = () => {
     const button = document.getElementById("copy-highlight");
     if (!button) return;
@@ -779,7 +1395,10 @@
   initReadingProgress();
   initHighlights();
   initRestorePosition();
+  initHighlightPage();
   initHighlightDetail();
   registerWorker();
+  initOutbox();
+  precacheReadLater();
   syncHome();
 })();

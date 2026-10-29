@@ -15,6 +15,9 @@ SECOND = "Second fixture item"
 
 @pytest.fixture
 def phone():
+    # Chromium only: these tests answer the page's requests from inside the
+    # test (`_serve_through`), and Playwright's WebKit cannot answer with the
+    # redirect a swipe action gets back. A real server would lift that.
     with sync_playwright() as p:
         browser = p.chromium.launch()
         try:
@@ -222,6 +225,8 @@ def _source_id(tmp_path):
 
 @pytest.fixture
 def touch_phone():
+    # Chromium only: a finger drag is sent through its devtools protocol, and
+    # Playwright has no way to send one to WebKit.
     with sync_playwright() as p:
         browser = p.chromium.launch()
         try:

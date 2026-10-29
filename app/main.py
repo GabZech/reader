@@ -40,6 +40,7 @@ from app.db import (
     get_source,
     has_pending_source_notice,
     highlights_for_item,
+    image_urls,
     images_in_block_range,
     init_db,
     insert_list,
@@ -118,6 +119,9 @@ templates.env.globals["sources_notice_pending"] = _sources_notice_pending
 NO_FEED = "We could not find a feed."
 TIMED_NOTE = "Timed list · only recent items"
 UNTIMED_NOTE = "Not timed"
+# Most images the device downloads ahead for Read Later, across all articles:
+# enough for a good stack of saved reading without filling a phone's storage.
+OFFLINE_IMAGE_CAP = 200
 
 
 # Brasilia has had no daylight saving since 2019, so a fixed offset is exact.
@@ -1107,7 +1111,9 @@ def item_page(
     try:
         init_db(conn)
         item = get_item(conn, item_id)
-        if item is not None:
+        # The service worker downloading Read Later ahead is not the reader
+        # opening the article.
+        if item is not None and request.headers.get("X-Reader-Prefetch") != "1":
             mark_item_seen(conn, item_id)
             conn.commit()
         in_read_later = item is not None and is_item_in_list(conn, item_id, "later")
@@ -1126,10 +1132,16 @@ def item_page(
                 "end_offset": h["end_offset"],
                 "has_title": bool(h["section_title"] or h["subsection_title"]),
                 "is_key": bool(h["is_key"]),
+                # The rest is for building the highlight's own page offline.
+                "text": h["text"],
+                "section_title": h["section_title"],
+                "subsection_title": h["subsection_title"],
             }
             for h in highlights
         ]
-    )
+        # Lands inside a <script> element: highlighted text holding
+        # "</script>" must not end it early.
+    ).replace("</", "<\\/")
     if from_source and item["source_id"] == from_source:
         back = f"/sources/{from_source}/items"
     elif from_home:
@@ -1282,7 +1294,21 @@ async def item_add_highlight(item_id: int, request: Request):
         overlapping = overlapping_highlights(
             conn, item_id, start_block, start_offset, end_block, end_offset
         )
+        # The exact same span saved already: a phone sending a queued
+        # highlight again after losing the reply. Answer with that one.
+        span = (start_block, start_offset, end_block, end_offset)
+        for row in overlapping:
+            if (row["start_block"], row["start_offset"], row["end_block"], row["end_offset"]) == span:
+                return {
+                    "ok": True,
+                    "id": row["id"],
+                    "has_title": bool(row["section_title"] or row["subsection_title"]),
+                    "is_key": bool(row["is_key"]),
+                }
         overlapping_ids = {row["id"] for row in overlapping}
+        # A claimed id that no longer exists was deleted elsewhere while
+        # the phone was offline: nothing left to merge, not a bad claim.
+        merge_ids = [row["id"] for row in get_highlights_by_ids(conn, item_id, merge_ids)]
         merge_id_set = set(merge_ids)
         if not merge_id_set <= overlapping_ids:
             raise HTTPException(status_code=400)
@@ -1661,6 +1687,81 @@ def sync():
     finally:
         conn.close()
     return result
+
+
+@app.get("/offline/articles")
+def offline_articles():
+    """What the service worker downloads ahead so Read Later opens offline:
+    Home and every list page (fetched fresh each time, since they change),
+    and each library article's page and, up to a cap, its images."""
+    articles = []
+    room = OFFLINE_IMAGE_CAP
+    conn = connect()
+    try:
+        init_db(conn)
+        pages = (
+            ["/", "/lists"]
+            + [f"/lists/{row['slug']}" for row in lists_for_home_edit(conn)]
+            + list(OFFLINE_SHELLS)
+        )
+        # One article's text at a time: the whole list's at once is what
+        # filled the machine before (see `_item_columns`).
+        for item in items_for_list(conn, "later"):
+            images = []
+            if room:
+                images = image_urls(get_item(conn, item["id"])["body_html"])[:room]
+                room -= len(images)
+            articles.append({"url": f"/items/{item['id']}", "images": images})
+    finally:
+        conn.close()
+    return {"pages": pages, "articles": articles}
+
+
+# Empty copies of the highlight page and its title pages. The service worker
+# keeps them and app.js fills one in when a highlight's own page cannot be
+# fetched: offline, or a highlight still waiting to sync.
+OFFLINE_SHELLS = (
+    "/offline/highlight",
+    "/offline/highlight-title/section",
+    "/offline/highlight-title/subsection",
+)
+
+
+@app.get("/offline/highlight")
+def offline_highlight_shell(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "highlight.html",
+        {
+            "nav": "home",
+            "offline_shell": True,
+            "highlight": {"text": "", "is_key": False},
+            "back": "/",
+            "section_title_action": "#",
+            "subsection_title_action": "#",
+            "key_action": "#",
+            "delete_action": "#",
+        },
+    )
+
+
+@app.get("/offline/highlight-title/{level}")
+def offline_highlight_title_shell(request: Request, level: str):
+    if level not in ("section", "subsection"):
+        raise HTTPException(status_code=404)
+    return templates.TemplateResponse(
+        request,
+        "highlight_title.html",
+        {
+            "nav": "home",
+            "offline_shell": True,
+            "label": "Section title" if level == "section" else "Subsection title",
+            "text": "",
+            "title": "",
+            "back": "/",
+            "save_action": "#",
+        },
+    )
 
 
 @app.get("/sw.js")

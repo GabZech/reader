@@ -31,9 +31,9 @@ BARE_IMAGE_BODY = (
 
 
 @pytest.fixture
-def browser_page():
+def browser_page(engine):
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = getattr(p, engine).launch()
         try:
             yield browser.new_page()
         finally:

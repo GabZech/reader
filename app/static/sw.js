@@ -1,4 +1,9 @@
+// Never rename: a new name makes activate delete the old cache, and with it
+// every page the reader had stored for offline.
 const CACHE = "reader-shell-v4";
+// Images from other sites in Read Later articles, downloaded ahead (see
+// precache) and pruned to what Read Later still holds.
+const IMAGES = "reader-images-v1";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -23,20 +28,170 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))
+      Promise.all(
+        keys.filter((key) => key !== CACHE && key !== IMAGES).map((key) => caches.delete(key))
+      )
     )
   );
   self.clients.claim();
+  // Download straight away, since the page that asked was still controlled by
+  // the worker this one replaces, which ignored the ask. Not inside waitUntil:
+  // pages wait for activation to finish, and would wait on every download.
+  precache().catch(() => {});
 });
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
-  if (url.origin !== location.origin) return;
+  if (url.origin !== location.origin) {
+    if (request.destination === "image") event.respondWith(answerImage(request));
+    return;
+  }
 
   event.respondWith(answer(request));
 });
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "precache") event.waitUntil(precache());
+});
+
+// One stored copy per article, whichever list it was opened from: the
+// address differs only by where Close leads back to.
+function cacheKey(request) {
+  const url = new URL(request.url);
+  return /^\/items\/\d+$/.test(url.pathname) ? url.origin + url.pathname : request;
+}
+
+// A highlight's page, or its section or subsection title page.
+const HIGHLIGHT_PAGE = /^\/items\/\d+\/highlights\/([^/]+)(?:\/(section|subsection)-title)?$/;
+
+// The empty copy of a highlight page that app.js fills in on the phone (see
+// OFFLINE_SHELLS in app/main.py), when the page itself cannot be had.
+function highlightShell(request) {
+  if (request.mode !== "navigate") return null;
+  const found = HIGHLIGHT_PAGE.exec(new URL(request.url).pathname);
+  if (!found) return null;
+  const path = found[2] ? `/offline/highlight-title/${found[2]}` : "/offline/highlight";
+  return { pending: found[1].startsWith("p"), path };
+}
+
+// Another site's image: the downloaded copy if there is one, so an article
+// reads the same offline, else the network as before.
+async function answerImage(request) {
+  const cached = await caches.match(request, { cacheName: IMAGES });
+  return cached || fetch(request);
+}
+
+let precaching = null;
+let precachedAt = 0;
+// Every page open asks; one run a minute is plenty.
+const PRECACHE_GAP_MS = 60 * 1000;
+// A few downloads at once: one at a time took longer than an iPhone keeps
+// the worker running.
+const DOWNLOADS_AT_ONCE = 4;
+
+// Download every Read Later article not stored yet, and its images, so a
+// saved article opens offline without having been opened first. Open pages
+// hear when a run starts and ends, to turn Home's cog meanwhile.
+function precache() {
+  if (precaching) {
+    announce(true);
+    return precaching;
+  }
+  // Nothing to do: say so, which also stops a cog still turning because a
+  // "done" went astray.
+  if (Date.now() - precachedAt < PRECACHE_GAP_MS) {
+    announce(false);
+    return Promise.resolve();
+  }
+  announce(true);
+  precaching = downloadReadLater().finally(() => {
+    precaching = null;
+    precachedAt = Date.now();
+    announce(false);
+  });
+  return precaching;
+}
+
+// Every open page, not only those this worker controls: during an update the
+// page passes to the new worker while this one is still downloading.
+function announce(running) {
+  self.clients
+    .matchAll({ includeUncontrolled: true })
+    .then((pages) => pages.forEach((page) => page.postMessage({ type: "downloading", running })))
+    .catch(() => {});
+}
+
+async function eachAtOnce(things, work) {
+  const queue = [...things];
+  const worker = async () => {
+    while (queue.length) {
+      try {
+        await work(queue.shift());
+      } catch {
+        /* the next run tries again */
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: DOWNLOADS_AT_ONCE }, worker));
+}
+
+async function downloadReadLater() {
+  let listed;
+  let lists;
+  try {
+    const response = await fetch("/offline/articles", { cache: "no-store" });
+    if (!response.ok) throw new Error(`status ${response.status}`);
+    ({ articles: listed, pages: lists } = await response.json());
+  } catch (error) {
+    tell("sw-precache", `failed ${error}`);
+    return;
+  }
+  // A start with no matching end in Diagnostics means the run was cut short.
+  tell("sw-precache", `start ${listed.length} articles`);
+  const pages = await caches.open(CACHE);
+  const images = await caches.open(IMAGES);
+  let pagesAdded = 0;
+  let imagesAdded = 0;
+
+  // Articles first: they are what the reader cannot get any other way.
+  // One already stored is kept as is; opening it online refreshes it.
+  await eachAtOnce(listed, async (article) => {
+    const key = new URL(article.url, location.origin).href;
+    if (await pages.match(key)) return;
+    const response = await fetch(article.url, { headers: { "X-Reader-Prefetch": "1" } });
+    if (response.ok) {
+      await pages.put(key, response);
+      pagesAdded++;
+    }
+  });
+
+  // Home and the lists change all the time: always store a fresh copy, and
+  // keep the one from last time when that fails.
+  await eachAtOnce(lists, async (path) => {
+    const response = await fetch(path);
+    if (response.ok) await pages.put(new URL(path, location.origin).href, response);
+  });
+
+  const wanted = new Set(
+    listed.flatMap((article) => article.images.map((src) => new URL(src, location.origin).href))
+  );
+  await eachAtOnce(wanted, async (src) => {
+    if (await images.match(src)) return;
+    // Other sites rarely allow reading their images, so take them opaque:
+    // enough for an <img> to show.
+    const response = await fetch(src, { mode: "no-cors" });
+    if (response.ok || response.type === "opaque") {
+      await images.put(src, response);
+      imagesAdded++;
+    }
+  });
+  for (const request of await images.keys()) {
+    if (!wanted.has(request.url)) await images.delete(request);
+  }
+  tell("sw-precache", `pages+${pagesAdded} images+${imagesAdded} of ${listed.length}/${wanted.size}`);
+}
 
 const BOOTED = Date.now();
 let pagesServed = 0;
@@ -62,19 +217,35 @@ async function answer(request) {
     const up = Math.round((Date.now() - BOOTED) / 1000);
     tell("sw-nav", `${where} ${what} ${Date.now() - started}ms #${++pagesServed} up=${up}s`);
   };
+  // A highlight still waiting to sync has no page on the server yet.
+  const shell = highlightShell(request);
+  if (shell && shell.pending) {
+    const filled = await caches.match(new URL(shell.path, location.origin).href);
+    if (filled) {
+      note("shell");
+      return filled;
+    }
+  }
   try {
     const response = await fetch(request);
     if (response.ok) {
       const copy = response.clone();
       caches
         .open(CACHE)
-        .then((cache) => cache.put(request, copy))
+        .then((cache) => cache.put(cacheKey(request), copy))
         .catch(() => {});
     }
     note(`net ${response.status}`);
     return response;
   } catch (error) {
-    const cached = await caches.match(request);
+    // Offline a highlight's page is always built on the phone: a copy kept
+    // from an earlier visit would miss edits made since.
+    const filled = shell && (await caches.match(new URL(shell.path, location.origin).href));
+    if (filled) {
+      note(`shell after ${error}`);
+      return filled;
+    }
+    const cached = await caches.match(cacheKey(request));
     if (cached) {
       note(`cache after ${error}`);
       return cached;

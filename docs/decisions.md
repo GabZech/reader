@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
+## 2026-10-29: Offline saves wait in a queue on the phone and replay in order, and the server answers a repeated highlight with the saved one
+
+**Decision:** Highlights made offline, and edits to them, are kept in a queue in the phone's `localStorage` and sent one by one when the app is online and open. A pending highlight has a temporary id that is swapped for the real one once sent, and its edits follow it. The server treats a highlight with exactly the span of an existing one as already saved, and ignores a merge naming a highlight that no longer exists.
+
+**Why:** Safari has no background sync, a queue in IndexedDB lost a write still under way when the reader tapped on to another page, and a lost reply means the phone sends the same highlight again.
+
+**Rejected:** IndexedDB for the queue (async writes lost on quick taps); showing a highlight only after the server confirms offline (nothing to see); a server-side idempotency key (the span already identifies a highlight).
+
+**Revisit when:** The queue outgrows `localStorage` (about 5 MB), or iOS supports background sync.
+
 ## 2026-10-07: Lists and counts never load article text (#73)
 
 **Decision:** The queries behind Home, Lists and a source's page leave article text out, and counts read only ids and dates. Article text is read for one article at a time and for the export.
