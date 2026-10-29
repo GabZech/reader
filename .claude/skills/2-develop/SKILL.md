@@ -42,7 +42,7 @@ A change to what the client sees needs a screenshot of the intended look, signed
 
 ### 4. Build
 
-A branch per change. Behaviour: write the failing test first. Then the code, then lint. Run only a test you are writing or fixing, to see it fail and then pass; the existing suite is CI's job, which gates every deploy, so do not run it locally unless asked. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
+A branch per change. Behaviour: write the failing test first. Then the code, then lint. Run each new or changed test once, to see it fail and then pass; run nothing else locally and repeat nothing unless asked. CI runs the suite and gates every deploy. The exception: rerun a test CI reported failing, or one that fails only sometimes, to reproduce and diagnose it. Read the diff against what Shape said and close gaps before the client sees it. Commit the checkpoint on the branch once checks pass.
 
 ### 5. Try
 
