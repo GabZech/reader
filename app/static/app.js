@@ -317,24 +317,25 @@
     return flushing;
   };
 
-  // The article bar's label: "Offline", or how many saves are still to
-  // reach the server, or nothing once all are sent.
+  // The article bar's label, only while offline: "Offline", and how many
+  // saves wait for the connection. Online they go at once, so no label.
   const showSyncState = () => {
     const label = document.querySelector(".sync-state");
     if (!label) return;
-    const owed = () => {
-      const spots = Object.values(readProgress()).filter((spot) => spot.unsent).length;
-      return outbox
-        .all()
-        .then((entries) => entries.length + spots)
-        .catch(() => spots);
-    };
-    owed().then((count) => {
-      const offline = !navigator.onLine;
-      label.hidden = !offline && count === 0;
-      label.classList.toggle("is-waiting", !offline && count > 0);
-      label.textContent = offline ? "Offline" : `${count} to sync`;
-    });
+    if (navigator.onLine) {
+      label.hidden = true;
+      return;
+    }
+    const spots = Object.values(readProgress()).filter((spot) => spot.unsent).length;
+    outbox
+      .all()
+      .then((entries) => entries.length + spots)
+      .catch(() => spots)
+      .then((count) => {
+        if (navigator.onLine) return;
+        label.textContent = count ? `Offline · ${count} to sync` : "Offline";
+        label.hidden = false;
+      });
   };
 
   const initOutbox = () => {

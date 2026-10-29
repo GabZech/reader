@@ -1155,8 +1155,8 @@ form.is-apart {
   color: var(--accent);
 }
 
-/* Offline, or saves still waiting to reach the server (see showSyncState
-   in app.js). Hidden once everything is sent. */
+/* Only while offline: "Offline", and how many saves wait for the
+   connection (see showSyncState in app.js). */
 .article-bar .sync-state {
   display: inline-flex;
   align-items: center;
@@ -1179,10 +1179,6 @@ form.is-apart {
   border-radius: 50%;
   background: currentColor;
   opacity: 0.8;
-}
-
-.article-bar .sync-state.is-waiting {
-  color: var(--accent);
 }
 
 .article-bar-right {
