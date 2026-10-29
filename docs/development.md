@@ -49,7 +49,7 @@ uv run pytest
 
 That is what continuous integration runs (`.github/workflows/test.yml`), lint then tests. `pytest`, `ruff`, and `playwright` are dev-only dependencies; the deployed image does not install them.
 
-**Browser tests need Chromium.** `tests/test_highlight_browser.py` drives the reader page in a real browser, since highlighting runs in `app/static/app.js`. Install it once with `uv run playwright install chromium`; CI does the same before running the tests.
+**Browser tests need Chromium and WebKit.** `tests/test_highlight_browser.py` drives the reader page in a real browser, since highlighting runs in `app/static/app.js`. `tests/test_service_worker_browser.py` runs every offline test twice: in Chromium, and in WebKit, the engine Safari and the installed iPhone app run on, where offline bugs showed that Chromium never did. Install both once with `uv run playwright install --with-deps chromium webkit`; CI does the same before running the tests.
 
 ## Local config
 

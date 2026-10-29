@@ -16,7 +16,7 @@ jobs:
       - name: Install
         run: uv sync --locked
       - name: Install browser
-        run: uv run playwright install --with-deps chromium
+        run: uv run playwright install --with-deps chromium webkit
       - name: Lint
         run: uv run ruff check
       - name: Test
