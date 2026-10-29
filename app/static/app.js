@@ -34,10 +34,33 @@
     }
   };
 
+  // The Settings cog on Home turns inside two thin arrows while Home syncs
+  // or Read Later downloads for offline; it stops once both are done.
+  const busy = { syncing: false, downloading: false };
+  const showBusy = () => {
+    const status = document.getElementById("sync-status");
+    if (!status) return;
+    const on = busy.syncing || busy.downloading;
+    status.classList.toggle("is-updating", on);
+    status.setAttribute("aria-label", on ? "Settings (updating)" : "Settings");
+  };
+
+  // An iPhone can stop the worker mid-download, and then no "done" ever
+  // comes: stop turning after a while rather than forever.
+  const DOWNLOAD_GIVE_UP_MS = 2 * 60 * 1000;
+  let downloadTimer = null;
+  const setDownloading = (running) => {
+    clearTimeout(downloadTimer);
+    busy.downloading = running;
+    if (running) downloadTimer = setTimeout(() => setDownloading(false), DOWNLOAD_GIVE_UP_MS);
+    showBusy();
+  };
+
   // Ask the service worker to download Read Later ahead, so a saved article
   // opens offline without being opened first. The worker spaces out the runs.
-  // Asking again when a new worker takes over: the one that got the first
-  // ask may be the older worker it replaced.
+  // Asking again when a new worker takes over (the one that got the first
+  // ask may be the older worker it replaced), and on coming back to the app
+  // or the network, so a download cut short gets finished.
   const precacheReadLater = async () => {
     if (!("serviceWorker" in navigator)) return;
     const ask = () => {
@@ -45,7 +68,14 @@
       const worker = navigator.serviceWorker.controller;
       if (worker) worker.postMessage({ type: "precache" });
     };
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "downloading") setDownloading(event.data.running);
+    });
     navigator.serviceWorker.addEventListener("controllerchange", ask);
+    window.addEventListener("online", ask);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") ask();
+    });
     try {
       await navigator.serviceWorker.ready;
       ask();
@@ -64,12 +94,9 @@
     if (location.pathname !== "/") return;
     if (!navigator.onLine) return;
     if (sessionStorage.getItem("reader-synced") === "1") return;
-    // The Settings cog turns inside two thin arrows while Home updates.
-    const status = document.getElementById("sync-status");
     const updating = (on) => {
-      if (!status) return;
-      status.classList.toggle("is-updating", on);
-      status.setAttribute("aria-label", on ? "Settings (updating)" : "Settings");
+      busy.syncing = on;
+      showBusy();
     };
     updating(true);
     sessionStorage.setItem("reader-synced", "1");

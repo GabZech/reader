@@ -241,6 +241,36 @@ def test_updating_from_an_older_worker_downloads_read_later_and_keeps_old_pages(
         assert "Couldn't load this page" not in phone.inner_text("body")
 
 
+def test_homes_cog_turns_while_read_later_downloads_and_stops_when_done(
+    phone, monkeypatch, tmp_path
+):
+    # The reader has to know when it is safe to go offline.
+    slow_lists = mainmod.lists_for_home_edit
+
+    def slowly(conn):
+        time.sleep(2.5)
+        return slow_lists(conn)
+
+    monkeypatch.setattr(mainmod, "lists_for_home_edit", slowly)
+    # Home's own sync turns the same cog; keep it out of the way.
+    phone.add_init_script("sessionStorage.setItem('reader-synced', '1')")
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        item_id = httpx.post(
+            f"{origin}/capture",
+            data={"url": "https://blog.test/cog", "html": "<p>x</p>"},
+        ).json()["item_id"]
+
+        phone.goto(f"{origin}/")
+        phone.wait_for_selector("#sync-status.is-updating", timeout=5000)
+        assert phone.get_attribute("#sync-status", "aria-label") == "Settings (updating)"
+        phone.wait_for_selector("#sync-status:not(.is-updating)", timeout=15000)
+
+        assert phone.evaluate(
+            "(u) => caches.match(u).then(r => !!r)", f"{origin}/items/{item_id}"
+        )
+        assert phone.get_attribute("#sync-status", "aria-label") == "Settings"
+
+
 def test_a_highlight_made_online_still_shows_in_the_offline_copy(
     phone, monkeypatch, tmp_path
 ):

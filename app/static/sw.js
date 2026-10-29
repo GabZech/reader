@@ -74,17 +74,47 @@ let precaching = null;
 let precachedAt = 0;
 // Every page open asks; one run a minute is plenty.
 const PRECACHE_GAP_MS = 60 * 1000;
+// A few downloads at once: one at a time took longer than an iPhone keeps
+// the worker running.
+const DOWNLOADS_AT_ONCE = 4;
 
 // Download every Read Later article not stored yet, and its images, so a
-// saved article opens offline without having been opened first.
+// saved article opens offline without having been opened first. Open pages
+// hear when a run starts and ends, to turn Home's cog meanwhile.
 function precache() {
-  if (precaching) return precaching;
+  if (precaching) {
+    announce(true);
+    return precaching;
+  }
   if (Date.now() - precachedAt < PRECACHE_GAP_MS) return Promise.resolve();
+  announce(true);
   precaching = downloadReadLater().finally(() => {
     precaching = null;
     precachedAt = Date.now();
+    announce(false);
   });
   return precaching;
+}
+
+function announce(running) {
+  self.clients
+    .matchAll()
+    .then((pages) => pages.forEach((page) => page.postMessage({ type: "downloading", running })))
+    .catch(() => {});
+}
+
+async function eachAtOnce(things, work) {
+  const queue = [...things];
+  const worker = async () => {
+    while (queue.length) {
+      try {
+        await work(queue.shift());
+      } catch {
+        /* the next run tries again */
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: DOWNLOADS_AT_ONCE }, worker));
 }
 
 async function downloadReadLater() {
@@ -98,52 +128,44 @@ async function downloadReadLater() {
     tell("sw-precache", `failed ${error}`);
     return;
   }
+  // A start with no matching end in Diagnostics means the run was cut short.
+  tell("sw-precache", `start ${listed.length} articles`);
   const pages = await caches.open(CACHE);
   const images = await caches.open(IMAGES);
   let pagesAdded = 0;
   let imagesAdded = 0;
 
-  // Home and the lists change all the time: always store a fresh copy.
-  for (const path of lists) {
-    try {
-      const response = await fetch(path);
-      if (response.ok) await pages.put(new URL(path, location.origin).href, response);
-    } catch {
-      /* keep the copy from last time */
-    }
-  }
-
-  for (const article of listed) {
+  // Articles first: they are what the reader cannot get any other way.
+  await eachAtOnce(listed, async (article) => {
     const key = new URL(article.url, location.origin).href;
-    if (await pages.match(key)) continue;
-    try {
-      const response = await fetch(article.url, { headers: { "X-Reader-Prefetch": "1" } });
-      if (response.ok) {
-        await pages.put(key, response);
-        pagesAdded++;
-      }
-    } catch {
-      /* the next run tries again */
+    if (await pages.match(key)) return;
+    const response = await fetch(article.url, { headers: { "X-Reader-Prefetch": "1" } });
+    if (response.ok) {
+      await pages.put(key, response);
+      pagesAdded++;
     }
-  }
+  });
+
+  // Home and the lists change all the time: always store a fresh copy, and
+  // keep the one from last time when that fails.
+  await eachAtOnce(lists, async (path) => {
+    const response = await fetch(path);
+    if (response.ok) await pages.put(new URL(path, location.origin).href, response);
+  });
 
   const wanted = new Set(
     listed.flatMap((article) => article.images.map((src) => new URL(src, location.origin).href))
   );
-  for (const src of wanted) {
-    if (await images.match(src)) continue;
-    try {
-      // Other sites rarely allow reading their images, so take them opaque:
-      // enough for an <img> to show.
-      const response = await fetch(src, { mode: "no-cors" });
-      if (response.ok || response.type === "opaque") {
-        await images.put(src, response);
-        imagesAdded++;
-      }
-    } catch {
-      /* the next run tries again */
+  await eachAtOnce(wanted, async (src) => {
+    if (await images.match(src)) return;
+    // Other sites rarely allow reading their images, so take them opaque:
+    // enough for an <img> to show.
+    const response = await fetch(src, { mode: "no-cors" });
+    if (response.ok || response.type === "opaque") {
+      await images.put(src, response);
+      imagesAdded++;
     }
-  }
+  });
   for (const request of await images.keys()) {
     if (!wanted.has(request.url)) await images.delete(request);
   }
