@@ -1282,6 +1282,25 @@ def test_highlight_detail_page_shows_its_text(monkeypatch, tmp_path):
         assert "Delete highlight" in page.text
 
 
+def test_highlight_page_offers_to_mark_as_key_and_then_to_unmark(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+        url = f"/items/{item_id}/highlights/{highlight_id}"
+
+        page = client.get(url).text
+        assert "Mark as key" in page
+        assert "Unmark key" not in page
+        assert page.index("Add subsection title") < page.index("Mark as key")
+        assert page.index("Mark as key") < page.index('class="quote"')
+
+        client.post(f"{url}/key")
+        page = client.get(url).text
+        assert "Unmark key" in page
+        assert "Mark as key" not in page
+
+
 def _key_flag(tmp_path, highlight_id):
     conn = dbmod.connect(tmp_path / "reader.db")
     try:
