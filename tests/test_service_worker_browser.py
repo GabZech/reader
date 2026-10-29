@@ -5,6 +5,7 @@ import socket
 import threading
 import time
 from contextlib import contextmanager
+from pathlib import Path
 
 import httpx
 import pytest
@@ -12,7 +13,10 @@ import uvicorn
 from playwright.sync_api import sync_playwright
 
 from app import db as dbmod
+from app import main as mainmod
 from app.main import app
+
+APP_STATIC = Path(mainmod.__file__).parent / "static"
 
 
 def _free_port() -> int:
@@ -175,6 +179,66 @@ def test_a_read_later_article_never_opened_still_opens_offline(
             assert phone.evaluate(
                 "document.querySelector('.article-body img').naturalWidth"
             ) == 1
+
+
+# A worker like the one a phone already has installed: it keeps a page the
+# reader opened earlier and knows nothing about downloading ahead.
+OLDER_WORKER = """
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open("reader-shell-v4").then((c) => c.add("/settings")));
+  self.skipWaiting();
+});
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+});
+"""
+
+
+def test_updating_from_an_older_worker_downloads_read_later_and_keeps_old_pages(
+    phone, monkeypatch, tmp_path
+):
+    # On the phone the page that asks for the download is still controlled by
+    # the older worker, which ignores the ask; and a renamed cache used to wipe
+    # every page stored before the update.
+    served = tmp_path / "served"
+    (served / "static").mkdir(parents=True)
+    worker = served / "static" / "sw.js"
+    worker.write_text(OLDER_WORKER)
+    monkeypatch.setattr(mainmod, "APP_DIR", served)
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
+        item_id = httpx.post(
+            f"{origin}/capture",
+            data={"url": "https://blog.test/update", "html": "<p>x</p>"},
+        ).json()["item_id"]
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            conn.execute(
+                "UPDATE items SET title = ?, body_html = ? WHERE id = ?",
+                ("Saved before the update", "<p>Read me after updating</p>", item_id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        phone.goto(f"{origin}/")
+        phone.wait_for_function("navigator.serviceWorker.controller !== null")
+        _wait_until_cached(phone, f"{origin}/settings")
+
+        worker.write_text((APP_STATIC / "sw.js").read_text())
+        phone.goto(f"{origin}/sources")
+        _wait_until_cached(phone, f"{origin}/items/{item_id}")
+        _wait_until_cached(phone, f"{origin}/lists/later")
+        server.should_exit = True
+        time.sleep(1.5)
+
+        phone.goto(f"{origin}/lists/later")
+        assert "Saved before the update" in phone.inner_text("body")
+        phone.click("text=Saved before the update")
+        phone.wait_for_selector(".article-body")
+        assert "Read me after updating" in phone.inner_text(".article-body")
+        phone.goto(f"{origin}/settings")
+        assert "Couldn't load this page" not in phone.inner_text("body")
 
 
 def test_a_highlight_made_online_still_shows_in_the_offline_copy(

@@ -4,7 +4,7 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ## In flight
 
-**Offline reading and highlighting** (behaviour + visual), branch `dev/offline-reading`. Read Later articles readable offline without being opened first; highlights and highlight edits (section and subsection titles, key passage, delete) made offline are kept on the device and sent once back online. Leaves alone: archive, mark as read and swipe moves offline (stay deferred in the roadmap). Feedback rounds: 0.
+**Offline reading and highlighting** (behaviour + visual), branch `dev/offline-reading`. Read Later articles readable offline without being opened first; highlights and highlight edits (section and subsection titles, key passage, delete) made offline are kept on the device and sent once back online. Leaves alone: archive, mark as read and swipe moves offline (stay deferred in the roadmap). Feedback rounds: 1 (first try on the iPhone: nothing opened offline; the download ask reached the older worker, and a renamed cache wiped stored pages; fixed).
 
 ### Planned
 

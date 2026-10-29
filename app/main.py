@@ -1672,12 +1672,14 @@ def sync():
 @app.get("/offline/articles")
 def offline_articles():
     """What the service worker downloads ahead so Read Later opens offline:
-    each library article's page and, up to a cap, its images."""
+    Home and every list page (fetched fresh each time, since they change),
+    and each library article's page and, up to a cap, its images."""
     articles = []
     room = OFFLINE_IMAGE_CAP
     conn = connect()
     try:
         init_db(conn)
+        pages = ["/", "/lists"] + [f"/lists/{row['slug']}" for row in lists_for_home_edit(conn)]
         # One article's text at a time: the whole list's at once is what
         # filled the machine before (see `_item_columns`).
         for item in items_for_list(conn, "later"):
@@ -1688,7 +1690,7 @@ def offline_articles():
             articles.append({"url": f"/items/{item['id']}", "images": images})
     finally:
         conn.close()
-    return {"articles": articles}
+    return {"pages": pages, "articles": articles}
 
 
 @app.get("/sw.js")

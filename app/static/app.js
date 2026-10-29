@@ -34,18 +34,21 @@
     }
   };
 
-  // Ask the service worker to download Read Later ahead, at most every few
-  // minutes, so a saved article opens offline without being opened first.
-  const PRECACHE_EVERY_MS = 5 * 60 * 1000;
+  // Ask the service worker to download Read Later ahead, so a saved article
+  // opens offline without being opened first. The worker spaces out the runs.
+  // Asking again when a new worker takes over: the one that got the first
+  // ask may be the older worker it replaced.
   const precacheReadLater = async () => {
-    if (!("serviceWorker" in navigator) || !navigator.onLine) return;
+    if (!("serviceWorker" in navigator)) return;
+    const ask = () => {
+      if (!navigator.onLine) return;
+      const worker = navigator.serviceWorker.controller;
+      if (worker) worker.postMessage({ type: "precache" });
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", ask);
     try {
-      const last = Number(localStorage.getItem("reader-precached") || 0);
-      if (Date.now() - last < PRECACHE_EVERY_MS) return;
-      const registration = await navigator.serviceWorker.ready;
-      if (!registration.active) return;
-      registration.active.postMessage({ type: "precache" });
-      localStorage.setItem("reader-precached", String(Date.now()));
+      await navigator.serviceWorker.ready;
+      ask();
     } catch {
       /* offline cache is best-effort */
     }

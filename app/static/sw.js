@@ -1,4 +1,6 @@
-const CACHE = "reader-shell-v5";
+// Never rename: a new name makes activate delete the old cache, and with it
+// every page the reader had stored for offline.
+const CACHE = "reader-shell-v4";
 // Images from other sites in Read Later articles, downloaded ahead (see
 // precache) and pruned to what Read Later still holds.
 const IMAGES = "reader-images-v1";
@@ -32,6 +34,10 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+  // Download straight away, since the page that asked was still controlled by
+  // the worker this one replaces, which ignored the ask. Not inside waitUntil:
+  // pages wait for activation to finish, and would wait on every download.
+  precache().catch(() => {});
 });
 
 self.addEventListener("fetch", (event) => {
@@ -65,20 +71,29 @@ async function answerImage(request) {
 }
 
 let precaching = null;
+let precachedAt = 0;
+// Every page open asks; one run a minute is plenty.
+const PRECACHE_GAP_MS = 60 * 1000;
 
 // Download every Read Later article not stored yet, and its images, so a
 // saved article opens offline without having been opened first.
 function precache() {
-  precaching = precaching || downloadReadLater().finally(() => (precaching = null));
+  if (precaching) return precaching;
+  if (Date.now() - precachedAt < PRECACHE_GAP_MS) return Promise.resolve();
+  precaching = downloadReadLater().finally(() => {
+    precaching = null;
+    precachedAt = Date.now();
+  });
   return precaching;
 }
 
 async function downloadReadLater() {
   let listed;
+  let lists;
   try {
     const response = await fetch("/offline/articles", { cache: "no-store" });
     if (!response.ok) throw new Error(`status ${response.status}`);
-    listed = (await response.json()).articles;
+    ({ articles: listed, pages: lists } = await response.json());
   } catch (error) {
     tell("sw-precache", `failed ${error}`);
     return;
@@ -87,6 +102,16 @@ async function downloadReadLater() {
   const images = await caches.open(IMAGES);
   let pagesAdded = 0;
   let imagesAdded = 0;
+
+  // Home and the lists change all the time: always store a fresh copy.
+  for (const path of lists) {
+    try {
+      const response = await fetch(path);
+      if (response.ok) await pages.put(new URL(path, location.origin).href, response);
+    } catch {
+      /* keep the copy from last time */
+    }
+  }
 
   for (const article of listed) {
     const key = new URL(article.url, location.origin).href;

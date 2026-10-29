@@ -26,14 +26,26 @@ def test_offline_articles_lists_the_read_later_library_with_its_images(
 
         listed = client.get("/offline/articles").json()
 
-        assert listed == {
-            "articles": [
-                {
-                    "url": f"/items/{item_id}",
-                    "images": ["https://img.test/a.png", "/static/b.png"],
-                }
-            ]
-        }
+        assert listed["articles"] == [
+            {
+                "url": f"/items/{item_id}",
+                "images": ["https://img.test/a.png", "/static/b.png"],
+            }
+        ]
+
+
+def test_offline_articles_names_home_and_every_list_to_refresh(monkeypatch, tmp_path):
+    # Read Later's articles are no use offline if the list leading to them
+    # never got stored.
+    with _client(monkeypatch, tmp_path) as client:
+        client.post("/lists/add", data={"name": "Essays"})
+
+        pages = client.get("/offline/articles").json()["pages"]
+
+        assert pages[:2] == ["/", "/lists"]
+        assert "/lists/later" in pages
+        assert "/lists/news" in pages
+        assert "/lists/essays" in pages
 
 
 def test_offline_articles_leaves_out_the_archive(monkeypatch, tmp_path):
