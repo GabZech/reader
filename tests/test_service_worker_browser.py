@@ -65,9 +65,18 @@ class _Network:
         except OSError:
             pass
         finally:
+            # Shut down before closing: the thread piping the other way is
+            # blocked reading one of these sockets, and a bare close() neither
+            # wakes it nor stops it reading whatever new connection reuses
+            # the freed descriptor (which stalled page loads at random).
             for sock in (source, target):
                 with self.lock:
                     self.open.discard(sock)
+                try:
+                    sock.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+            for sock in (source, target):
                 try:
                     sock.close()
                 except OSError:

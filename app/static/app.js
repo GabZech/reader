@@ -25,33 +25,13 @@
     });
   };
 
-  // A new service worker waits (see install in sw.js) until this page has
-  // finished loading, then takes over: taking over mid-load hung the page in
-  // Safari. The first one ever has nothing to replace and starts at once.
   const registerWorker = async () => {
     if (!("serviceWorker" in navigator)) return;
-    let registration;
     try {
-      registration = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.register("/sw.js");
     } catch {
-      return; /* offline cache is best-effort */
+      /* offline cache is best-effort */
     }
-    const takeOver = (worker) => {
-      if (!worker || !navigator.serviceWorker.controller) return;
-      const go = () => worker.postMessage({ type: "take-over" });
-      if (document.readyState === "complete") go();
-      else window.addEventListener("load", go, { once: true });
-    };
-    // One still installing when this page started listening counts too.
-    const whenInstalled = (worker) => {
-      if (!worker) return;
-      worker.addEventListener("statechange", () => {
-        if (worker.state === "installed") takeOver(worker);
-      });
-    };
-    takeOver(registration.waiting);
-    whenInstalled(registration.installing);
-    registration.addEventListener("updatefound", () => whenInstalled(registration.installing));
   };
 
   // The Settings cog on Home turns inside two thin arrows while Home syncs
