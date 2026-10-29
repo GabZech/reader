@@ -20,6 +20,21 @@
             <span class="byline">Same rule, one level under a section title</span>
           </span>
         </a>
+        <form method="post" action="{{ key_action }}">
+          <button type="submit" class="item">
+            {% if highlight.is_key %}
+            <span class="title">Unmark key passage</span>
+            <span class="sub">
+              <span class="byline">Back to a normal highlight</span>
+            </span>
+            {% else %}
+            <span class="title">Mark as key passage</span>
+            <span class="sub">
+              <span class="byline">Shows in Obsidian as a yellow mark tagged #key</span>
+            </span>
+            {% endif %}
+          </button>
+        </form>
       </section>
       <button type="button" class="btn" id="copy-highlight" data-copy-text="{{ highlight.text }}">Copy text</button>
       <form class="danger-zone" method="post" action="{{ delete_action }}">

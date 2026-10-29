@@ -1125,6 +1125,7 @@ def item_page(
                 "end_block": h["end_block"],
                 "end_offset": h["end_offset"],
                 "has_title": bool(h["section_title"] or h["subsection_title"]),
+                "is_key": bool(h["is_key"]),
             }
             for h in highlights
         ]
@@ -1335,6 +1336,7 @@ async def item_add_highlight(item_id: int, request: Request):
         "ok": True,
         "id": highlight_id,
         "has_title": bool(section_title or subsection_title),
+        "is_key": is_key,
     }
 
 

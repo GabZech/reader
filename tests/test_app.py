@@ -1290,15 +1290,66 @@ def test_highlight_page_offers_to_mark_as_key_and_then_to_unmark(monkeypatch, tm
         url = f"/items/{item_id}/highlights/{highlight_id}"
 
         page = client.get(url).text
-        assert "Mark as key" in page
-        assert "Unmark key" not in page
-        assert page.index("Add subsection title") < page.index("Mark as key")
-        assert page.index("Mark as key") < page.index('class="quote"')
+        assert "Mark as key passage" in page
+        assert "Unmark key passage" not in page
+        assert page.index("Add subsection title") < page.index("Mark as key passage")
+        assert page.index("Mark as key passage") < page.index('class="quote"')
+        assert f'action="{url}/key"' in page
 
         client.post(f"{url}/key")
         page = client.get(url).text
-        assert "Unmark key" in page
-        assert "Mark as key" not in page
+        assert "Unmark key passage" in page
+        assert "Mark as key passage" not in page
+        assert f'action="{url}/unkey"' in page
+
+
+def test_the_article_page_tells_the_script_which_highlights_are_key(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        key_id = _save_highlight(client, item_id, start_offset=0, end_offset=5)
+        plain_id = _save_highlight(client, item_id, start_offset=10, end_offset=15)
+        client.post(f"/items/{item_id}/highlights/{key_id}/key")
+
+        page = client.get(f"/items/{item_id}").text
+        data = json.loads(
+            page.split('id="highlights-data"', 1)[1].split(">", 1)[1].split("</script>", 1)[0]
+        )
+        assert {h["id"]: h["is_key"] for h in data} == {key_id: True, plain_id: False}
+
+
+def test_saving_over_a_key_highlight_reports_the_merged_one_as_key(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        key_id = _save_highlight(client, item_id, start_offset=0, end_offset=10)
+        client.post(f"/items/{item_id}/highlights/{key_id}/key")
+
+        merged = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "20",
+                "text": "longer",
+                "merge_id": [str(key_id)],
+            },
+        )
+        assert merged.json()["is_key"] is True
+        plain = _save_highlight(client, item_id, start_offset=30, end_offset=35)
+        saved = client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "40",
+                "end_block": "0",
+                "end_offset": "45",
+                "text": "other",
+            },
+        )
+        assert saved.json()["is_key"] is False
+        assert plain
 
 
 def _key_flag(tmp_path, highlight_id):
