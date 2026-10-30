@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
+## 2026-10-30: Item moves share the offline queue, and only a missing connection queues them
+
+**Decision:** Archive, move back to Library, mark read or unread and save to Read later are kept in the same `localStorage` queue as highlights and sent in the order they were made. A tap tries the server first through that queue; if the connection is missing or hangs past 15 seconds it stays queued and shows "will sync", but a server error is a failed save that puts the row back, as before. Delete, adding, renaming and Home order are not queued: offline they say they need a connection. The stored pages are not rewritten: `app.js` applies what still waits to each page as it opens.
+
+**Why:** Archiving exports a note, so a highlight must reach the server before the archive after it, and one queue keeps that order; queueing server errors would hide real faults, and a queued delete could not be taken back.
+
+**Rejected:** A second queue for moves (order against highlights is lost); rewriting the stored pages in the worker (the page's own markup is the only place that knows its row); queueing every failure including server errors; queueing delete.
+
+**Revisit when:** A move needs a result from the server, or the queue outgrows `localStorage`.
+
 ## 2026-10-29: Offline saves wait in a queue on the phone and replay in order, and the server answers a repeated highlight with the saved one
 
 **Decision:** Highlights made offline, and edits to them, are kept in a queue in the phone's `localStorage` and sent one by one when the app is online and open. A pending highlight has a temporary id that is swapped for the real one once sent, and its edits follow it. The server treats a highlight with exactly the span of an existing one as already saved, and ignores a merge naming a highlight that no longer exists.
