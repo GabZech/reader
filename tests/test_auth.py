@@ -93,7 +93,7 @@ def test_a_made_up_cookie_is_a_stranger(stranger):
 
 
 def test_without_a_password_set_nobody_gets_in(stranger, monkeypatch):
-    monkeypatch.delenv("READER_PASSWORD")
+    monkeypatch.delenv("LOGIN_PASSWORD")
     assert stranger.get("/", headers=NAVIGATE).status_code == 303
     page = stranger.get("/login")
     assert page.status_code == 200
@@ -256,7 +256,7 @@ def test_using_a_device_notes_when_without_a_write_on_every_tap(stranger, monkey
 def test_changing_the_password_signs_every_browser_out(stranger, monkeypatch):
     _sign_in(stranger)
     assert stranger.get("/", headers=NAVIGATE).status_code == 200
-    monkeypatch.setenv("READER_PASSWORD", "a different one")
+    monkeypatch.setenv("LOGIN_PASSWORD", "a different one")
     assert stranger.get("/", headers=NAVIGATE).status_code == 303
     assert _sign_in(stranger, "a different one").status_code == 303
     assert stranger.get("/", headers=NAVIGATE).status_code == 200

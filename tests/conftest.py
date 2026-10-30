@@ -115,7 +115,7 @@ app.add_middleware(_SignedInForTests)
 
 @pytest.fixture(autouse=True)
 def _a_password_is_set(monkeypatch):
-    monkeypatch.setenv("READER_PASSWORD", TEST_PASSWORD)
+    monkeypatch.setenv("LOGIN_PASSWORD", TEST_PASSWORD)
     auth.forget_failed_logins()
 
 

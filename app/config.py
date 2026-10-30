@@ -50,7 +50,7 @@ def obsidian_github_token() -> str | None:
 
 def app_password() -> str | None:
     """The one password that opens the app. Without it nobody gets in."""
-    return os.environ.get("READER_PASSWORD") or None
+    return os.environ.get("LOGIN_PASSWORD") or None
 
 
 class AlertConfig(NamedTuple):

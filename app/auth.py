@@ -1,6 +1,6 @@
 """The password gate: who gets in, how a device stays in, who is locked out.
 
-One password, set as the READER_PASSWORD secret. A correct password gives
+One password, set as the LOGIN_PASSWORD secret. A correct password gives
 that browser a cookie; the server keeps only a hash of it, in the `devices`
 table. A browser stays in until it goes unused for IDLE_LIMIT, is revoked, or
 the password changes (each sign-in is tied to the password it was made with).

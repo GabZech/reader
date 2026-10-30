@@ -38,7 +38,7 @@ Slices 1 to 3 ship together, since slice 1 alone would leave `/capture` closed t
 
 ### Client to do
 
-1. Set the password as a Fly secret before slice 1 goes live.
+1. Set the password as the LOGIN_PASSWORD Fly secret before slice 1 goes live.
 2. Redo the Shortcut and bookmarklet (slice 3).
 3. Set the alert address as a Fly secret (slice 4).
 

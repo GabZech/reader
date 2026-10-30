@@ -165,7 +165,7 @@ def test_a_signed_in_browser_can_still_save_without_a_key():
 
 def test_without_a_password_set_even_a_key_is_refused(monkeypatch):
     key, _ = _make_key(_browser())
-    monkeypatch.delenv("READER_PASSWORD")
+    monkeypatch.delenv("LOGIN_PASSWORD")
     tool = TestClient(app, follow_redirects=False)
     assert tool.post("/capture", data={**CAPTURE, "key": key}).status_code == 401
 
@@ -176,7 +176,7 @@ def test_without_a_password_set_even_a_key_is_refused(monkeypatch):
 def test_a_key_never_expires_and_survives_a_password_change(monkeypatch):
     key, _ = _make_key(_browser())
     _later(monkeypatch, days=400)
-    monkeypatch.setenv("READER_PASSWORD", "a different one")
+    monkeypatch.setenv("LOGIN_PASSWORD", "a different one")
     tool = TestClient(app, follow_redirects=False)
     assert tool.post("/capture", data={**CAPTURE, "key": key}).status_code == 200
 
