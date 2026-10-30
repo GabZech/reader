@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import math
+import re
 import secrets
 import sqlite3
 from datetime import UTC, datetime, timedelta, tzinfo
@@ -139,12 +141,20 @@ def wants_page(request: Request) -> bool:
     return "text/html" in request.headers.get("accept", "")
 
 
+_PLAIN_HOST = re.compile(r"^(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::\d{1,5})?$")
+
+
+def host_is_plain(host: str) -> bool:
+    return bool(_PLAIN_HOST.match(host))
+
+
 def turn_away(request: Request) -> Response:
     if not wants_page(request):
         return Response("Sign in required", status_code=401, headers={"Cache-Control": "no-store"})
     target = "/login"
     if request.method == "GET":
-        where = request.url.path + (f"?{request.url.query}" if request.url.query else "")
+        query = request.scope.get("query_string", b"").decode("latin-1")
+        where = request.scope["path"] + (f"?{query}" if query else "")
         target = "/login?" + urlencode({"next": where})
     return RedirectResponse(target, status_code=303)
 
@@ -164,9 +174,20 @@ _locked_until: dict[str, datetime] = {}
 
 def client_id(request: Request) -> str:
     # The host's own header: X-Forwarded-For can be written by anyone.
-    return request.headers.get("fly-client-ip") or (
+    address = request.headers.get("fly-client-ip") or (
         request.client.host if request.client else "unknown"
     )
+    # An IPv6 line comes with a whole /64: count the block, not the address,
+    # or a guesser takes a fresh address every few tries.
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
+        return address
+    if ip.version == 4:
+        return str(ip)
+    if ip.ipv4_mapped is not None:
+        return str(ip.ipv4_mapped)
+    return str(ipaddress.ip_network(f"{ip}/64", strict=False))
 
 
 def forget_failed_logins() -> None:

@@ -239,7 +239,7 @@ app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="stati
 @app.middleware("http")
 async def no_cache_static(request: Request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith("/static/"):
+    if request.scope["path"].startswith("/static/"):
         response.headers["Cache-Control"] = "no-cache"
     return response
 
@@ -256,14 +256,17 @@ def _signed_in_device(token: str | None):
 
 @app.middleware("http")
 async def require_sign_in(request: Request, call_next):
-    if auth.is_open(request.url.path):
+    # The path the router serves. Never request.url.path: Starlette rebuilds
+    # that from the Host header, so "Host: x/static" made /lists look open.
+    path = request.scope["path"]
+    if auth.is_open(path):
         return await call_next(request)
     token = request.cookies.get(auth.SESSION_COOKIE)
     device = await run_in_threadpool(_signed_in_device, token) if token else None
     if device is None:
         # The tools that save a page carry a key instead of a cookie, which
         # only the route can read from the form.
-        if request.url.path == "/capture" and request.method == "POST":
+        if path == "/capture" and request.method == "POST":
             request.state.device = None
             return await call_next(request)
         return auth.turn_away(request)
@@ -273,7 +276,7 @@ async def require_sign_in(request: Request, call_next):
 
 @app.middleware("http")
 async def trace_requests(request: Request, call_next):
-    path = request.url.path
+    path = request.scope["path"]
     if path.startswith("/static/") or path in diag.QUIET_PATHS:
         return await call_next(request)
     started = diag.request_started()
@@ -284,6 +287,19 @@ async def trace_requests(request: Request, call_next):
         return response
     finally:
         diag.request_finished(request.method, path, status, started)
+
+
+@app.middleware("http")
+async def check_host_and_framing(request: Request, call_next):
+    # A Host header is a hostname and maybe a port. Anything else (a slash,
+    # "?", "#", "@") is refused before it can bend a URL built from it.
+    if not auth.host_is_plain(request.headers.get("host", "")):
+        return Response("Bad Host header", status_code=400)
+    response = await call_next(request)
+    # No other site may show these pages in a frame (a hidden Revoke button).
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'none'"
+    return response
 
 
 def _sources_view(conn, rows) -> list[dict]:

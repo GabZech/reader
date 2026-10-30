@@ -345,3 +345,58 @@ def test_the_login_page_shows_a_lockout_that_is_already_running(stranger):
     page = stranger.get("/login")
     assert "Too many wrong tries" in page.text
     assert "disabled" in page.text
+
+
+# ---------- the address the request names ----------
+
+
+@pytest.mark.parametrize(
+    "host",
+    ["testserver/static", "testserver/login?", "testserver/health#", "x/static/a?", "a@testserver"],
+)
+def test_a_crafted_host_header_cannot_open_a_protected_page(stranger, host):
+    # The gate once read the path back out of a URL built from the Host
+    # header, so "Host: x/static" made /lists look like /static/lists.
+    for path in ("/lists", "/", "/settings", "/offline/articles"):
+        response = stranger.get(path, headers={**NAVIGATE, "Host": host})
+        assert response.status_code in (303, 400, 401), (host, path)
+        assert "Lists" not in response.text or response.status_code != 200
+
+
+def test_a_crafted_host_header_cannot_mint_a_save_key(stranger, tmp_path):
+    response = stranger.post(
+        "/settings/devices/keys",
+        data={"kind": "shortcut"},
+        headers={**NAVIGATE, "Host": "testserver/static"},
+    )
+    assert response.status_code in (303, 400, 401)
+    assert "rk_" not in response.text
+
+
+@pytest.mark.parametrize("host", ["testserver", "127.0.0.1:8000", "reader.fly.dev", "[::1]:8000"])
+def test_an_ordinary_host_header_is_fine(stranger, host):
+    assert stranger.get("/health", headers={"Host": host}).status_code == 200
+
+
+def test_pages_cannot_be_framed_by_another_site(stranger):
+    for path in ("/login", "/health"):
+        response = stranger.get(path)
+        assert response.headers["x-frame-options"] == "DENY"
+        assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
+
+
+def test_the_gate_holds_even_if_a_crafted_host_got_past_the_host_check(stranger, monkeypatch):
+    # Two layers: the Host check, and a gate that reads the router's own path.
+    monkeypatch.setattr(auth, "host_is_plain", lambda host: True)
+    for host in ("testserver/static", "x/login?", "x/health#"):
+        response = stranger.get("/lists", headers={**NAVIGATE, "Host": host})
+        assert response.status_code == 303, host
+
+
+def test_an_ipv6_network_is_counted_as_one_however_many_addresses_it_uses(stranger):
+    # One IPv6 line comes with a /64 block: a new address per guess must not
+    # mean a fresh count.
+    for n in range(auth.LOCK_AFTER):
+        _sign_in(stranger, "nope", **{"Fly-Client-IP": f"2001:db8:1:2::{n + 1}"})
+    assert _sign_in(stranger, **{"Fly-Client-IP": "2001:db8:1:2::99"}).status_code == 429
+    assert _sign_in(stranger, **{"Fly-Client-IP": "2001:db8:1:3::1"}).status_code == 303
