@@ -4,7 +4,7 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ## In flight
 
-**Password protection** (`dev/password-protection`). Kinds: behaviour, data/schema, visual, external system (sending mail). Not small. Planning confirmed and mockups signed off in chat. Building slice by slice on this branch; nothing deployed yet.
+**Password protection** (`dev/password-protection`). Kinds: behaviour, data/schema, visual, external system (sending mail). Not small. Planning confirmed and mockups signed off in chat. All four slices built; the branch (050383f, with the security review fixes) is live on the Fly app for the client to try. Awaiting sign-off.
 
 ### Agreed
 
@@ -27,10 +27,10 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ### Planned
 
-1. Password gate (login page, cookie, lockout, service worker 401 handling, sign-out in Settings): built, tests green, on the branch; not deployed
-2. Devices page (list, rename, revoke, sign out everything else): built, tests green, looked at on the real local app; not deployed
-3. Save keys (create, revoke, bookmarklet and Shortcut steps, `docs/operations.md`): built, tests green (including the bookmarklet run from another site in a real browser), looked at on the real local app; not deployed
-4. Email alerts: built and tested against a fake mail server; not yet proved against Gmail from Fly (the first real alert after deploy is the probe); not deployed
+1. Password gate (login page, cookie, lockout, service worker 401 handling, sign-out in Settings): built, tests green, on the branch; live for trying
+2. Devices page (list, rename, revoke, sign out everything else): built, tests green, looked at on the real local app; live for trying
+3. Save keys (create, revoke, bookmarklet and Shortcut steps, `docs/operations.md`): built, tests green (including the bookmarklet run from another site in a real browser), looked at on the real local app; live for trying
+4. Email alerts: built and tested against a fake mail server; not yet proved against Gmail from Fly (the first real alert after deploy is the probe); live for trying
 
 Mockups signed off in chat: login page (sentence about 30 days removed), Devices page, Settings with the Security section, the one-time save key screen.
 
