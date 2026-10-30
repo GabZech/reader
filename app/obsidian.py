@@ -4,7 +4,7 @@ import base64
 import json
 import re
 from datetime import UTC, datetime
-from urllib.parse import quote
+from urllib.parse import quote, urljoin, urlsplit
 
 import httpx
 from lxml.html import fromstring
@@ -18,6 +18,8 @@ BRANCH = "main"
 _PATH_DATE = re.compile(r"Highlights/(\d{2}-\d{2}-\d{2}) ")
 KEY_TAG = "#key"
 _UNSAFE_TITLE_CHARS = re.compile(r'[\\/:*?"<>|]')
+_WHITESPACE = re.compile(r"\s")
+_LINK_SCHEMES = ("http", "https", "mailto")
 
 
 def _request(method: str, url: str, **kwargs):
@@ -71,13 +73,13 @@ def build_note_markdown(item, highlights) -> str:
             current_subsection = subsection_title
             lines.append(f"#### {current_subsection}")
         lines.append("")
-        lines.extend(_highlight_lines(highlight, item["body_html"]))
+        lines.extend(_highlight_lines(highlight, item["body_html"], item["url"]))
 
     return "\n".join(lines) + "\n"
 
 
-def _highlight_lines(highlight, body_html) -> list[str]:
-    lines = _plain_highlight_lines(highlight, body_html)
+def _highlight_lines(highlight, body_html, base_url=None) -> list[str]:
+    lines = _plain_highlight_lines(highlight, body_html, base_url)
     if _is_key(highlight) and lines:
         lines[0] = f"{lines[0]} {KEY_TAG}"
     return lines
@@ -99,7 +101,7 @@ def _mark(line: str, is_key: bool) -> str:
     return f"=={stripped}=="
 
 
-def _plain_highlight_lines(highlight, body_html) -> list[str]:
+def _plain_highlight_lines(highlight, body_html, base_url=None) -> list[str]:
     # A highlight spanning a <ul>/<ol> (or several blocks) arrives with each
     # item on its own line - the browser's range.toString() inserts a
     # newline at each block boundary. The raw newlines carry no depth or
@@ -108,14 +110,17 @@ def _plain_highlight_lines(highlight, body_html) -> list[str]:
     text_lines = [line for line in highlight["text"].split("\n") if line.strip()]
     if not text_lines:
         text_lines = [""]
-    is_key = _is_key(highlight)
-    text_lines = [_mark(line, is_key) for line in text_lines]
 
     try:
         start_block = highlight["start_block"]
         end_block = highlight["end_block"]
     except (KeyError, IndexError):
         start_block = end_block = None
+    if start_block is not None:
+        spans = _link_spans(highlight, body_html, base_url)
+        text_lines = _apply_links(text_lines, spans)
+    is_key = _is_key(highlight)
+    text_lines = [_mark(line, is_key) for line in text_lines]
     shapes = (
         _block_range_shapes(body_html, start_block, end_block)
         if start_block is not None
@@ -199,6 +204,97 @@ def _list_item_shapes(list_el, depth: int) -> list[tuple[int, str]]:
             if child.tag in ("ul", "ol"):
                 shapes.extend(_list_item_shapes(child, depth + 1))
     return shapes
+
+
+def _link_spans(highlight, body_html, base_url) -> list[tuple[int, int, str]]:
+    """Each link the highlight covers, as (start, end, url) counted in the
+    highlight's non-whitespace characters. Offsets are character offsets
+    into a block's text, the same ones `app/static/app.js` stores. Counting
+    without whitespace keeps the spans valid against the captured text,
+    whose newlines at block boundaries the HTML does not carry. Returns no
+    spans when the HTML's text no longer matches the captured text.
+    """
+    if not body_html:
+        return []
+    start_block, end_block = highlight["start_block"], highlight["end_block"]
+    try:
+        start_offset, end_offset = highlight["start_offset"], highlight["end_offset"]
+    except (KeyError, IndexError):
+        start_offset, end_offset = 0, None
+    blocks = list(fromstring(f"<div>{body_html}</div>"))[start_block : end_block + 1]
+    spans: list[tuple[int, int, str, int]] = []
+    selected = []
+    pos = 0
+    for index, block in enumerate(blocks, start_block):
+        lo = start_offset if index == start_block else 0
+        hi = end_offset if index == end_block else None
+        offset = 0
+        for text, href in _text_pieces(block):
+            begin, offset = offset, offset + len(text)
+            cut = text[max(lo - begin, 0) : None if hi is None else max(hi - begin, 0)]
+            compact = _WHITESPACE.sub("", cut)
+            selected.append(compact)
+            url = _export_href(href, base_url)
+            if url and compact:
+                last = spans[-1] if spans else None
+                if last and last[2] == url and last[1] == pos and last[3] == index:
+                    spans[-1] = (last[0], pos + len(compact), url, index)
+                else:
+                    spans.append((pos, pos + len(compact), url, index))
+            pos += len(compact)
+    if "".join(selected) != _WHITESPACE.sub("", highlight["text"]):
+        return []
+    return [(start, end, url) for start, end, url, _ in spans]
+
+
+def highlights_have_links(item, highlights) -> bool:
+    return any(
+        _link_spans(highlight, item["body_html"], item["url"]) for highlight in highlights
+    )
+
+
+def _text_pieces(el, href=None):
+    # Text in document order with the href of the link it sits in, matching
+    # the text nodes the browser's textContent walks (comments carry none).
+    if el.tag == "a" and el.get("href"):
+        href = el.get("href")
+    if isinstance(el.tag, str) and el.text:
+        yield el.text, href
+    for child in el:
+        yield from _text_pieces(child, href)
+        if child.tail:
+            yield child.tail, href
+
+
+def _export_href(href: str | None, base_url: str | None) -> str | None:
+    # An in-page anchor (a footnote, say) leads nowhere from the note.
+    if not href or href.startswith("#"):
+        return None
+    url = urljoin(base_url or "", href)
+    return url if urlsplit(url).scheme in _LINK_SCHEMES else None
+
+
+def _apply_links(lines: list[str], spans: list[tuple[int, int, str]]) -> list[str]:
+    positions = [
+        (line_index, char_index)
+        for line_index, line in enumerate(lines)
+        for char_index, char in enumerate(line)
+        if not char.isspace()
+    ]
+    lines = list(lines)
+    # Last span first, so a link added to a line never shifts an earlier one.
+    for start, end, url in reversed(spans):
+        if end > len(positions):
+            continue
+        first_line, first_char = positions[start]
+        last_line, last_char = positions[end - 1]
+        if first_line != last_line:
+            continue
+        line = lines[first_line]
+        label = line[first_char : last_char + 1].replace("[", "\\[").replace("]", "\\]")
+        target = url.replace(" ", "%20").replace("(", "%28").replace(")", "%29")
+        lines[first_line] = f"{line[:first_char]}[{label}]({target}){line[last_char + 1 :]}"
+    return lines
 
 
 def _image_urls(highlight) -> list[str]:

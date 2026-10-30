@@ -29,8 +29,10 @@ def _highlight(
     start_block=0,
     end_block=0,
     is_key=0,
+    start_offset=None,
+    end_offset=None,
 ):
-    return {
+    highlight = {
         "text": text,
         "section_title": section_title,
         "subsection_title": subsection_title,
@@ -39,6 +41,11 @@ def _highlight(
         "end_block": end_block,
         "is_key": is_key,
     }
+    if start_offset is not None:
+        highlight["start_offset"] = start_offset
+    if end_offset is not None:
+        highlight["end_offset"] = end_offset
+    return highlight
 
 
 def test_note_path_uses_todays_date_on_first_export(monkeypatch):
@@ -463,3 +470,85 @@ class _FakeResponse:
 
     def json(self):
         return self._payload
+
+
+def test_build_note_markdown_keeps_a_link_inside_the_highlight():
+    body = '<p>Read <a href="https://example.test/post">the post</a> today.</p>'
+    highlight = _highlight("Read the post today.", start_offset=0, end_offset=20)
+    lines = _bullets([highlight], _item(body_html=body))
+    assert "- Read [the post](https://example.test/post) today." in lines
+
+
+def test_build_note_markdown_links_only_the_selected_part_of_a_link():
+    body = '<p>Read <a href="https://example.test/post">the post</a> today.</p>'
+    # "Read the" - the selection stops inside the link's text.
+    highlight = _highlight("Read the", start_offset=0, end_offset=8)
+    lines = _bullets([highlight], _item(body_html=body))
+    assert "- Read [the](https://example.test/post)" in lines
+
+
+def test_build_note_markdown_ignores_links_outside_the_selection():
+    body = '<p><a href="https://example.test/a">Intro</a> then the point.</p>'
+    highlight = _highlight("the point.", start_offset=11, end_offset=21)
+    lines = _bullets([highlight], _item(body_html=body))
+    assert "- the point." in lines
+
+
+def test_build_note_markdown_links_the_right_occurrence_of_repeated_words():
+    body = '<p>here and <a href="https://example.test/x">here</a></p>'
+    highlight = _highlight("here and here", start_offset=0, end_offset=13)
+    lines = _bullets([highlight], _item(body_html=body))
+    assert "- here and [here](https://example.test/x)" in lines
+
+
+def test_build_note_markdown_keeps_links_across_blocks_and_nested_formatting():
+    body = (
+        '<p>See <a href="https://example.test/one"><b>one</b> link</a>.</p>'
+        '<p>And <a href="https://example.test/two">two</a>.</p>'
+    )
+    highlight = _highlight(
+        "See one link.\nAnd two.", start_block=0, end_block=1, start_offset=0, end_offset=8
+    )
+    lines = _bullets([highlight], _item(body_html=body))
+    assert "- See [one link](https://example.test/one)." in lines
+    assert "  - And [two](https://example.test/two)." in lines
+
+
+def test_build_note_markdown_keeps_links_in_list_highlights():
+    body = '<ul><li>One <a href="https://example.test/1">link</a></li><li>Two</li></ul>'
+    highlight = _highlight("One link\nTwo", start_offset=0, end_offset=11)
+    lines = _bullets([highlight], _item(body_html=body))
+    assert lines[-3:] == ["-", "  - One [link](https://example.test/1)", "  - Two"]
+
+
+def test_build_note_markdown_keeps_a_link_inside_a_key_highlight():
+    body = '<p>Read <a href="https://example.test/post">the post</a>.</p>'
+    highlight = _highlight("Read the post.", start_offset=0, end_offset=14, is_key=1)
+    lines = _bullets([highlight], _item(body_html=body))
+    assert "- ==Read [the post](https://example.test/post).== #key" in lines
+
+
+def test_build_note_markdown_resolves_relative_links_against_the_article_url():
+    body = '<p>See <a href="/docs/intro">the docs</a>.</p>'
+    highlight = _highlight("See the docs.", start_offset=0, end_offset=13)
+    item = _item(body_html=body, url="https://example.test/blog/post")
+    assert "- See [the docs](https://example.test/docs/intro)." in _bullets([highlight], item)
+
+
+def test_build_note_markdown_skips_in_page_anchor_links():
+    body = '<p>As noted<a href="#fn1">1</a> before.</p>'
+    highlight = _highlight("As noted1 before.", start_offset=0, end_offset=17)
+    assert "- As noted1 before." in _bullets([highlight], _item(body_html=body))
+
+
+def test_build_note_markdown_escapes_brackets_and_parentheses_in_links():
+    body = '<p><a href="https://example.test/a_(b) c">[1] ref</a></p>'
+    highlight = _highlight("[1] ref", start_offset=0, end_offset=7)
+    lines = _bullets([highlight], _item(body_html=body))
+    assert "- [\\[1\\] ref](https://example.test/a_%28b%29%20c)" in lines
+
+
+def test_build_note_markdown_links_a_whole_block_when_offsets_are_missing():
+    body = '<p>Read <a href="https://example.test/post">the post</a>.</p>'
+    lines = _bullets([_highlight("Read the post.")], _item(body_html=body))
+    assert "- Read [the post](https://example.test/post)." in lines
