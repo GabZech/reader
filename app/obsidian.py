@@ -135,7 +135,9 @@ def _plain_highlight_lines(highlight, body_html, base_url=None) -> list[str]:
     text_lines = [_mark(line, is_key) for line in text_lines]
     if shapes is None and start_block is not None:
         shapes = _block_range_shapes(body_html, start_block, end_block)
-    if shapes is not None and len(shapes) == len(text_lines) and any(shapes):
+    # One list item alone is a plain bullet: the empty parent bullet above
+    # nested items only earns its place when several items keep their depth.
+    if shapes is not None and len(shapes) == len(text_lines) > 1 and any(shapes):
         return _shaped_highlight_lines(highlight, text_lines, shapes)
 
     # Fallback: no reliable shape (missing body_html, or a structure whose
@@ -300,6 +302,17 @@ def highlights_export_differently(item, highlights) -> bool:
             if line.strip()
         ]
         if captured != selection[0]:
+            return True
+    return False
+
+
+def highlights_in_a_single_list_item(item, highlights) -> bool:
+    """Whether a note written before one list item stood as a plain bullet
+    would carry it under an empty parent bullet.
+    """
+    for highlight in highlights:
+        selection = _dom_selection(highlight, item["body_html"], item["url"])
+        if selection and len(selection[0]) == 1 and selection[1][0] is not None:
             return True
     return False
 

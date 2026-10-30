@@ -7,6 +7,7 @@ from app.obsidian import (
     build_note_markdown,
     export_note,
     highlights_export_differently,
+    highlights_in_a_single_list_item,
     note_path_for_item,
 )
 
@@ -648,3 +649,45 @@ def test_highlights_export_differently_ignores_a_changed_article_and_missing_tex
     wrapped = _highlight("One two\nthree.", start_offset=0, end_offset=14)
     assert not highlights_export_differently(changed, [wrapped])
     assert not highlights_export_differently(_item(body_html=None), [wrapped])
+
+
+def test_build_note_markdown_writes_a_single_list_item_as_a_plain_bullet():
+    body = "<ul><li>Minimum viable intelligence.</li><li>Maximum necessary intelligence.</li></ul>"
+    highlight = _highlight("Minimum viable intelligence.", start_offset=0, end_offset=28)
+    lines = _bullets([highlight], _item(body_html=body))
+    assert lines[-1] == "- Minimum viable intelligence."
+    assert "-" not in lines
+
+
+def test_build_note_markdown_writes_a_single_ordered_or_nested_item_as_a_plain_bullet():
+    ordered = _item(body_html="<ol><li>First</li><li>Second</li></ol>")
+    assert _bullets([_highlight("Second", start_offset=5, end_offset=11)], ordered)[-1] == (
+        "- Second"
+    )
+    nested = _item(body_html="<ul><li>Top<ul><li>Inner</li></ul></li></ul>")
+    assert _bullets([_highlight("Inner", start_offset=3, end_offset=8)], nested)[-1] == (
+        "- Inner"
+    )
+
+
+def test_build_note_markdown_tags_a_single_list_item_key_highlight_on_its_own_bullet():
+    body = "<ul><li>One two</li><li>Three</li></ul>"
+    highlight = _highlight("One two", start_offset=0, end_offset=7, is_key=1)
+    assert _bullets([highlight], _item(body_html=body))[-1] == "- ==One two== #key"
+
+
+def test_build_note_markdown_still_nests_a_highlight_over_several_list_items():
+    body = "<ul><li>One</li><li>Two</li></ul>"
+    highlight = _highlight("One\nTwo", start_offset=0, end_offset=6)
+    assert _bullets([highlight], _item(body_html=body))[-3:] == ["-", "  - One", "  - Two"]
+
+
+def test_highlights_in_a_single_list_item_are_flagged_for_the_re_send():
+    body = "<p>Intro</p><ul><li>One</li><li>Two</li></ul>"
+    item = _item(body_html=body)
+    single = _highlight("One", start_block=1, end_block=1, start_offset=0, end_offset=3)
+    assert highlights_in_a_single_list_item(item, [single])
+    several = _highlight("One\nTwo", start_block=1, end_block=1, start_offset=0, end_offset=6)
+    paragraph = _highlight("Intro", start_offset=0, end_offset=5)
+    assert not highlights_in_a_single_list_item(item, [several, paragraph])
+    assert not highlights_in_a_single_list_item(_item(body_html=None), [single])
