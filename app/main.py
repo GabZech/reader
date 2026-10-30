@@ -24,14 +24,17 @@ from app.db import (
     all_lists,
     all_sources,
     archive_item_in_list,
+    clear_highlights_exported,
     clear_source_notice,
     connect,
     count_for_list,
+    data_version,
     delete_highlight,
     delete_highlights,
     delete_item,
     delete_list,
     delete_source,
+    exported_items_with_highlights,
     find_list_by_name,
     find_source_by_feed_url,
     format_when,
@@ -64,6 +67,7 @@ from app.db import (
     remove_source_from_list,
     rename_list,
     rename_source,
+    set_data_version,
     set_highlight_key,
     set_highlight_section_title,
     set_highlight_subsection_title,
@@ -90,7 +94,7 @@ from app.ingest import (
     youtube_video_id,
 )
 from app.mail import ingest_mail
-from app.obsidian import export_note
+from app.obsidian import export_note, highlights_have_links
 
 APP_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
@@ -147,14 +151,38 @@ def _next_export_run(now: datetime) -> datetime:
 
 
 def _run_startup_catch_up() -> None:
+    _queue_link_reexport()
     # Only what a missed 5am run would have sent: a restart mid-day never
     # exports highlights that are still being worked on.
     _run_due_exports(_latest_export_run(datetime.now(UTC)))
 
 
+LINK_REEXPORT_VERSION = 1
+
+
+def _queue_link_reexport() -> None:
+    # Notes exported before links survived the export are sent once more,
+    # but only those whose highlights cover a link; the catch-up right
+    # after sends them.
+    conn = connect()
+    try:
+        init_db(conn)
+        if data_version(conn) >= LINK_REEXPORT_VERSION:
+            return
+        for item in exported_items_with_highlights(conn):
+            if highlights_have_links(item, highlights_for_item(conn, item["id"])):
+                clear_highlights_exported(conn, item["id"])
+        set_data_version(conn, LINK_REEXPORT_VERSION)
+        conn.commit()
+    finally:
+        conn.close()
+
+
 async def _daily_export_check_loop() -> None:
     try:
-        _run_startup_catch_up()
+        # In a thread: a large catch-up (the one-time link re-send) must not
+        # hold up requests while it talks to GitHub.
+        await asyncio.to_thread(_run_startup_catch_up)
     except Exception:  # noqa: BLE001, S110 - the background check must never crash the app
         pass
     while True:

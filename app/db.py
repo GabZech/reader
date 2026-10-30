@@ -648,6 +648,30 @@ def mark_highlights_exported(conn: sqlite3.Connection, item_id: int) -> None:
     )
 
 
+def exported_items_with_highlights(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT * FROM items
+        WHERE highlights_exported_at IS NOT NULL
+            AND EXISTS (SELECT 1 FROM highlights WHERE highlights.item_id = items.id)
+        """
+    ).fetchall()
+
+
+def clear_highlights_exported(conn: sqlite3.Connection, item_id: int) -> None:
+    conn.execute("UPDATE items SET highlights_exported_at = NULL WHERE id = ?", (item_id,))
+
+
+def data_version(conn: sqlite3.Connection) -> int:
+    # Counts one-time data fixes already applied, kept in SQLite's own
+    # user_version so it needs no table of its own.
+    return conn.execute("PRAGMA user_version").fetchone()[0]
+
+
+def set_data_version(conn: sqlite3.Connection, version: int) -> None:
+    conn.execute(f"PRAGMA user_version = {int(version)}")
+
+
 def set_item_exported_note_path(
     conn: sqlite3.Connection, item_id: int, path: str | None
 ) -> None:
