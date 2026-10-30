@@ -14,9 +14,9 @@ Feedback rounds so far: 0.
 
 ### Planned
 
-1. Actions work offline (swipe and article buttons, queue, pages update at once, Read/Archive tabs and flash addresses stored): built and committed on the branch, not yet deployed or tried on the live app
-2. Settings, Sources and source pages work offline; online-only buttons say "This needs a connection": not started
-3. Full journey check in a real browser (WebKit and Chromium), then the phone in airplane mode: not started
+1. Actions work offline (swipe and article buttons, queue, pages update at once, Read/Archive tabs and flash addresses stored): built, committed, deployed to the live host for trying
+2. Settings, Sources and source pages work offline; online-only buttons say "This needs a connection": built, committed, deployed to the live host for trying (look signed off)
+3. Full journey check in a real browser (WebKit and Chromium), then the phone in airplane mode: browser journeys pass on both engines; the phone in airplane mode is the client's try
 
 ## Blocked
 
