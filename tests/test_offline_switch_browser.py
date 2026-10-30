@@ -6,16 +6,20 @@ from __future__ import annotations
 import time
 
 from test_offline_actions_browser import FIRST, SECOND, _ready, _seed_news
-from test_service_worker_browser import _go_offline, _live_server, _wait_until_cached
+from test_service_worker_browser import (
+    _go_offline,
+    _live_server,
+    _wait_until_cached,
+    quick_reopen,
+)
 
 from app import db as dbmod
 from app import main as mainmod
 
 
 def _reopen(phone, origin):
-    """Open the app again, as a fresh launch, and wait for its run to end.
-    Runs are spaced 10 seconds apart."""
-    phone.wait_for_timeout(10500)
+    """Open the app again, as a fresh launch, and wait for its run to end."""
+    phone.wait_for_timeout(2500)
     again = phone.context.new_page()
     again.goto(f"{origin}/")
     again.wait_for_function("navigator.serviceWorker.controller !== null")
@@ -32,6 +36,7 @@ def _stored(phone, url):
 
 
 def test_a_list_switched_on_is_readable_offline(phone, monkeypatch, tmp_path):
+    quick_reopen(monkeypatch, tmp_path)
     with _live_server(monkeypatch, tmp_path) as (origin, server):
         first, _ = _seed_news(tmp_path, [FIRST, SECOND])
         _ready(phone, origin, "/lists/news/edit")
@@ -50,6 +55,7 @@ def test_a_list_switched_on_is_readable_offline(phone, monkeypatch, tmp_path):
 def test_a_read_article_leaves_the_phone_unless_a_save_waits_for_it(
     phone, monkeypatch, tmp_path
 ):
+    quick_reopen(monkeypatch, tmp_path)
     with _live_server(monkeypatch, tmp_path) as (origin, _server):
         first, second = _seed_news(tmp_path, [FIRST, SECOND])
         conn = dbmod.connect(tmp_path / "reader.db")

@@ -158,6 +158,19 @@ def _live_server(monkeypatch, tmp_path):
         thread.join(timeout=10)
 
 
+def quick_reopen(monkeypatch, tmp_path):
+    """Serve the worker with runs 2 seconds apart instead of a minute, so a
+    test can open the app again without waiting."""
+    served = tmp_path / "served"
+    (served / "static").mkdir(parents=True, exist_ok=True)
+    source = (APP_STATIC / "sw.js").read_text()
+    assert "const PRECACHE_GAP_MS = 60 * 1000;" in source
+    (served / "static" / "sw.js").write_text(
+        source.replace("const PRECACHE_GAP_MS = 60 * 1000;", "const PRECACHE_GAP_MS = 2 * 1000;")
+    )
+    monkeypatch.setattr(mainmod, "APP_DIR", served)
+
+
 def _app_url(server):
     """The app itself, past the relay: for what another device does."""
     return f"http://127.0.0.1:{server.network.upstream_port}"

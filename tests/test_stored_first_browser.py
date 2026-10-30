@@ -7,7 +7,7 @@ import time
 
 from playwright.sync_api import expect
 from test_offline_actions_browser import FIRST, SECOND, _ready, _seed_news, _seen
-from test_service_worker_browser import _live_server, _wait_until_cached
+from test_service_worker_browser import _live_server, _wait_until_cached, quick_reopen
 
 from app import db as dbmod
 from app import main as mainmod
@@ -149,6 +149,7 @@ def test_opening_the_app_syncs_then_refreshes_the_stored_pages(phone, monkeypatc
         )
         return {"sources": 1, "created": 1, "kept": 0}
 
+    quick_reopen(monkeypatch, tmp_path)
     with _live_server(monkeypatch, tmp_path) as (origin, _server):
         _seed_news(tmp_path, [FIRST])
         _ready(phone, origin, "/lists/news")
@@ -160,7 +161,7 @@ def test_opening_the_app_syncs_then_refreshes_the_stored_pages(phone, monkeypatc
         phone.wait_for_timeout(1000)
         assert synced == []
         expect(phone.locator(".item", has_text="Arrived on open")).to_have_count(0)
-        phone.wait_for_timeout(10000)
+        phone.wait_for_timeout(2500)
 
         # Opened again: a fresh tab is a fresh launch.
         again = phone.context.new_page()

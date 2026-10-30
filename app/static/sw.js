@@ -181,9 +181,9 @@ async function answerImage(request) {
 
 let precaching = null;
 let precachedAt = 0;
-// Pages ask each time the app is opened; switching away and straight back
+// Pages ask each time the app is opened; reopening it within a minute
 // needs no second run.
-const PRECACHE_GAP_MS = 10 * 1000;
+const PRECACHE_GAP_MS = 60 * 1000;
 // A few downloads at once: one at a time took longer than an iPhone keeps
 // the worker running.
 const DOWNLOADS_AT_ONCE = 4;
