@@ -211,6 +211,11 @@ button {
   vertical-align: middle;
 }
 
+.key-text {
+  font: 0.8125rem/1.5 ui-monospace, Menlo, monospace;
+  color: var(--text);
+}
+
 .device-actions {
   display: flex;
   gap: 0.4rem;

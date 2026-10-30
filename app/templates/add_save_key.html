@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Add a save key{% endblock %}
+{% block body %}
+        <a class="back" href="/settings/devices">Devices</a>
+        <header class="top">
+          <h1>Add a save key</h1>
+        </header>
+        <p class="lede">Which tool is it for? The key lets that tool send a page to Read later, and nothing else.</p>
+        <form method="post" action="/settings/devices/keys">
+          <input type="hidden" name="kind" value="shortcut">
+          <button class="btn" type="submit">iPhone Shortcut</button>
+        </form>
+        <form method="post" action="/settings/devices/keys">
+          <input type="hidden" name="kind" value="bookmarklet">
+          <button class="btn" type="submit">Computer bookmarklet</button>
+        </form>
+{% endblock %}

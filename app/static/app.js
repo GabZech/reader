@@ -1709,14 +1709,15 @@
     });
   };
 
+  // A button that copies the text it carries: a highlight's, or a save key.
   const initHighlightDetail = () => {
-    const button = document.getElementById("copy-highlight");
-    if (!button) return;
-    button.addEventListener("click", () => {
-      const text = button.dataset.copyText || "";
-      navigator.clipboard?.writeText(text)
-        .then(() => showToast("Copied"))
-        .catch(() => {});
+    document.querySelectorAll("button[data-copy-text]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const text = button.dataset.copyText || "";
+        navigator.clipboard?.writeText(text)
+          .then(() => showToast("Copied"))
+          .catch(() => {});
+      });
     });
   };
 

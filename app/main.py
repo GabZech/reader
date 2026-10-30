@@ -261,6 +261,11 @@ async def require_sign_in(request: Request, call_next):
     token = request.cookies.get(auth.SESSION_COOKIE)
     device = await run_in_threadpool(_signed_in_device, token) if token else None
     if device is None:
+        # The tools that save a page carry a key instead of a cookie, which
+        # only the route can read from the form.
+        if request.url.path == "/capture" and request.method == "POST":
+            request.state.device = None
+            return await call_next(request)
         return auth.turn_away(request)
     request.state.device = device
     return await call_next(request)
@@ -326,7 +331,16 @@ def home(request: Request, flash: str = ""):
     )
 
 
-def _bookmarklet_href(request: Request) -> str:
+def _is_save_key(key: str) -> bool:
+    conn = connect()
+    try:
+        init_db(conn)
+        return auth.valid_save_key(conn, key) is not None
+    finally:
+        conn.close()
+
+
+def _bookmarklet_href(request: Request, key: str) -> str:
     action = f"{str(request.base_url).rstrip('/')}/capture?format=html"
     script = (
         "(function(){"
@@ -335,6 +349,7 @@ def _bookmarklet_href(request: Request) -> str:
         f"f.action='{action}';"
         "function a(n,v){var i=document.createElement('input');"
         "i.type='hidden';i.name=n;i.value=v;f.appendChild(i);}"
+        f"a('key','{key}');"
         "a('url',location.href);"
         "a('html',document.documentElement.outerHTML);"
         "document.body.appendChild(f);f.submit();f.remove();"
@@ -352,6 +367,7 @@ def settings_page(request: Request):
         init_db(conn)
         lists = lists_for_home_edit(conn)
         browser_count = len(devices_of_kind(conn, "browser"))
+        key_count = len(devices_of_kind(conn, "key"))
     finally:
         conn.close()
     return templates.TemplateResponse(
@@ -361,8 +377,8 @@ def settings_page(request: Request):
             "nav": "home",
             "lists": lists,
             "browser_count": browser_count,
+            "key_count": key_count,
             "newsletter_address": newsletter_address,
-            "bookmarklet_href": _bookmarklet_href(request),
         },
     )
 
@@ -467,6 +483,7 @@ def devices_page(request: Request, flash: str = ""):
     try:
         init_db(conn)
         browsers = devices_of_kind(conn, "browser")
+        keys = devices_of_kind(conn, "key")
     finally:
         conn.close()
     here = request.state.device["id"]
@@ -480,6 +497,7 @@ def devices_page(request: Request, flash: str = ""):
             "flash": flash,
             "browsers": [{**dict(row), "is_here": row["id"] == here} for row in ordered],
             "has_others": len(browsers) > 1,
+            "keys": [dict(row) for row in keys],
         },
     )
 
@@ -496,6 +514,44 @@ def devices_sign_out_others(request: Request):
     if not count:
         return _devices_flash("No other browsers are signed in")
     return _devices_flash(f"Signed out {count} other browser{'' if count == 1 else 's'}")
+
+
+KEY_KINDS = {"shortcut": "iPhone Shortcut", "bookmarklet": "Computer bookmarklet"}
+
+
+@app.get("/settings/devices/keys/new")
+def key_new_page(request: Request):
+    return templates.TemplateResponse(request, "add_save_key.html", {"nav": "home"})
+
+
+@app.post("/settings/devices/keys")
+async def key_create(request: Request):
+    form = await request.form()
+    kind = str(form.get("kind") or "")
+    if kind not in KEY_KINDS:
+        raise HTTPException(status_code=400)
+    key = auth.new_key()
+    conn = connect()
+    try:
+        init_db(conn)
+        create_device(conn, "key", KEY_KINDS[kind], auth.token_hash(key), None, auth.now())
+        conn.commit()
+    finally:
+        conn.close()
+    # Shown here, once: only a hash of it is kept, and it is not in any address.
+    return templates.TemplateResponse(
+        request,
+        "save_key.html",
+        {
+            "nav": "home",
+            "kind": kind,
+            "name": KEY_KINDS[kind],
+            "key": key,
+            "bookmarklet_href": _bookmarklet_href(request, key) if kind == "bookmarklet" else "",
+            "capture_url": f"{str(request.base_url).rstrip('/')}/capture",
+        },
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 def _device_or_404(conn, device_id: int):
@@ -2002,6 +2058,13 @@ def item_delete(
 @app.post("/capture")
 async def capture(request: Request):
     form = await request.form()
+    if request.state.device is None and not await run_in_threadpool(
+        _is_save_key, str(form.get("key") or "").strip()
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Needs a valid save key. Make a new one on the Devices page in Settings.",
+        )
     url = str(form.get("url") or "").strip()
     if not url:
         raise HTTPException(status_code=400, detail="Missing url")

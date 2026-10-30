@@ -158,14 +158,14 @@ def test_settings_page_has_theme_toggle(monkeypatch, tmp_path):
     assert "theme-toggle" in response.text
 
 
-def test_settings_page_has_a_read_later_bookmarklet(monkeypatch, tmp_path):
+def test_settings_page_no_longer_carries_the_bookmarklet(monkeypatch, tmp_path):
+    # It needs a save key now, made on the Devices page.
     monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "reader.db"))
     with TestClient(app) as client:
         response = client.get("/settings")
     assert response.status_code == 200
-    assert 'href="javascript:' in response.text
-    assert "/capture" in response.text
-    assert "outerHTML" in response.text
+    assert 'href="javascript:' not in response.text
+    assert "Save from the browser" not in response.text
 
 
 def test_home_hides_lists_with_nothing_unread(monkeypatch, tmp_path):

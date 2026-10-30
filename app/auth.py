@@ -86,21 +86,46 @@ def signed_in_device(conn: sqlite3.Connection, token: str | None) -> sqlite3.Row
     if not token or epoch() is None:
         return None
     device = find_device(conn, token_hash(token))
-    if device is None:
+    # A save key is not a sign-in, whatever it is presented as.
+    if device is None or device["kind"] != "browser":
         return None
     moment = now()
-    if device["kind"] == "browser" and device["epoch"] != epoch():
+    if device["epoch"] != epoch():
         delete_device(conn, device["id"])
         conn.commit()
         return None
     idle = moment - datetime.fromisoformat(device["last_used_at"])
-    if device["kind"] == "browser" and idle > IDLE_LIMIT:
+    if idle > IDLE_LIMIT:
         delete_device(conn, device["id"])
         conn.commit()
         return None
-    if idle >= TOUCH_EVERY:
+    _note_used(conn, device, idle, moment)
+    return device
+
+
+def _note_used(conn: sqlite3.Connection, device: sqlite3.Row, idle: timedelta, moment: datetime):
+    # Not on every tap, but a key's first use always: "not used yet" must go away.
+    first_use = device["kind"] == "key" and device["created_at"] == device["last_used_at"]
+    if idle >= TOUCH_EVERY or first_use:
         touch_device(conn, device["id"], moment)
         conn.commit()
+
+
+def new_key() -> str:
+    return "rk_" + secrets.token_urlsafe(24)
+
+
+def valid_save_key(conn: sqlite3.Connection, key: str | None) -> sqlite3.Row | None:
+    """A save key can send a page to Read later and nothing else. It does not
+    expire and does not depend on the password, but with no password set the
+    app is closed to everyone."""
+    if not key or not app_password():
+        return None
+    device = find_device(conn, token_hash(key))
+    if device is None or device["kind"] != "key":
+        return None
+    moment = now()
+    _note_used(conn, device, moment - datetime.fromisoformat(device["last_used_at"]), moment)
     return device
 
 

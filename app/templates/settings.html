@@ -47,18 +47,9 @@
           </div>
         </section>
 
-        <h2 class="section-label">Save from the browser</h2>
-        <section class="list">
-          <div class="set-row">
-            <span class="set-name">Read later button</span>
-            <a class="bookmarklet" href="{{ bookmarklet_href }}" onclick="return false;">Drag to bookmarks</a>
-          </div>
-        </section>
-        <p class="section-note">Drag that button to your browser's bookmarks bar. Click it on any page to send that page to Read later.</p>
-
         <h2 class="section-label">Security</h2>
         <section class="list">
-          <a class="item list-row" href="/settings/devices"><span class="title">Devices</span><span class="set-value">{{ browser_count }} browser{{ "" if browser_count == 1 else "s" }}</span></a>
+          <a class="item list-row" href="/settings/devices"><span class="title">Devices</span><span class="set-value">{{ browser_count }} browser{{ "" if browser_count == 1 else "s" }}{% if key_count %} · {{ key_count }} save key{{ "" if key_count == 1 else "s" }}{% endif %}</span></a>
         </section>
         <form method="post" action="/logout">
           <button class="btn btn-danger" type="submit">Sign out of this device</button>

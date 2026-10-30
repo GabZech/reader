@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import icon_plus %}
 {% block title %}Devices{% endblock %}
 {% block body %}
         <a class="back" href="/settings">Settings</a>
@@ -29,4 +30,21 @@
           <button class="btn btn-danger" type="submit">Sign out all other browsers</button>
         </form>
         {% endif %}
+
+        <h2 class="section-label">Save keys</h2>
+        <section class="list">
+          {% for key in keys %}
+          <div class="set-row is-stacked device-row">
+            <span class="set-name">{{ key.name }}</span>
+            <span class="set-value">Saves to Read later · {% if key.created_at == key.last_used_at %}not used yet{% else %}last used {{ last_used_words(key.last_used_at) }}{% endif %}</span>
+            <span class="device-actions">
+              <form method="post" action="/settings/devices/{{ key.id }}/revoke" data-confirm-title="Revoke this save key?" data-confirm-text="The {{ key.name }} will stop saving pages until you make a new key." data-confirm-button="Revoke">
+                <button class="chip" type="submit">Revoke</button>
+              </form>
+            </span>
+          </div>
+          {% endfor %}
+          <a class="item add-row" href="/settings/devices/keys/new">{{ icon_plus() }}Add a save key</a>
+        </section>
+        <p class="section-note">A save key can only send a page to Read later. It can't read, change or delete anything in your library, and it never expires until you revoke it.</p>
 {% endblock %}
