@@ -8,8 +8,8 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ### Planned
 
-- Slice 1, stored copy first: navigations answer from the stored copy online; a change made here marks pages stale so their next visit fetches fresh; an article opened from its copy still tells the server; one copy per way in (Home, list, source) so Close and buttons stay right. In progress.
-- Slice 2, refresh on every open: each open (launch or return) syncs sources, then refreshes every stored page and article, then shows Home; replaces the once-a-minute page refresh. Not started.
+- Slice 1, stored copy first: navigations answer from the stored copy online; a change made here marks pages stale so their next visit fetches fresh; an article opened from its copy still tells the server; one copy per way in (Home, list, source) so Close and buttons stay right. Built, awaiting Try.
+- Slice 2, refresh on every open: each open (launch or return) syncs sources, then refreshes every stored page and article, then shows Home; replaces the once-a-minute page refresh. Read later articles are downloaded again only when their version (highlights, reading spot) changed. Built, awaiting Try.
 
 ## Blocked
 

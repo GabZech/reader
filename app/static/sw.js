@@ -123,9 +123,10 @@ async function upToDate(stored, path) {
 
 // Keep a page, marked with when it was asked for: a change made after that
 // is not in it.
-async function store(cache, key, response, askedAt) {
+async function store(cache, key, response, askedAt, version = null) {
   const headers = new Headers(response.headers);
   headers.set("X-Stored-At", String(askedAt));
+  if (version) headers.set("X-Article-Version", version);
   const body = await response.blob();
   await cache.put(
     key,
@@ -151,7 +152,7 @@ const ARTICLE = /^\/items\/\d+$/;
 
 // The newest stored copy of an article, whichever way in it was kept for.
 async function anyCopy(url) {
-  const copies = await caches.matchAll(url, { ignoreSearch: true, cacheName: CACHE });
+  const copies = await (await caches.open(CACHE)).matchAll(url, { ignoreSearch: true });
   const at = (copy) => Number(copy.headers.get("X-Stored-At")) || 0;
   return copies.sort((a, b) => at(b) - at(a))[0];
 }
@@ -178,15 +179,19 @@ async function answerImage(request) {
 
 let precaching = null;
 let precachedAt = 0;
-// Every page open asks; one run a minute is plenty.
-const PRECACHE_GAP_MS = 60 * 1000;
+// Pages ask each time the app is opened; switching away and straight back
+// needs no second run.
+const PRECACHE_GAP_MS = 10 * 1000;
 // A few downloads at once: one at a time took longer than an iPhone keeps
 // the worker running.
 const DOWNLOADS_AT_ONCE = 4;
 
-// Download every Read Later article not stored yet, and its images, so a
-// saved article opens offline without having been opened first. Open pages
-// hear when a run starts and ends, to turn Home's cog meanwhile.
+// What happens each time the app opens: bring in what is new from the
+// sources, then fetch every stored page again, then download every Read
+// Later article not stored yet or changed since, and its images, so a saved
+// article opens offline without having been opened first. Between runs,
+// pages answer from what this stored. Open pages hear when a run starts and
+// ends, to turn Home's cog meanwhile.
 function precache() {
   if (precaching) {
     announce(true);
@@ -199,7 +204,7 @@ function precache() {
     return Promise.resolve();
   }
   announce(true);
-  precaching = downloadReadLater().finally(() => {
+  precaching = updateEverything().finally(() => {
     precaching = null;
     precachedAt = Date.now();
     announce(false);
@@ -210,10 +215,7 @@ function precache() {
 // Every open page, not only those this worker controls: during an update the
 // page passes to the new worker while this one is still downloading.
 function announce(running) {
-  self.clients
-    .matchAll({ includeUncontrolled: true })
-    .then((pages) => pages.forEach((page) => page.postMessage({ type: "downloading", running })))
-    .catch(() => {});
+  tell("downloading", null, { running });
 }
 
 async function eachAtOnce(things, work) {
@@ -230,7 +232,21 @@ async function eachAtOnce(things, work) {
   await Promise.all(Array.from({ length: DOWNLOADS_AT_ONCE }, worker));
 }
 
-async function downloadReadLater() {
+// How many items the sources brought in, or null when the sync failed.
+async function syncSources() {
+  try {
+    const response = await fetch("/sync", { method: "POST" });
+    if (!response.ok) throw new Error(`status ${response.status}`);
+    const result = await response.json();
+    return (result.created || 0) + ((result.mail && result.mail.created) || 0);
+  } catch (error) {
+    tell("sw-sync", `failed ${error}`);
+    return null;
+  }
+}
+
+async function updateEverything() {
+  const arrived = await syncSources();
   let listed;
   let lists;
   try {
@@ -248,27 +264,32 @@ async function downloadReadLater() {
   let pagesAdded = 0;
   let imagesAdded = 0;
 
-  // Articles first: they are what the reader cannot get any other way.
-  // One already stored is kept as is; opening it online refreshes it.
-  // Stored for each way in to it: from the Read later list and from Home.
-  const ways = listed.flatMap((article) => article.urls);
-  await eachAtOnce(ways, async (path) => {
-    const key = new URL(path, location.origin).href;
-    if (await pages.match(key)) return;
-    const askedAt = Date.now();
-    const response = await fetch(path, { headers: { "X-Reader-Prefetch": "1" } });
-    if (response.ok) {
-      await store(pages, key, response, askedAt);
-      pagesAdded++;
-    }
-  });
-
-  // Home and the lists change all the time: always store a fresh copy, and
-  // keep the one from last time when that fails.
+  // Home and the lists first: they are what the reader sees on opening.
+  // The one from last time is kept when fetching fails.
   await eachAtOnce([...lists, ...SHELL], async (path) => {
     const askedAt = Date.now();
     const response = await fetch(path, { cache: "no-store" });
     if (response.ok) await store(pages, new URL(path, location.origin).href, response, askedAt);
+  });
+  // Home shows what the sync brought in once its new copy is stored.
+  tell("refreshed", null, { arrived });
+
+  // Each article for each way in to it (from the Read later list and from
+  // Home), when not stored yet or changed since (a highlight, a reading
+  // spot): the listing says which version each is at.
+  const ways = listed.flatMap((article) =>
+    article.urls.map((path) => ({ path, version: article.version }))
+  );
+  await eachAtOnce(ways, async ({ path, version }) => {
+    const key = new URL(path, location.origin).href;
+    const stored = await pages.match(key);
+    if (stored && stored.headers.get("X-Article-Version") === version) return;
+    const askedAt = Date.now();
+    const response = await fetch(path, { headers: { "X-Reader-Prefetch": "1" } });
+    if (response.ok) {
+      await store(pages, key, response, askedAt, version);
+      pagesAdded++;
+    }
   });
 
   const wanted = new Set(
@@ -300,11 +321,13 @@ const BOOTED = Date.now();
 let pagesServed = 0;
 
 // Tell every open page what happened, so it lands in the phone's breadcrumb log
-// (see base.html); the worker itself has nowhere to keep one.
-function tell(e, d) {
+// (see base.html); the worker itself has nowhere to keep one. With a `type`
+// other than "log" (and no breadcrumb), it is news for app.js instead.
+function tell(e, d, news = null) {
+  const message = news ? { type: e, ...news } : { type: "log", e, d };
   self.clients
     .matchAll({ includeUncontrolled: true })
-    .then((pages) => pages.forEach((page) => page.postMessage({ type: "log", e, d })))
+    .then((pages) => pages.forEach((page) => page.postMessage(message)))
     .catch(() => {});
 }
 
@@ -373,9 +396,11 @@ async function answer(request, event) {
       note(`shell after ${error}`);
       return filled;
     }
-    const cached =
-      (await caches.match(cacheKey(request))) ||
-      (ARTICLE.test(url.pathname) ? await anyCopy(request.url) : null);
+    // An article's newest copy, whichever way in it was stored for: one
+    // fetched again after a highlight carries it, the others may not.
+    const cached = ARTICLE.test(url.pathname)
+      ? await anyCopy(request.url)
+      : await caches.match(cacheKey(request));
     if (cached) {
       note(`cache after ${error}`);
       return cached;

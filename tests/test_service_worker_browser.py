@@ -397,8 +397,6 @@ def test_homes_cog_turns_while_read_later_downloads_and_stops_when_done(
         return slow_lists(conn)
 
     monkeypatch.setattr(mainmod, "lists_for_home_edit", slowly)
-    # Home's own sync turns the same cog; keep it out of the way.
-    phone.add_init_script("sessionStorage.setItem('reader-synced', '1')")
     with _live_server(monkeypatch, tmp_path) as (origin, _server):
         item_id = httpx.post(
             f"{origin}/capture",
@@ -411,7 +409,8 @@ def test_homes_cog_turns_while_read_later_downloads_and_stops_when_done(
         phone.wait_for_selector("#sync-status:not(.is-updating)", timeout=15000)
 
         assert phone.evaluate(
-            "(u) => caches.match(u).then(r => !!r)", f"{origin}/items/{item_id}"
+            "(u) => caches.match(u, { ignoreSearch: true }).then(r => !!r)",
+            f"{origin}/items/{item_id}",
         )
         assert phone.get_attribute("#sync-status", "aria-label") == "Settings"
 
@@ -452,7 +451,7 @@ def test_a_highlight_made_online_still_shows_in_the_offline_copy(
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
             stored = phone.evaluate(
-                "(u) => caches.match(u).then(r => r.text())", f"{origin}/items/{item_id}"
+                "(u) => caches.match(u).then(r => (r ? r.text() : ''))", f"{origin}/items/{item_id}"
             )
             if '"start_offset": 0' in stored:
                 break

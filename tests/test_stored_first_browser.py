@@ -10,6 +10,7 @@ from test_offline_actions_browser import FIRST, SECOND, _ready, _seed_news, _see
 from test_service_worker_browser import _live_server, _wait_until_cached
 
 from app import db as dbmod
+from app import main as mainmod
 
 
 def _wait_for(check, timeout=15):
@@ -127,3 +128,51 @@ def test_a_stored_article_resumes_at_this_phones_later_spot(phone, monkeypatch, 
         phone.goto(f"{origin}/items/{first}?from_list=news")
 
         expect(phone.locator(".article-body > .is-resume")).to_have_text("Paragraph 30")
+
+
+def test_opening_the_app_syncs_then_refreshes_the_stored_pages(phone, monkeypatch, tmp_path):
+    synced = []
+
+    def arrives(conn):
+        synced.append(1)
+        dbmod.upsert_item(
+            conn,
+            source_id="fixture",
+            guid=f"arrived-{len(synced)}",
+            title="Arrived on open",
+            author=None,
+            url="https://example.test/arrived",
+            published_at="2026-10-30T10:00:00+00:00",
+            body_html="<p>New</p>",
+            image_url=None,
+            word_count=300,
+        )
+        return {"sources": 1, "created": 1, "kept": 0}
+
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        _seed_news(tmp_path, [FIRST])
+        _ready(phone, origin, "/lists/news")
+        _downloaded(phone)
+        monkeypatch.setattr(mainmod, "ingest_all_sources", arrives)
+        # Moving around the app is not opening it: nothing is fetched again.
+        phone.goto(f"{origin}/lists")
+        phone.goto(f"{origin}/lists/news")
+        phone.wait_for_timeout(1000)
+        assert synced == []
+        expect(phone.locator(".item", has_text="Arrived on open")).to_have_count(0)
+        phone.wait_for_timeout(10000)
+
+        # Opened again: a fresh tab is a fresh launch.
+        again = phone.context.new_page()
+        again.goto(f"{origin}/")
+        _wait_for(lambda: synced == [1])
+        # Fetched again after the sync, not before it.
+        _wait_for(
+            lambda: "Arrived on open"
+            in again.evaluate(
+                "(u) => caches.match(u).then(r => (r ? r.text() : ''))", f"{origin}/lists/news"
+            )
+        )
+        again.goto(f"{origin}/lists/news")
+
+        expect(again.locator(".item", has_text="Arrived on open")).to_have_count(1)

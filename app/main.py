@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import time
 from contextlib import asynccontextmanager, suppress
@@ -1756,17 +1757,36 @@ def offline_articles():
         # One article's text at a time: the whole list's at once is what
         # filled the machine before (see `_item_columns`).
         for item in items_for_list(conn, "later"):
+            full = get_item(conn, item["id"])
             images = []
             if room:
-                images = image_urls(get_item(conn, item["id"])["body_html"])[:room]
+                images = image_urls(full["body_html"])[:room]
                 room -= len(images)
             # Stored once per way in, since Close and the buttons differ:
             # from the Read later list, and from Home.
             url = f"/items/{item['id']}?from_list=later"
-            articles.append({"urls": [url, f"{url}&from_home=1"], "images": images})
+            articles.append(
+                {
+                    "urls": [url, f"{url}&from_home=1"],
+                    "version": _article_version(conn, full),
+                    "images": images,
+                }
+            )
     finally:
         conn.close()
     return {"pages": pages, "articles": articles}
+
+
+def _article_version(conn, item) -> str:
+    """What an article's stored copy shows that can change after it was
+    saved: its highlights and reading spot. The phone downloads the copy
+    again only when this differs from the one it holds."""
+    shown = [
+        item["title"],
+        item["progress_index"],
+        [dict(h) for h in highlights_for_item(conn, item["id"])],
+    ]
+    return hashlib.sha1(json.dumps(shown, default=str).encode()).hexdigest()[:12]
 
 
 # Empty copies of the highlight page and its title pages. The service worker

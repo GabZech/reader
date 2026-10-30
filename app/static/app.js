@@ -34,13 +34,13 @@
     }
   };
 
-  // The Settings cog on Home turns inside two thin arrows while Home syncs
-  // or Read Later downloads for offline; it stops once both are done.
-  const busy = { syncing: false, downloading: false };
+  // The Settings cog on Home turns inside two thin arrows while the app
+  // brings itself up to date on opening; it stops once that is done.
+  const busy = { downloading: false };
   const showBusy = () => {
     const status = document.getElementById("sync-status");
     if (!status) return;
-    const on = busy.syncing || busy.downloading;
+    const on = busy.downloading;
     status.classList.toggle("is-updating", on);
     status.setAttribute("aria-label", on ? "Settings (updating)" : "Settings");
   };
@@ -56,12 +56,15 @@
     showBusy();
   };
 
-  // Ask the service worker to download Read Later ahead, so a saved article
-  // opens offline without being opened first. The worker spaces out the runs.
+  // Each time the app is opened (launched, or come back to), ask the service
+  // worker to bring everything up to date: sync the sources, fetch the
+  // stored pages again and download Read Later ahead. In between, pages open
+  // from what it stored. Moving from page to page is not opening the app.
   // Asking again when a new worker takes over (the one that got the first
-  // ask may be the older worker it replaced), and on coming back to the app
-  // or the network, so a download cut short gets finished.
-  const precacheReadLater = async () => {
+  // ask may be the older worker it replaced), and on getting the network
+  // back, so a run cut short gets finished. The worker spaces out the runs.
+  const OPENED_FLAG = "reader-synced";
+  const updateOnOpen = async () => {
     if (!("serviceWorker" in navigator)) return;
     const ask = () => {
       if (!navigator.onLine) return;
@@ -69,13 +72,20 @@
       if (worker) worker.postMessage({ type: "precache" });
     };
     navigator.serviceWorker.addEventListener("message", (event) => {
-      if (event.data && event.data.type === "downloading") setDownloading(event.data.running);
+      if (!event.data) return;
+      if (event.data.type === "downloading") setDownloading(event.data.running);
+      // Home shows what the sync brought in, now stored.
+      if (event.data.type === "refreshed" && event.data.arrived && location.pathname === "/") {
+        location.reload();
+      }
     });
     navigator.serviceWorker.addEventListener("controllerchange", ask);
     window.addEventListener("online", ask);
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") ask();
     });
+    if (sessionStorage.getItem(OPENED_FLAG) === "1") return;
+    sessionStorage.setItem(OPENED_FLAG, "1");
     try {
       await navigator.serviceWorker.ready;
       ask();
@@ -660,28 +670,6 @@
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") flushOutbox();
     });
-  };
-
-  const syncHome = async () => {
-    if (location.pathname !== "/") return;
-    if (!navigator.onLine) return;
-    if (sessionStorage.getItem("reader-synced") === "1") return;
-    const updating = (on) => {
-      busy.syncing = on;
-      showBusy();
-    };
-    updating(true);
-    sessionStorage.setItem("reader-synced", "1");
-    try {
-      const response = await fetch("/sync", { method: "POST" });
-      if (response.ok) {
-        location.reload();
-      } else {
-        updating(false);
-      }
-    } catch {
-      updating(false);
-    }
   };
 
   // Home shows three rows per list, the rest behind Show more. Laid out
@@ -1740,6 +1728,5 @@
   initHighlightDetail();
   registerWorker();
   initOutbox();
-  precacheReadLater();
-  syncHome();
+  updateOnOpen();
 })();

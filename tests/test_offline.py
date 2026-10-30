@@ -26,15 +26,41 @@ def test_offline_articles_lists_the_read_later_library_with_its_images(
 
         listed = client.get("/offline/articles").json()
 
-        assert listed["articles"] == [
-            {
-                "urls": [
-                    f"/items/{item_id}?from_list=later",
-                    f"/items/{item_id}?from_list=later&from_home=1",
-                ],
-                "images": ["https://img.test/a.png", "/static/b.png"],
-            }
+        [article] = listed["articles"]
+        assert article["urls"] == [
+            f"/items/{item_id}?from_list=later",
+            f"/items/{item_id}?from_list=later&from_home=1",
         ]
+        assert article["images"] == ["https://img.test/a.png", "/static/b.png"]
+
+
+def test_an_articles_version_changes_with_its_highlights_and_reading_spot(
+    monkeypatch, tmp_path
+):
+    # The phone downloads a stored article again only when this changes.
+    with _client(monkeypatch, tmp_path) as client:
+        item_id = _capture(client, "one")
+        _set_body_html(tmp_path, item_id, "<p>Some words to mark</p>")
+
+        def version():
+            return client.get("/offline/articles").json()["articles"][0]["version"]
+
+        before = version()
+        assert version() == before
+        client.post(f"/items/{item_id}/progress", data={"index": "0"})
+        after_spot = version()
+        client.post(
+            f"/items/{item_id}/highlights",
+            data={
+                "start_block": "0",
+                "start_offset": "0",
+                "end_block": "0",
+                "end_offset": "4",
+                "text": "Some",
+            },
+        )
+
+        assert len({before, after_spot, version()}) == 3
 
 
 def test_offline_articles_names_home_and_every_list_to_refresh(monkeypatch, tmp_path):
