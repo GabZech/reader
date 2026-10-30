@@ -93,6 +93,7 @@ from app.obsidian import (
     export_note,
     highlights_export_differently,
     highlights_have_links,
+    highlights_in_a_single_list_item,
 )
 
 APP_DIR = Path(__file__).resolve().parent
@@ -163,6 +164,7 @@ def _run_startup_catch_up() -> None:
 _REEXPORT_FIXES = [
     highlights_have_links,  # links inside highlights survive
     highlights_export_differently,  # sentences the source wrapped stay whole
+    highlights_in_a_single_list_item,  # one list item is a plain bullet
 ]
 
 

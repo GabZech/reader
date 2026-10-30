@@ -2980,3 +2980,41 @@ def test_a_restart_resends_past_notes_that_split_wrapped_sentences(monkeypatch, 
 
         _run_startup_catch_up()
         assert [call[0] for call in calls] == [wrapped_id]
+
+
+def _past_export_of_list_highlight(tmp_path, item_id, single):
+    # Exported two days ago, after the first two export fixes had already run.
+    body = "<ul><li>One two</li><li>Three</li></ul>"
+    two_days_ago = (datetime.now(UTC) - timedelta(days=2)).isoformat()
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        conn.execute(
+            "UPDATE items SET body_html = ?, highlights_touched_at = ?,"
+            " highlights_exported_at = ? WHERE id = ?",
+            (body, two_days_ago, two_days_ago, item_id),
+        )
+        conn.execute(
+            "UPDATE highlights SET start_block = 0, start_offset = 0, end_block = 0,"
+            " end_offset = ?, text = ? WHERE item_id = ?",
+            (7, "One two", item_id) if single else (12, "One two\nThree", item_id),
+        )
+        conn.execute("PRAGMA user_version = 2")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_a_restart_resends_past_notes_with_a_single_list_item_highlight(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        single_id, several_id = _two_highlighted_items(client, tmp_path)
+        _past_export_of_list_highlight(tmp_path, single_id, single=True)
+        _past_export_of_list_highlight(tmp_path, several_id, single=False)
+
+        calls = _record_exports(monkeypatch)
+        from app.main import _run_startup_catch_up
+
+        _run_startup_catch_up()
+        assert [call[0] for call in calls] == [single_id]
+
+        _run_startup_catch_up()
+        assert [call[0] for call in calls] == [single_id]
