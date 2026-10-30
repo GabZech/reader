@@ -4,7 +4,7 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ## In flight
 
-**Password protection** (`dev/password-protection`). Kinds: behaviour, data/schema, visual, external system (sending mail). Not small. Planning confirmed in chat; no code yet. Next step: mockups of the login page and the Devices page, for sign-off.
+**Password protection** (`dev/password-protection`). Kinds: behaviour, data/schema, visual, external system (sending mail). Not small. Planning confirmed and mockups signed off in chat. Building slice by slice on this branch; nothing deployed yet.
 
 ### Agreed
 
@@ -27,10 +27,12 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ### Planned
 
-1. Password gate (login page, cookie, lockout, service worker 401 handling, sign-out in Settings): not started
-2. Devices page (list, rename, revoke, sign out everything else): not started
+1. Password gate (login page, cookie, lockout, service worker 401 handling, sign-out in Settings): built, tests green, on the branch; not deployed
+2. Devices page (list, rename, revoke, sign out everything else): in progress (server routes and tests done; page styling, confirm popup and Settings row next)
 3. Save keys (create, revoke, bookmarklet and Shortcut steps, `docs/operations.md`): not started
 4. Email alerts (probe Gmail sending from Fly first): not started
+
+Mockups signed off in chat: login page (sentence about 30 days removed), Devices page, Settings with the Security section, the one-time save key screen.
 
 Slices 1 to 3 ship together, since slice 1 alone would leave `/capture` closed to the bookmarklet and Shortcut. Library copied off the volume before the first deploy of the new table.
 

@@ -51,6 +51,7 @@ Injected as environment variables on the host. Secrets stay out of Git.
 
 - `DATABASE_PATH`: path to the SQLite file on the volume (`/data/reader.db` on Fly)
 - `SKELETON_FEED_URL`: public RSS URL for the skeleton sync
+- `READER_PASSWORD`: the one password that opens the app. Set only as a Fly secret (Fly's website, Secrets, or `fly secrets set`), never typed into chat or committed. Without it nobody can sign in, so set it before a deploy that carries the sign-in gate. Changing it signs every browser out. Locked out: set it again.
 - `MAIL_IMAP_HOST`, `MAIL_IMAP_USER`, `MAIL_IMAP_PASSWORD`: isolated newsletter mailbox (dedicated Gmail account, app password, IMAP enabled), set as Fly secrets 2026-08-24. Never personal-mailbox credentials.
 
 ## Capturing a page to Read later
