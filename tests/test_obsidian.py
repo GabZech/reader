@@ -3,7 +3,12 @@ from __future__ import annotations
 import base64
 import json
 
-from app.obsidian import build_note_markdown, export_note, note_path_for_item
+from app.obsidian import (
+    build_note_markdown,
+    export_note,
+    highlights_export_differently,
+    note_path_for_item,
+)
 
 
 def _item(**overrides):
@@ -619,3 +624,27 @@ def test_build_note_markdown_keeps_wrapped_lines_apart_when_the_article_changed(
     highlight = _highlight("One two\nthree.", start_offset=0, end_offset=14)
     lines = _bullets([highlight], _item(body_html="<p>Something else entirely.</p>"))
     assert lines[-2:] == ["- One two", "  - three."]
+
+
+def test_highlights_export_differently_flags_a_sentence_the_source_wrapped():
+    item = _item(body_html="<p>One two\nthree.</p>")
+    wrapped = _highlight("One two\nthree.", start_offset=0, end_offset=14)
+    assert highlights_export_differently(item, [wrapped])
+
+
+def test_highlights_export_differently_leaves_plain_and_list_highlights_alone():
+    plain = _item(body_html="<p>One two three.</p>")
+    assert not highlights_export_differently(
+        plain, [_highlight("One two three.", start_offset=0, end_offset=14)]
+    )
+    listed = _item(body_html="<ul><li>One</li><li>Two</li></ul>")
+    assert not highlights_export_differently(
+        listed, [_highlight("One\nTwo", start_offset=0, end_offset=6)]
+    )
+
+
+def test_highlights_export_differently_ignores_a_changed_article_and_missing_text():
+    changed = _item(body_html="<p>Something else.</p>")
+    wrapped = _highlight("One two\nthree.", start_offset=0, end_offset=14)
+    assert not highlights_export_differently(changed, [wrapped])
+    assert not highlights_export_differently(_item(body_html=None), [wrapped])

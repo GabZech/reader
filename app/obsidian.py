@@ -285,6 +285,25 @@ def highlights_have_links(item, highlights) -> bool:
     return False
 
 
+def highlights_export_differently(item, highlights) -> bool:
+    """Whether a note written from the captured text alone, which breaks
+    wherever the source wrapped a line, would read differently from one
+    rebuilt from the article now.
+    """
+    for highlight in highlights:
+        selection = _dom_selection(highlight, item["body_html"], item["url"])
+        if not selection:
+            continue
+        captured = [
+            re.sub(r"\s+", " ", line).strip()
+            for line in highlight["text"].split("\n")
+            if line.strip()
+        ]
+        if captured != selection[0]:
+            return True
+    return False
+
+
 def _line_pieces(block):
     """A block's shape per line and its text pieces in document order, each
     with the href of the link it sits in and the line it belongs to (None

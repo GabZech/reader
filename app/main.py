@@ -89,7 +89,11 @@ from app.ingest import (
     youtube_video_id,
 )
 from app.mail import ingest_mail
-from app.obsidian import export_note, highlights_have_links
+from app.obsidian import (
+    export_note,
+    highlights_export_differently,
+    highlights_have_links,
+)
 
 APP_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
@@ -146,28 +150,34 @@ def _next_export_run(now: datetime) -> datetime:
 
 
 def _run_startup_catch_up() -> None:
-    _queue_link_reexport()
+    _queue_reexports()
     # Only what a missed 5am run would have sent: a restart mid-day never
     # exports highlights that are still being worked on.
     _run_due_exports(_latest_export_run(datetime.now(UTC)))
 
 
-LINK_REEXPORT_VERSION = 1
+# Notes exported before an export fix are sent once more, but only those the
+# fix changes. The database's data version counts the fixes already applied,
+# so a new fix goes at the end of the list and runs once on the next start;
+# the catch-up right after sends what was queued.
+_REEXPORT_FIXES = [
+    highlights_have_links,  # links inside highlights survive
+    highlights_export_differently,  # sentences the source wrapped stay whole
+]
 
 
-def _queue_link_reexport() -> None:
-    # Notes exported before links survived the export are sent once more,
-    # but only those whose highlights cover a link; the catch-up right
-    # after sends them.
+def _queue_reexports() -> None:
     conn = connect()
     try:
         init_db(conn)
-        if data_version(conn) >= LINK_REEXPORT_VERSION:
+        pending = _REEXPORT_FIXES[data_version(conn) :]
+        if not pending:
             return
         for item in exported_items_with_highlights(conn):
-            if highlights_have_links(item, highlights_for_item(conn, item["id"])):
+            highlights = highlights_for_item(conn, item["id"])
+            if any(fix(item, highlights) for fix in pending):
                 clear_highlights_exported(conn, item["id"])
-        set_data_version(conn, LINK_REEXPORT_VERSION)
+        set_data_version(conn, len(_REEXPORT_FIXES))
         conn.commit()
     finally:
         conn.close()
