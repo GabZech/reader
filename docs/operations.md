@@ -56,13 +56,13 @@ Injected as environment variables on the host. Secrets stay out of Git.
 
 ## Capturing a page to Read later
 
-Sending a link to Read later from outside the app (any site, not just a subscribed source) uses the same `/capture` endpoint from two one-time setups, since Reader is a web app rather than a native app with its own Share Sheet extension:
+Sending a link to Read later from outside the app (any site, not just a subscribed source) uses the same `/capture` endpoint from two one-time setups, since Reader is a web app rather than a native app with its own Share Sheet extension. Neither tool can use the browser's sign-in (a request from another website carries no cookie), so each has its own **save key**: made under Settings, Devices, Add a save key, shown once, and good for saving to Read later and nothing else. A key never expires; revoke it on the same page, where each one shows when it was last used. A tool whose key was revoked gets a 401 saying so.
 
-- **Desktop:** a bookmarklet, listed in Settings. Drag it to the bookmarks bar once; clicking it on any page sends that page.
+- **Desktop:** a bookmarklet. Add a save key for the bookmarklet and drag the button on the page that shows it to the bookmarks bar once (the key is built into it); clicking it on any page sends that page.
 - **iPhone:** a Shortcut, set up once in the Shortcuts app so it then appears in the Share Sheet:
   1. Create a new shortcut. Set "Accepts" (under the shortcut's Share Sheet settings) to Safari web pages.
   2. Add **Run JavaScript on Webpage**, script `completion(document.documentElement.outerHTML);`. Make sure the action's page field (labeled "Web Page" in the action header) is bound to the incoming page, not a fixed one picked while building the shortcut - if it points at whatever page was open at setup time instead of the shared page, every capture silently sends that same stale page's HTML (or none) regardless of what you actually share, which looks identical to a site simply failing to capture.
-  3. Add **Get Contents of URL**: URL `https://reader-skeleton.fly.dev/capture`, Method POST, Request Body Form, with fields `url` (Shortcut Input) and `html` (the previous action's result). No headers needed; `/capture` returns JSON by default and only serves the confirmation page when called with `?format=html` (what the bookmarklet uses).
+  3. Add **Get Contents of URL**: URL `https://reader-skeleton.fly.dev/capture`, Method POST, Request Body Form, with fields `url` (Shortcut Input), `html` (the previous action's result) and `key` (the save key for the Shortcut, from Devices). No headers needed; `/capture` returns JSON by default and only serves the confirmation page when called with `?format=html` (what the bookmarklet uses).
   4. Parse the response as a dictionary and read its `title` and `item_url` fields.
   5. Show an alert with the title and two options, Done and Read now; Read now opens `https://reader-skeleton.fly.dev` + the returned `item_url`.
   6. Name it (e.g. "Save to Reader"), turn on "Show in Share Sheet", and restrict its share types to Safari web pages.

@@ -29,7 +29,7 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 1. Password gate (login page, cookie, lockout, service worker 401 handling, sign-out in Settings): built, tests green, on the branch; not deployed
 2. Devices page (list, rename, revoke, sign out everything else): built, tests green, looked at on the real local app; not deployed
-3. Save keys (create, revoke, bookmarklet and Shortcut steps, `docs/operations.md`): not started
+3. Save keys (create, revoke, bookmarklet and Shortcut steps, `docs/operations.md`): built, tests green (including the bookmarklet run from another site in a real browser), looked at on the real local app; not deployed
 4. Email alerts (probe Gmail sending from Fly first): not started
 
 Mockups signed off in chat: login page (sentence about 30 days removed), Devices page, Settings with the Security section, the one-time save key screen.
