@@ -56,6 +56,14 @@
         </section>
         <p class="section-note">Drag that button to your browser's bookmarks bar. Click it on any page to send that page to Read later.</p>
 
+        <h2 class="section-label">Security</h2>
+        <section class="list">
+          <a class="item list-row" href="/settings/devices"><span class="title">Devices</span><span class="set-value">{{ browser_count }} browser{{ "" if browser_count == 1 else "s" }}</span></a>
+        </section>
+        <form method="post" action="/logout">
+          <button class="btn btn-danger" type="submit">Sign out of this device</button>
+        </form>
+
         <h2 class="section-label">Troubleshooting</h2>
         <section class="list">
           <a class="item list-row" href="/diagnostics"><span class="title">Diagnostics</span></a>

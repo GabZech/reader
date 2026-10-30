@@ -112,6 +112,16 @@ def init_db(conn: sqlite3.Connection) -> None:
             subsection_title TEXT,
             created_at TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS devices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kind TEXT NOT NULL,
+            name TEXT NOT NULL,
+            token_hash TEXT NOT NULL UNIQUE,
+            epoch TEXT,
+            created_at TEXT NOT NULL,
+            last_used_at TEXT NOT NULL
+        );
         """
     )
     highlights_columns = {row["name"] for row in conn.execute("PRAGMA table_info(highlights)")}
@@ -1098,3 +1108,54 @@ def reading_length(word_count: int | None) -> str:
         return ""
     minutes = max(1, round(word_count / 200))
     return f"{minutes} min"
+
+
+# What is signed in: a browser that gave the password, and later a key for
+# the tools that save pages. Only a hash of each one's secret is kept.
+def create_device(
+    conn: sqlite3.Connection,
+    kind: str,
+    name: str,
+    token_hash: str,
+    epoch: str | None,
+    now: datetime,
+) -> int:
+    cursor = conn.execute(
+        """
+        INSERT INTO devices (kind, name, token_hash, epoch, created_at, last_used_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (kind, name, token_hash, epoch, now.isoformat(), now.isoformat()),
+    )
+    return cursor.lastrowid
+
+
+def find_device(conn: sqlite3.Connection, token_hash: str) -> sqlite3.Row | None:
+    return conn.execute("SELECT * FROM devices WHERE token_hash = ?", (token_hash,)).fetchone()
+
+
+def touch_device(conn: sqlite3.Connection, device_id: int, now: datetime) -> None:
+    conn.execute("UPDATE devices SET last_used_at = ? WHERE id = ?", (now.isoformat(), device_id))
+
+
+def delete_device(conn: sqlite3.Connection, device_id: int) -> None:
+    conn.execute("DELETE FROM devices WHERE id = ?", (device_id,))
+
+
+def get_device(conn: sqlite3.Connection, device_id: int) -> sqlite3.Row | None:
+    return conn.execute("SELECT * FROM devices WHERE id = ?", (device_id,)).fetchone()
+
+
+def devices_of_kind(conn: sqlite3.Connection, kind: str) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM devices WHERE kind = ? ORDER BY last_used_at DESC, id DESC", (kind,)
+    ).fetchall()
+
+
+def rename_device(conn: sqlite3.Connection, device_id: int, name: str) -> None:
+    conn.execute("UPDATE devices SET name = ? WHERE id = ?", (name, device_id))
+
+
+def delete_other_browsers(conn: sqlite3.Connection, keep_id: int) -> int:
+    cursor = conn.execute("DELETE FROM devices WHERE kind = 'browser' AND id != ?", (keep_id,))
+    return cursor.rowcount

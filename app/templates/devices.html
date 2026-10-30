@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Devices{% endblock %}
+{% block body %}
+        <a class="back" href="/settings">Settings</a>
+        <header class="top">
+          <h1>Devices</h1>
+        </header>
+        <p class="lede">Everything that can open your library. Revoke anything you don't recognise.</p>
+
+        <h2 class="section-label">Browsers</h2>
+        <section class="list">
+          {% for device in browsers %}
+          <div class="set-row is-stacked device-row">
+            <span class="set-name">{{ device.name }}{% if device.is_here %} <span class="chip is-on device-here">This device</span>{% endif %}</span>
+            <span class="set-value">Signed in {{ signed_in_words(device.created_at) }} · last used {{ last_used_words(device.last_used_at) }}</span>
+            <span class="device-actions">
+              <a class="chip" href="/settings/devices/{{ device.id }}/rename">Rename</a>
+              {% if not device.is_here %}
+              <form method="post" action="/settings/devices/{{ device.id }}/revoke" data-confirm-title="Sign out this browser?" data-confirm-text="{{ device.name }} will have to enter the password again." data-confirm-button="Revoke">
+                <button class="chip" type="submit">Revoke</button>
+              </form>
+              {% endif %}
+            </span>
+          </div>
+          {% endfor %}
+        </section>
+        {% if has_others %}
+        <form method="post" action="/settings/devices/sign-out-others" data-confirm-title="Sign out every other browser?" data-confirm-text="Each will have to enter the password again." data-confirm-button="Sign out">
+          <button class="btn btn-danger" type="submit">Sign out all other browsers</button>
+        </form>
+        {% endif %}
+{% endblock %}

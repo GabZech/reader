@@ -25,6 +25,23 @@
     });
   };
 
+  // Signed out (revoked, or the password changed). Nothing is lost: what
+  // waits in the outbox stays there, and is sent once signed in again.
+  const goToLogin = () => {
+    if (location.pathname === "/login") return;
+    location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+  };
+
+  // A reply that means "stop sending, try again later": the server failing,
+  // or no longer letting this phone in.
+  const holdsBack = (response) => {
+    if (response.status === 401) {
+      goToLogin();
+      return true;
+    }
+    return response.status >= 500;
+  };
+
   const registerWorker = async () => {
     if (!("serviceWorker" in navigator)) return;
     try {
@@ -89,6 +106,7 @@
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (!event.data) return;
       if (event.data.type === "downloading") setDownloading(event.data.running);
+      if (event.data.type === "signed-out") goToLogin();
       // Home shows what the sync brought in, now stored.
       if (event.data.type === "refreshed" && event.data.arrived && location.pathname === "/") {
         location.reload();
@@ -555,7 +573,7 @@
         if (entry.kind === "seen") {
           try {
             const response = await fetch(entry.url);
-            if (response.status >= 500) return;
+            if (holdsBack(response)) return;
           } catch {
             return;
           }
@@ -592,8 +610,10 @@
         } finally {
           clearTimeout(timer);
         }
-        if (response.status >= 500) {
-          if (entry.kind === "move") refused.set(entry.key, response.status);
+        if (holdsBack(response)) {
+          if (entry.kind === "move" && response.status !== 401) {
+            refused.set(entry.key, response.status);
+          }
           return;
         }
         if (response.ok || response.type === "opaqueredirect") {
@@ -640,7 +660,7 @@
         } catch {
           return;
         }
-        if (response.status >= 500) return;
+        if (holdsBack(response)) return;
         const latest = readProgress();
         if (latest[path] && latest[path].at === spot.at) {
           latest[path].unsent = false;
@@ -738,6 +758,7 @@
       // `manual` keeps the redirect the form routes answer with from being
       // followed: a 303 back to the list is success, and nothing else loads.
       const response = await fetch(url, { method: "POST", redirect: "manual" });
+      if (response.status === 401) goToLogin();
       if (!(response.ok || response.type === "opaqueredirect")) {
         throw new Error(`status ${response.status}`);
       }
@@ -1366,6 +1387,11 @@
         return;
       }
       fetch(saveUrl, { method: "POST", body: data }).then((r) => {
+        // Signed out: keep the highlight like one made offline, and sign in.
+        if (r.status === 401) {
+          keep();
+          return null;
+        }
         if (!r.ok) return null;
         return r.json().then((result) => {
           const ordered = [...overlapping].sort(byStart);

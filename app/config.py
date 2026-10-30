@@ -45,3 +45,8 @@ def mail_imap_config() -> tuple[str, str, str] | None:
 
 def obsidian_github_token() -> str | None:
     return os.environ.get("OBSIDIAN_GITHUB_TOKEN")
+
+
+def app_password() -> str | None:
+    """The one password that opens the app. Without it nobody gets in."""
+    return os.environ.get("READER_PASSWORD") or None

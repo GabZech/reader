@@ -14,9 +14,10 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.concurrency import run_in_threadpool
 
-from app import diag
-from app.config import database_path, git_sha, mail_imap_config
+from app import auth, diag
+from app.config import app_password, database_path, git_sha, mail_imap_config
 from app.db import (
     add_highlight,
     add_item_to_list,
@@ -28,16 +29,21 @@ from app.db import (
     clear_source_notice,
     connect,
     count_for_list,
+    create_device,
     data_version,
+    delete_device,
     delete_highlight,
     delete_highlights,
     delete_item,
     delete_list,
+    delete_other_browsers,
     delete_source,
+    devices_of_kind,
     exported_items_with_highlights,
     find_list_by_name,
     find_source_by_feed_url,
     format_when,
+    get_device,
     get_highlight,
     get_highlights_by_ids,
     get_item,
@@ -65,6 +71,7 @@ from app.db import (
     overlapping_highlights,
     reading_length,
     remove_source_from_list,
+    rename_device,
     rename_list,
     rename_source,
     set_data_version,
@@ -140,6 +147,10 @@ OFFLINE_IMAGE_CAP = 200
 
 # Brasilia has had no daylight saving since 2019, so a fixed offset is exact.
 EXPORT_TIMEZONE = timezone(timedelta(hours=-3), "BRT")
+templates.env.globals["signed_in_words"] = lambda stamp: auth.signed_in_words(
+    stamp, EXPORT_TIMEZONE
+)
+templates.env.globals["last_used_words"] = auth.last_used_words
 EXPORT_HOUR = 5
 
 
@@ -233,6 +244,28 @@ async def no_cache_static(request: Request, call_next):
     return response
 
 
+def _signed_in_device(token: str | None):
+    conn = connect()
+    try:
+        init_db(conn)
+        device = auth.signed_in_device(conn, token)
+        return dict(device) if device else None
+    finally:
+        conn.close()
+
+
+@app.middleware("http")
+async def require_sign_in(request: Request, call_next):
+    if auth.is_open(request.url.path):
+        return await call_next(request)
+    token = request.cookies.get(auth.SESSION_COOKIE)
+    device = await run_in_threadpool(_signed_in_device, token) if token else None
+    if device is None:
+        return auth.turn_away(request)
+    request.state.device = device
+    return await call_next(request)
+
+
 @app.middleware("http")
 async def trace_requests(request: Request, call_next):
     path = request.url.path
@@ -318,6 +351,7 @@ def settings_page(request: Request):
     try:
         init_db(conn)
         lists = lists_for_home_edit(conn)
+        browser_count = len(devices_of_kind(conn, "browser"))
     finally:
         conn.close()
     return templates.TemplateResponse(
@@ -326,10 +360,208 @@ def settings_page(request: Request):
         {
             "nav": "home",
             "lists": lists,
+            "browser_count": browser_count,
             "newsletter_address": newsletter_address,
             "bookmarklet_href": _bookmarklet_href(request),
         },
     )
+
+
+def _login_response(
+    request: Request,
+    status: int = 200,
+    wrong: bool = False,
+    next_path: str = "/",
+):
+    locked = auth.locked_for(auth.client_id(request))
+    return templates.TemplateResponse(
+        request,
+        "login.html",
+        {
+            "wrong": wrong and not locked and bool(app_password()),
+            "locked": auth.minutes_left(locked) if locked else None,
+            "no_password": not app_password(),
+            "next_path": next_path,
+        },
+        status_code=429 if locked else status,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/login")
+async def login_page(request: Request, next: str = "/"):
+    token = request.cookies.get(auth.SESSION_COOKIE)
+    if token and await run_in_threadpool(_signed_in_device, token):
+        return RedirectResponse(auth.safe_next(next), status_code=303)
+    return _login_response(request, next_path=auth.safe_next(next))
+
+
+def _start_sign_in(name: str) -> str:
+    token = auth.new_token()
+    conn = connect()
+    try:
+        init_db(conn)
+        create_device(conn, "browser", name, auth.token_hash(token), auth.epoch(), auth.now())
+        conn.commit()
+    finally:
+        conn.close()
+    return token
+
+
+@app.post("/login")
+async def login_submit(request: Request):
+    form = await request.form()
+    next_path = auth.safe_next(str(form.get("next") or "/"))
+    client = auth.client_id(request)
+    if auth.locked_for(client):
+        return _login_response(request, status=401, next_path=next_path)
+    if not auth.password_matches(str(form.get("password") or "")):
+        if app_password():
+            auth.note_failed_login(client)
+        return _login_response(request, status=401, wrong=True, next_path=next_path)
+    auth.note_good_login(client)
+    name = auth.device_name(
+        request.headers.get("user-agent", ""), installed=form.get("installed") == "1"
+    )
+    token = await run_in_threadpool(_start_sign_in, name)
+    response = RedirectResponse(next_path, status_code=303)
+    response.set_cookie(
+        auth.SESSION_COOKIE,
+        token,
+        max_age=auth.COOKIE_MAX_AGE,
+        httponly=True,
+        samesite="lax",
+        secure=request.url.scheme == "https"
+        or request.headers.get("x-forwarded-proto") == "https",
+        path="/",
+    )
+    return response
+
+
+@app.post("/logout")
+def logout(request: Request):
+    device = getattr(request.state, "device", None)
+    if device:
+        conn = connect()
+        try:
+            init_db(conn)
+            delete_device(conn, device["id"])
+            conn.commit()
+        finally:
+            conn.close()
+    response = RedirectResponse("/login", status_code=303)
+    response.delete_cookie(auth.SESSION_COOKIE, path="/")
+    return response
+
+
+DEVICE_NAME_LIMIT = 60
+
+
+def _devices_flash(text: str) -> RedirectResponse:
+    return RedirectResponse(f"/settings/devices?{urlencode({'flash': text})}", status_code=303)
+
+
+@app.get("/settings/devices")
+def devices_page(request: Request, flash: str = ""):
+    conn = connect()
+    try:
+        init_db(conn)
+        browsers = devices_of_kind(conn, "browser")
+    finally:
+        conn.close()
+    here = request.state.device["id"]
+    # This browser first, then the rest by when they were last used.
+    ordered = sorted(browsers, key=lambda row: row["id"] != here)
+    return templates.TemplateResponse(
+        request,
+        "devices.html",
+        {
+            "nav": "home",
+            "flash": flash,
+            "browsers": [{**dict(row), "is_here": row["id"] == here} for row in ordered],
+            "has_others": len(browsers) > 1,
+        },
+    )
+
+
+@app.post("/settings/devices/sign-out-others")
+def devices_sign_out_others(request: Request):
+    conn = connect()
+    try:
+        init_db(conn)
+        count = delete_other_browsers(conn, request.state.device["id"])
+        conn.commit()
+    finally:
+        conn.close()
+    if not count:
+        return _devices_flash("No other browsers are signed in")
+    return _devices_flash(f"Signed out {count} other browser{'' if count == 1 else 's'}")
+
+
+def _device_or_404(conn, device_id: int):
+    device = get_device(conn, device_id)
+    if device is None:
+        raise HTTPException(status_code=404)
+    return device
+
+
+@app.get("/settings/devices/{device_id}/rename")
+def device_rename_page(request: Request, device_id: int, error: str | None = None):
+    conn = connect()
+    try:
+        init_db(conn)
+        device = _device_or_404(conn, device_id)
+    finally:
+        conn.close()
+    return templates.TemplateResponse(
+        request,
+        "rename_device.html",
+        {"nav": "home", "device": dict(device), "name": device["name"], "error": error},
+    )
+
+
+@app.post("/settings/devices/{device_id}/rename")
+async def device_rename_submit(request: Request, device_id: int):
+    form = await request.form()
+    name = str(form.get("name") or "").strip()[:DEVICE_NAME_LIMIT]
+    conn = connect()
+    try:
+        init_db(conn)
+        device = _device_or_404(conn, device_id)
+        if not name:
+            return templates.TemplateResponse(
+                request,
+                "rename_device.html",
+                {
+                    "nav": "home",
+                    "device": dict(device),
+                    "name": "",
+                    "error": "A device needs a name.",
+                },
+            )
+        rename_device(conn, device_id, name)
+        conn.commit()
+    finally:
+        conn.close()
+    return _devices_flash("Saved")
+
+
+@app.post("/settings/devices/{device_id}/revoke")
+def device_revoke(request: Request, device_id: int):
+    if device_id == request.state.device["id"]:
+        # Ending this one is Sign out, which also tidies the cookie.
+        raise HTTPException(status_code=400)
+    conn = connect()
+    try:
+        init_db(conn)
+        device = get_device(conn, device_id)
+        if device is None:
+            return RedirectResponse("/settings/devices", status_code=303)
+        delete_device(conn, device_id)
+        conn.commit()
+    finally:
+        conn.close()
+    return _devices_flash(f"Signed out {device['name']}")
 
 
 @app.get("/home/edit")

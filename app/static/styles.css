@@ -194,6 +194,10 @@ button {
   text-wrap: balance;
 }
 
+.top.is-login {
+  margin-top: 2.5rem;
+}
+
 .top-row {
   display: flex;
   align-items: center;
