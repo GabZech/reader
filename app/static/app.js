@@ -1695,6 +1695,17 @@
   }
   if (toast) setTimeout(() => toast.classList.add("is-hidden"), 5000);
 
+  // Anything else a form sends needs the server. Offline, say so rather than
+  // let the browser fail; forms that handle offline themselves have already
+  // called preventDefault by now.
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (event.defaultPrevented || navigator.onLine) return;
+    if (!(form instanceof HTMLFormElement) || form.method !== "post") return;
+    event.preventDefault();
+    showToast("This needs a connection");
+  });
+
   initThemeToggle();
   applyMoves();
   initSwipe();

@@ -1736,11 +1736,17 @@ def offline_articles():
     try:
         init_db(conn)
         slugs = [row["slug"] for row in lists_for_home_edit(conn)]
+        sources = [row["id"] for row in all_sources(conn)]
         pages = (
             ["/", "/lists"]
             + [f"/lists/{slug}" for slug in slugs]
             # Each list's second tab, where an item moved offline lands.
             + [_list_url(slug, "archive" if slug == "later" else "read") for slug in slugs]
+            # Settings and Sources, to look at; what they change needs the server.
+            + ["/settings", "/sources"]
+            + [f"/lists/{slug}/edit" for slug in slugs]
+            + [f"/sources/{source}/items" for source in sources]
+            + [f"/sources/{source}" for source in sources]
             + list(OFFLINE_SHELLS)
         )
         # One article's text at a time: the whole list's at once is what

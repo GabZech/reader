@@ -42,7 +42,15 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-  if (request.method !== "GET") return;
+  if (request.method !== "GET") {
+    // A form sent from a page. Online it goes through untouched; when the
+    // connection is found dead only now (a weak signal), say so, instead of
+    // the browser's own error (a blank screen in the installed app).
+    if (request.mode === "navigate") {
+      event.respondWith(fetch(request).catch(() => needsConnectionPage()));
+    }
+    return;
+  }
   const url = new URL(request.url);
   if (url.origin !== location.origin) {
     if (request.destination === "image") event.respondWith(answerImage(request));
@@ -257,9 +265,54 @@ async function answer(request) {
       return cached;
     }
     note(`retry-page after ${error}`);
-    if (page) return retryPage(request.url);
+    if (page) return unavailablePage(request.url);
     return Response.error();
   }
+}
+
+// Pages that only make sense with the server (adding things, Diagnostics):
+// never stored, so offline they say what they need.
+const NEEDS_SERVER =
+  /^\/(lists\/add|home\/edit|diagnostics|sources\/add(\/.*)?|sources\/added\/[^/]+|sources\/[^/]+\/(list|window|new-list))$/;
+
+// What a page that cannot load says: an article not downloaded, a page that
+// needs the server, or (for anything else) just to try again.
+function unavailablePage(url) {
+  const path = new URL(url).pathname;
+  if (/^\/items\/\d+$/.test(path)) {
+    return messagePage(
+      "This article isn't saved for offline",
+      "It opens once you are back online. Read later articles are always kept."
+    );
+  }
+  if (NEEDS_SERVER.test(path)) return needsConnectionPage();
+  return retryPage(url);
+}
+
+function needsConnectionPage() {
+  return messagePage("This needs a connection", "It will work again once you are back online.");
+}
+
+// A short screen with a way back, in the app's colours, like retryPage.
+function messagePage(title, text) {
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Reader</title>
+<style>
+  body { margin: 0; min-height: 100dvh; display: grid; place-items: center; padding: 1.5rem; box-sizing: border-box;
+    background: #17120e; color: #f5ead9; font: 1rem/1.4 system-ui, sans-serif; text-align: center; }
+  h1 { margin: 0 0 0.6rem; font-size: 1.1875rem; font-weight: 600; }
+  p { margin: 0 auto 1.4rem; max-width: 20rem; color: #bfae96; }
+  a { display: inline-block; padding: 0.7rem 1.4rem; border-radius: 999px; background: #f5a524; color: #17120e;
+    font-weight: 650; text-decoration: none; }
+</style></head>
+<body><main><h1>${title}</h1><p>${text}</p>
+<a href="/" onclick="if (history.length > 1) { history.back(); return false; }">Go back</a></main></body></html>`;
+  return new Response(html, {
+    status: 503,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
 }
 
 function retryPage(url) {

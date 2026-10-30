@@ -285,3 +285,36 @@ def test_an_article_opened_outside_a_list_has_no_mark_as_read_move(monkeypatch, 
         assert "moved-row-read" not in page
         assert "act-read" not in page
         assert actions == {"later"}
+
+
+def test_offline_articles_names_settings_sources_and_each_sources_and_lists_pages(
+    monkeypatch, tmp_path
+):
+    # What a reader opens without a connection beyond the lists: Settings,
+    # Sources, every source's items and its own page, and each list's editor.
+    from app import db as dbmod
+
+    with _client(monkeypatch, tmp_path) as client:
+        _news_item(client, tmp_path)
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            source_id = conn.execute(
+                "SELECT id FROM sources WHERE id != 'captured'"
+            ).fetchone()["id"]
+        finally:
+            conn.close()
+
+        pages = client.get("/offline/articles").json()["pages"]
+
+        for path in (
+            "/settings",
+            "/sources",
+            f"/sources/{source_id}/items",
+            f"/sources/{source_id}",
+            "/lists/news/edit",
+            "/lists/later/edit",
+        ):
+            assert path in pages
+        # Adding things and the like need the server, so are not stored.
+        assert "/sources/add" not in pages
+        assert "/lists/add" not in pages
