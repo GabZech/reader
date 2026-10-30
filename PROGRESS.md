@@ -11,7 +11,7 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 - Slice 1, stored copy first: navigations answer from the stored copy online; a change made here marks pages stale so their next visit fetches fresh; an article opened from its copy still tells the server; one copy per way in (Home, list, source) so Close and buttons stay right. Built, awaiting Try.
 - Slice 2, refresh on every open: each open (launch or return) syncs sources, then refreshes every stored page and article, then shows Home; replaces the once-a-minute page refresh. Read later articles are downloaded again only when their version (highlights, reading spot) changed. Built, awaiting Try.
 - Slice 3, "Available offline" switch: on each list's editor and each source's page (off by default, Read later on); the download also stores the unread articles of every list and source switched on, once per way in. Signed-off mockup. Built, awaiting Try.
-- Slice 4, clearing out: at each open, online, a downloaded article no longer wanted is removed, unless something for it still waits to sync; articles opened by hand are kept. In progress.
+- Slice 4, clearing out: at each open, online, a downloaded article no longer wanted is removed, unless something for it still waits to sync; articles opened by hand are kept. Built, awaiting Try.
 
 ## Blocked
 

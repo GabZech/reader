@@ -135,7 +135,9 @@ async function store(cache, key, response, askedAt, version = null) {
 }
 
 self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "precache") event.waitUntil(precache());
+  if (event.data && event.data.type === "precache") {
+    event.waitUntil(precache(event.data.keep || null));
+  }
 });
 
 // One stored copy per page whatever banner an action sent the reader back
@@ -192,7 +194,9 @@ const DOWNLOADS_AT_ONCE = 4;
 // article opens offline without having been opened first. Between runs,
 // pages answer from what this stored. Open pages hear when a run starts and
 // ends, to turn Home's cog meanwhile.
-function precache() {
+// `keep` names the articles with saves still waiting on the phone, which
+// the worker cannot see; without it, nothing is cleared out.
+function precache(keep = null) {
   if (precaching) {
     announce(true);
     return precaching;
@@ -204,7 +208,7 @@ function precache() {
     return Promise.resolve();
   }
   announce(true);
-  precaching = updateEverything().finally(() => {
+  precaching = updateEverything(keep).finally(() => {
     precaching = null;
     precachedAt = Date.now();
     announce(false);
@@ -245,7 +249,7 @@ async function syncSources() {
   }
 }
 
-async function updateEverything() {
+async function updateEverything(keep) {
   const arrived = await syncSources();
   let listed;
   let lists;
@@ -280,17 +284,23 @@ async function updateEverything() {
   const ways = listed.flatMap((article) =>
     article.urls.map((path) => ({ path, version: article.version }))
   );
+  const downloaded = await readDownloaded();
   await eachAtOnce(ways, async ({ path, version }) => {
     const key = new URL(path, location.origin).href;
     const stored = await pages.match(key);
-    if (stored && stored.headers.get("X-Article-Version") === version) return;
+    if (stored && stored.headers.get("X-Article-Version") === version) {
+      downloaded[key] = true;
+      return;
+    }
     const askedAt = Date.now();
     const response = await fetch(path, { headers: { "X-Reader-Prefetch": "1" } });
     if (response.ok) {
       await store(pages, key, response, askedAt, version);
+      downloaded[key] = true;
       pagesAdded++;
     }
   });
+  const removed = await clearOut(pages, downloaded, ways, keep);
 
   const wanted = new Set(
     listed.flatMap((article) => article.images.map((src) => new URL(src, location.origin).href))
@@ -308,7 +318,39 @@ async function updateEverything() {
   for (const request of await images.keys()) {
     if (!wanted.has(request.url)) await images.delete(request);
   }
-  tell("sw-precache", `pages+${pagesAdded} images+${imagesAdded} of ${listed.length}/${wanted.size}`);
+  tell(
+    "sw-precache",
+    `pages+${pagesAdded} -${removed} images+${imagesAdded} of ${listed.length}/${wanted.size}`
+  );
+}
+
+// The article copies this download stored, by address: only these are ever
+// cleared out, never one the reader opened themselves.
+const DOWNLOADED_KEY = new URL("/sw-state/downloaded", location.origin).href;
+
+async function readDownloaded() {
+  const stored = await caches.match(DOWNLOADED_KEY, { cacheName: CACHE }).catch(() => null);
+  return (stored && (await stored.json().catch(() => null))) || {};
+}
+
+// A downloaded article no longer wanted (read, archived, gone from its list,
+// or its list switched off) leaves the phone, unless a save for it still
+// waits to be sent: a highlight is never lost with it. Only after a listing
+// fetched from the server just now, so only online.
+async function clearOut(pages, downloaded, ways, keep) {
+  const wanted = new Set(ways.map(({ path }) => new URL(path, location.origin).href));
+  const waiting = new Set((keep || []).map(String));
+  let removed = 0;
+  for (const key of Object.keys(downloaded)) {
+    if (wanted.has(key)) continue;
+    const item = ITEM_SCOPE.exec(new URL(key).pathname);
+    if (!keep || (item && waiting.has(item[1]))) continue;
+    await pages.delete(key);
+    delete downloaded[key];
+    removed++;
+  }
+  await pages.put(DOWNLOADED_KEY, new Response(JSON.stringify(downloaded)));
+  return removed;
 }
 
 async function refetch(address) {

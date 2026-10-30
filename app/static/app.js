@@ -56,6 +56,21 @@
     showBusy();
   };
 
+  // Articles with something still to send (a highlight, a move, an opening,
+  // a reading spot): the worker must not clear their stored copy out.
+  const itemsWaiting = () => {
+    const ids = new Set();
+    const idIn = (path) => (/^\/items\/(\d+)/.exec(path || "") || [])[1];
+    outbox.now().forEach((entry) => {
+      const id = entry.item != null ? String(entry.item) : idIn(entry.article);
+      if (id) ids.add(id);
+    });
+    Object.entries(readProgress()).forEach(([path, spot]) => {
+      if (spot.unsent && idIn(path)) ids.add(idIn(path));
+    });
+    return [...ids];
+  };
+
   // Each time the app is opened (launched, or come back to), ask the service
   // worker to bring everything up to date: sync the sources, fetch the
   // stored pages again and download Read Later ahead. In between, pages open
@@ -69,7 +84,7 @@
     const ask = () => {
       if (!navigator.onLine) return;
       const worker = navigator.serviceWorker.controller;
-      if (worker) worker.postMessage({ type: "precache" });
+      if (worker) worker.postMessage({ type: "precache", keep: itemsWaiting() });
     };
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (!event.data) return;
