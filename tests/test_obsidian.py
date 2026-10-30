@@ -552,3 +552,70 @@ def test_build_note_markdown_links_a_whole_block_when_offsets_are_missing():
     body = '<p>Read <a href="https://example.test/post">the post</a>.</p>'
     lines = _bullets([_highlight("Read the post.")], _item(body_html=body))
     assert "- Read [the post](https://example.test/post)." in lines
+
+
+WRAPPED = "Theoretically, they are two\ndifferent things. <strong>It is possible\nfor</strong> something."
+WRAPPED_TEXT = "Theoretically, they are two\ndifferent things. It is possible\nfor something."
+WRAPPED_LINE = "Theoretically, they are two different things. It is possible for something."
+
+
+def test_build_note_markdown_joins_a_paragraph_wrapped_in_the_source_into_one_bullet():
+    highlight = _highlight(
+        WRAPPED_TEXT, start_offset=0, end_offset=len(WRAPPED_TEXT)
+    )
+    lines = _bullets([highlight], _item(body_html=f"<p>{WRAPPED}</p>"))
+    assert lines[-2:] == ["", f"- {WRAPPED_LINE}"]
+    assert not any(line.startswith("  ") for line in lines)
+
+
+def test_build_note_markdown_joins_wrapped_lines_in_a_partial_selection():
+    start = WRAPPED_TEXT.index("are two")
+    end = WRAPPED_TEXT.index(" possible") + len(" possible")
+    highlight = _highlight(
+        WRAPPED_TEXT[start:end], start_offset=start, end_offset=end
+    )
+    lines = _bullets([highlight], _item(body_html=f"<p>{WRAPPED}</p>"))
+    assert lines[-1] == "- are two different things. It is possible"
+
+
+def test_build_note_markdown_keeps_one_bullet_per_wrapped_paragraph():
+    body = "<p>One two\nthree.</p><p>Four five\nsix.</p>"
+    highlight = _highlight(
+        "One two\nthree.Four five\nsix.",
+        end_block=1,
+        start_offset=0,
+        end_offset=14,
+    )
+    lines = _bullets([highlight], _item(body_html=body))
+    assert lines[-2:] == ["- One two three.", "  - Four five six."]
+
+
+def test_build_note_markdown_joins_wrapped_lines_inside_list_items():
+    body = "<ul><li>One two\nthree</li><li>Four\nfive</li></ul>"
+    highlight = _highlight(
+        "One two\nthreeFour\nfive", start_offset=0, end_offset=22
+    )
+    lines = _bullets([highlight], _item(body_html=body))
+    assert lines[-3:] == ["-", "  - One two three", "  - Four five"]
+
+
+def test_build_note_markdown_joins_wrapped_lines_inside_a_link():
+    body = '<p>Read <a href="https://example.test/post">the\npost</a> now.</p>'
+    highlight = _highlight("Read the\npost now.", start_offset=0, end_offset=18)
+    lines = _bullets([highlight], _item(body_html=body))
+    assert lines[-1] == "- Read [the post](https://example.test/post) now."
+
+
+def test_build_note_markdown_marks_a_wrapped_key_highlight_as_one_line():
+    body = "<p>One two\nthree.</p>"
+    highlight = _highlight("One two\nthree.", start_offset=0, end_offset=14, is_key=1)
+    lines = _bullets([highlight], _item(body_html=body))
+    assert lines[-1] == "- ==One two three.== #key"
+
+
+def test_build_note_markdown_keeps_wrapped_lines_apart_when_the_article_changed():
+    # The saved article no longer matches what was highlighted: nothing to
+    # rebuild the paragraphs from, so the captured lines are all there is.
+    highlight = _highlight("One two\nthree.", start_offset=0, end_offset=14)
+    lines = _bullets([highlight], _item(body_html="<p>Something else entirely.</p>"))
+    assert lines[-2:] == ["- One two", "  - three."]
