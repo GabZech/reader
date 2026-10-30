@@ -1743,11 +1743,11 @@ def test_archive_button_shows_only_once_saved_to_read_later(monkeypatch, tmp_pat
         item_id = _first_item_id(tmp_path)
 
         before = client.get(f"/items/{item_id}")
-        assert "Archive" not in before.text
+        assert "act-archive" not in before.text
 
         client.post(f"/items/{item_id}/later")
         after = client.get(f"/items/{item_id}")
-        assert "Archive" in after.text
+        assert "act-archive" in after.text
 
 
 def test_archiving_an_item_removes_it_from_read_later_and_home(monkeypatch, tmp_path):

@@ -14,5 +14,5 @@ sudo chown -R "$(id -u):$(id -g)" "$HOME/.claude" "$HOME/.config/gh"
 uv sync --locked
 
 # Browser tests need Chromium plus its system libraries (apt, so root).
-uv run playwright install chromium
-sudo -E env "PATH=$PATH" uv run playwright install-deps chromium
+uv run playwright install chromium webkit
+sudo -E env "PATH=$PATH" uv run playwright install-deps chromium webkit

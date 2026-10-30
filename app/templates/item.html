@@ -1,14 +1,16 @@
 {% extends "base.html" %}
+{% from "macros.html" import item_row %}
 {% block title %}{{ item.title }}{% endblock %}
 {% block body %}
       <nav class="article-bar" aria-label="Article">
         <a class="bar-close" href="{{ back }}">Close</a>
+        <span class="sync-state" hidden></span>
         <span class="article-bar-right">
           {% if item.url %}
           <a href="{{ item.url }}" rel="noreferrer">Open original</a>
           {% endif %}
           {% if mark_read_action %}
-          <form method="post" action="{{ mark_read_action }}">
+          <form method="post" action="{{ mark_read_action }}" data-move='{{ moves.read | tojson }}'>
             <button type="submit" class="act-read">Mark as read</button>
           </form>
           {% endif %}
@@ -31,12 +33,12 @@
       </div>
       <div class="article-actions">
         {% if later_action %}
-        <form method="post" action="{{ later_action }}">
+        <form method="post" action="{{ later_action }}" data-move='{{ moves.later | tojson }}'>
           <button type="submit"{% if in_read_later %} class="is-active"{% endif %}>{{ "Saved to Read later" if in_read_later else "Read later" }}</button>
         </form>
         {% endif %}
         {% if in_read_later %}
-        <form method="post" action="{{ archive_action }}">
+        <form method="post" action="{{ archive_action }}" data-move='{{ moves.archive | tojson }}'>
           <button type="submit" class="act-archive">Archive</button>
         </form>
         {% endif %}
@@ -44,4 +46,11 @@
           <button type="submit" class="act-delete">Delete</button>
         </form>
       </div>
+      {# The row this item becomes on the tab each button sends it to, for
+         app.js to put there when the button is pressed offline. #}
+      {% if read_list %}
+      <template id="moved-row-read">{{ item_row(item, list_slug=read_list, swipeable=true, view="read") }}</template>
+      {% endif %}
+      <template id="moved-row-archive">{{ item_row(item, list_slug="later", swipeable=true, view="archive") }}</template>
+      <template id="moved-row-later">{{ item_row(item, list_slug="later", swipeable=true) }}</template>
 {% endblock %}

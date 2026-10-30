@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ label }}{% endblock %}
 {% block body %}
+      {% if offline_shell %}<div hidden data-offline-shell></div>{% endif %}
       <div class="top-bar">
         <a class="top-edit" href="{{ back }}">Close</a>
       </div>
@@ -8,7 +9,7 @@
         <h1>{{ label }}</h1>
       </header>
       <blockquote class="quote">{{ text }}</blockquote>
-      <form method="post" action="{{ save_action }}">
+      <form method="post" action="{{ save_action }}" data-highlight-form="title">
         <label class="field-label" for="highlight-title">Title</label>
         <div class="field-row">
           <input id="highlight-title" type="text" name="title" autocomplete="off" value="{{ title }}">

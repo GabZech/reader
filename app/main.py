@@ -43,6 +43,7 @@ from app.db import (
     get_source,
     has_pending_source_notice,
     highlights_for_item,
+    image_urls,
     images_in_block_range,
     init_db,
     insert_list,
@@ -122,6 +123,9 @@ templates.env.globals["sources_notice_pending"] = _sources_notice_pending
 NO_FEED = "We could not find a feed."
 TIMED_NOTE = "Timed list · only recent items"
 UNTIMED_NOTE = "Not timed"
+# Most images the device downloads ahead for Read Later, across all articles:
+# enough for a good stack of saved reading without filling a phone's storage.
+OFFLINE_IMAGE_CAP = 200
 
 
 # Brasilia has had no daylight saving since 2019, so a fixed offset is exact.
@@ -1135,7 +1139,9 @@ def item_page(
     try:
         init_db(conn)
         item = get_item(conn, item_id)
-        if item is not None:
+        # The service worker downloading Read Later ahead is not the reader
+        # opening the article.
+        if item is not None and request.headers.get("X-Reader-Prefetch") != "1":
             mark_item_seen(conn, item_id)
             conn.commit()
         in_read_later = item is not None and is_item_in_list(conn, item_id, "later")
@@ -1154,10 +1160,16 @@ def item_page(
                 "end_offset": h["end_offset"],
                 "has_title": bool(h["section_title"] or h["subsection_title"]),
                 "is_key": bool(h["is_key"]),
+                # The rest is for building the highlight's own page offline.
+                "text": h["text"],
+                "section_title": h["section_title"],
+                "subsection_title": h["subsection_title"],
             }
             for h in highlights
         ]
-    )
+        # Lands inside a <script> element: highlighted text holding
+        # "</script>" must not end it early.
+    ).replace("</", "<\\/")
     if from_source and item["source_id"] == from_source:
         back = f"/sources/{from_source}/items"
     elif from_home:
@@ -1167,6 +1179,48 @@ def item_page(
     else:
         back = "/"
     context_query = _item_context_query(from_source, from_list, from_home, view)
+    later_action = (
+        f"/items/{item_id}/later{context_query}" if from_list != "later" else None
+    )
+    archive_action = f"/items/{item_id}/archive{context_query}"
+    mark_read_action = (
+        f"/items/{item_id}/read{context_query}"
+        if from_list and from_list != "later"
+        else None
+    )
+    # What each button does when the phone is offline (see initItemActions in
+    # app.js): the address it posts to, the list the item moves in, where to
+    # go next, and which of the page's <template> rows it becomes.
+    archive_move = {
+        "item": item_id,
+        "list": "later",
+        "action": "archive",
+        "url": archive_action,
+        "then": _origin_url(from_source, from_list, from_home, view, "Archived"),
+        "row": "moved-row-archive",
+    }
+    moves = {
+        "later": {
+            "item": item_id,
+            "list": "later",
+            "action": "later",
+            "url": later_action,
+            "then": f"/items/{item_id}{context_query}",
+            "row": "moved-row-later",
+            # Saving offline unlocks this button.
+            "archive": archive_move,
+        },
+        "archive": archive_move,
+    }
+    if mark_read_action:
+        moves["read"] = {
+            "item": item_id,
+            "list": from_list,
+            "action": "read",
+            "url": mark_read_action,
+            "then": _origin_url(from_source, from_list, from_home, view, "Read"),
+            "row": "moved-row-read",
+        }
     return templates.TemplateResponse(
         request,
         "item.html",
@@ -1176,21 +1230,15 @@ def item_page(
             "video_id": youtube_video_id(item["url"]),
             "back": back,
             "in_read_later": in_read_later,
-            "later_action": (
-                f"/items/{item_id}/later{context_query}"
-                if from_list != "later"
-                else None
-            ),
-            "archive_action": f"/items/{item_id}/archive{context_query}",
+            "later_action": later_action,
+            "archive_action": archive_action,
             "delete_action": f"/items/{item_id}/delete{context_query}",
             "progress_action": f"/items/{item_id}/progress",
             "highlight_action": f"/items/{item_id}/highlights",
             "highlights_json": highlights_json,
-            "mark_read_action": (
-                f"/items/{item_id}/read{context_query}"
-                if from_list and from_list != "later"
-                else None
-            ),
+            "moves": moves,
+            "read_list": from_list if "read" in moves else None,
+            "mark_read_action": mark_read_action,
         },
     )
 
@@ -1310,7 +1358,21 @@ async def item_add_highlight(item_id: int, request: Request):
         overlapping = overlapping_highlights(
             conn, item_id, start_block, start_offset, end_block, end_offset
         )
+        # The exact same span saved already: a phone sending a queued
+        # highlight again after losing the reply. Answer with that one.
+        span = (start_block, start_offset, end_block, end_offset)
+        for row in overlapping:
+            if (row["start_block"], row["start_offset"], row["end_block"], row["end_offset"]) == span:
+                return {
+                    "ok": True,
+                    "id": row["id"],
+                    "has_title": bool(row["section_title"] or row["subsection_title"]),
+                    "is_key": bool(row["is_key"]),
+                }
         overlapping_ids = {row["id"] for row in overlapping}
+        # A claimed id that no longer exists was deleted elsewhere while
+        # the phone was offline: nothing left to merge, not a bad claim.
+        merge_ids = [row["id"] for row in get_highlights_by_ids(conn, item_id, merge_ids)]
         merge_id_set = set(merge_ids)
         if not merge_id_set <= overlapping_ids:
             raise HTTPException(status_code=400)
@@ -1689,6 +1751,90 @@ def sync():
     finally:
         conn.close()
     return result
+
+
+@app.get("/offline/articles")
+def offline_articles():
+    """What the service worker downloads ahead so Read Later opens offline:
+    Home and every list page (fetched fresh each time, since they change),
+    and each library article's page and, up to a cap, its images."""
+    articles = []
+    room = OFFLINE_IMAGE_CAP
+    conn = connect()
+    try:
+        init_db(conn)
+        slugs = [row["slug"] for row in lists_for_home_edit(conn)]
+        sources = [row["id"] for row in all_sources(conn)]
+        pages = (
+            ["/", "/lists"]
+            + [f"/lists/{slug}" for slug in slugs]
+            # Each list's second tab, where an item moved offline lands.
+            + [_list_url(slug, "archive" if slug == "later" else "read") for slug in slugs]
+            # Settings and Sources, to look at; what they change needs the server.
+            + ["/settings", "/sources"]
+            + [f"/lists/{slug}/edit" for slug in slugs]
+            + [f"/sources/{source}/items" for source in sources]
+            + [f"/sources/{source}" for source in sources]
+            + list(OFFLINE_SHELLS)
+        )
+        # One article's text at a time: the whole list's at once is what
+        # filled the machine before (see `_item_columns`).
+        for item in items_for_list(conn, "later"):
+            images = []
+            if room:
+                images = image_urls(get_item(conn, item["id"])["body_html"])[:room]
+                room -= len(images)
+            articles.append({"url": f"/items/{item['id']}", "images": images})
+    finally:
+        conn.close()
+    return {"pages": pages, "articles": articles}
+
+
+# Empty copies of the highlight page and its title pages. The service worker
+# keeps them and app.js fills one in when a highlight's own page cannot be
+# fetched: offline, or a highlight still waiting to sync.
+OFFLINE_SHELLS = (
+    "/offline/highlight",
+    "/offline/highlight-title/section",
+    "/offline/highlight-title/subsection",
+)
+
+
+@app.get("/offline/highlight")
+def offline_highlight_shell(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "highlight.html",
+        {
+            "nav": "home",
+            "offline_shell": True,
+            "highlight": {"text": "", "is_key": False},
+            "back": "/",
+            "section_title_action": "#",
+            "subsection_title_action": "#",
+            "key_action": "#",
+            "delete_action": "#",
+        },
+    )
+
+
+@app.get("/offline/highlight-title/{level}")
+def offline_highlight_title_shell(request: Request, level: str):
+    if level not in ("section", "subsection"):
+        raise HTTPException(status_code=404)
+    return templates.TemplateResponse(
+        request,
+        "highlight_title.html",
+        {
+            "nav": "home",
+            "offline_shell": True,
+            "label": "Section title" if level == "section" else "Subsection title",
+            "text": "",
+            "title": "",
+            "back": "/",
+            "save_action": "#",
+        },
+    )
 
 
 @app.get("/sw.js")

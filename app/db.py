@@ -502,6 +502,14 @@ def images_in_block_range(body_html: str | None, start_block: int, end_block: in
     return urls
 
 
+def image_urls(body_html: str | None) -> list[str]:
+    """Every image URL in an article body, in reading order."""
+    if not body_html:
+        return []
+    container = fromstring(f"<div>{body_html}</div>")
+    return [src for img in container.iter("img") if (src := img.get("src"))]
+
+
 def add_highlight(
     conn: sqlite3.Connection,
     item_id: int,

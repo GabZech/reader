@@ -1,29 +1,47 @@
 from __future__ import annotations
 
-from test_service_worker_browser import _live_server, phone  # noqa: F401
+import pytest
+from playwright.sync_api import sync_playwright
+from test_service_worker_browser import _live_server
+
+
+@pytest.fixture
+def wheel_phone(engine):
+    # Chromium's headless default hides scrollbars, and with them hidden a
+    # wheel scrolls the page only about one time in three. Shown, every time.
+    # Only this test needs it: showing them narrows the page for the others.
+    launch = {"ignore_default_args": ["--hide-scrollbars"]} if engine == "chromium" else {}
+    with sync_playwright() as p:
+        browser = getattr(p, engine).launch(**launch)
+        try:
+            yield browser.new_context(
+                viewport={"width": 390, "height": 844}, service_workers="allow"
+            ).new_page()
+        finally:
+            browser.close()
 
 
 def test_the_page_never_scrolls_so_the_tab_bar_cannot_be_dragged_with_it(
-    phone, monkeypatch, tmp_path  # noqa: F811
+    wheel_phone, monkeypatch, tmp_path
 ):
     # On an iPhone, fixed elements travel with a scrolling page: the tab bar
     # lifted off the bottom edge. Only an inner container may scroll.
     with _live_server(monkeypatch, tmp_path) as (origin, _server):
-        phone.goto(f"{origin}/sources")
-        phone.evaluate("document.querySelector('.page').style.minHeight = '3000px'")
-        phone.mouse.move(200, 300)
-        phone.mouse.wheel(0, 900)
-        phone.wait_for_timeout(300)
+        wheel_phone.goto(f"{origin}/sources")
+        wheel_phone.evaluate("document.querySelector('.page').style.minHeight = '3000px'")
+        wheel_phone.mouse.move(200, 300)
+        wheel_phone.mouse.wheel(0, 900)
+        wheel_phone.wait_for_function("document.querySelector('.scroller').scrollTop > 0")
 
-        assert phone.evaluate("window.scrollY") == 0
-        assert phone.evaluate("document.querySelector('.scroller').scrollTop") > 0
-        bar_bottom, height = phone.evaluate(
+        assert wheel_phone.evaluate("window.scrollY") == 0
+        assert wheel_phone.evaluate("document.querySelector('.scroller').scrollTop") > 0
+        bar_bottom, height = wheel_phone.evaluate(
             "(() => [document.querySelector('.tabbar').getBoundingClientRect().bottom, innerHeight])()"
         )
         assert bar_bottom == height
 
 
-def test_the_tab_bar_sits_low_with_round_outer_corners(phone, monkeypatch, tmp_path):  # noqa: F811
+def test_the_tab_bar_sits_low_with_round_outer_corners(phone, monkeypatch, tmp_path):
     with _live_server(monkeypatch, tmp_path) as (origin, _server):
         phone.goto(f"{origin}/lists")
         corners = phone.evaluate(
@@ -42,7 +60,7 @@ def test_the_tab_bar_sits_low_with_round_outer_corners(phone, monkeypatch, tmp_p
 
 
 def test_the_side_padding_is_ten_pixels_and_full_width_rows_still_reach_the_edges(
-    phone, monkeypatch, tmp_path  # noqa: F811
+    phone, monkeypatch, tmp_path
 ):
     with _live_server(monkeypatch, tmp_path) as (origin, _server):
         phone.goto(f"{origin}/lists")
@@ -67,7 +85,7 @@ def test_the_side_padding_is_ten_pixels_and_full_width_rows_still_reach_the_edge
 
 
 def test_a_list_name_on_home_is_centred_with_its_count_at_the_right(
-    phone, monkeypatch, tmp_path  # noqa: F811
+    phone, monkeypatch, tmp_path
 ):
     from datetime import UTC, datetime
 
