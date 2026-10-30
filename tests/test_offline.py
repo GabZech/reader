@@ -347,3 +347,81 @@ def test_offline_articles_names_settings_sources_and_each_sources_and_lists_page
         # Adding things and the like need the server, so are not stored.
         assert "/sources/add" not in pages
         assert "/lists/add" not in pages
+
+
+def _ways_in(client):
+    """Each listed article's ways in, by item id."""
+    articles = client.get("/offline/articles").json()["articles"]
+    return {int(a["urls"][0].split("?")[0].rsplit("/", 1)[1]): a["urls"] for a in articles}
+
+
+def test_only_read_later_is_available_offline_at_first(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _news_item(client, tmp_path)
+
+        later = client.get("/lists/later/edit").text
+        news = client.get("/lists/news/edit").text
+
+        assert 'value="1" class="is-active"' in later
+        assert 'value="0" class="is-active"' in news
+        assert _ways_in(client) == {}
+
+
+def test_a_list_made_available_offline_lists_its_unread_articles(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        item_id = _news_item(client, tmp_path)
+
+        switched = client.post("/lists/news/offline", data={"offline": "1"}, follow_redirects=False)
+
+        assert switched.status_code == 303
+        assert switched.headers["location"] == "/lists/news/edit"
+        assert 'value="1" class="is-active"' in client.get("/lists/news/edit").text
+        # News is on Home, so it is reached from there too.
+        assert _ways_in(client)[item_id] == [
+            f"/items/{item_id}?from_list=news",
+            f"/items/{item_id}?from_list=news&from_home=1",
+        ]
+        client.post(f"/items/{item_id}/read?from_list=news")
+        assert item_id not in _ways_in(client)
+        client.post("/lists/news/offline", data={"offline": "0"})
+        assert _ways_in(client) == {}
+
+
+def test_read_later_can_be_taken_off_the_phone(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _capture(client, "kept")
+
+        client.post("/lists/later/offline", data={"offline": "0"})
+
+        assert _ways_in(client) == {}
+
+
+def test_a_source_made_available_offline_lists_its_unread_articles(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        item_id = _news_item(client, tmp_path)
+        source_id = _get_item_row(tmp_path, item_id)["source_id"]
+        assert 'value="0" class="is-active"' in client.get(f"/sources/{source_id}").text
+
+        switched = client.post(
+            f"/sources/{source_id}/offline", data={"offline": "1"}, follow_redirects=False
+        )
+
+        assert switched.headers["location"] == f"/sources/{source_id}"
+        assert 'value="1" class="is-active"' in client.get(f"/sources/{source_id}").text
+        assert _ways_in(client)[item_id] == [f"/items/{item_id}?from_source={source_id}"]
+        client.post(f"/items/{item_id}/read?from_list=news")
+        assert item_id not in _ways_in(client)
+
+
+def test_an_article_wanted_twice_is_listed_once_with_every_way_in(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        item_id = _news_item(client, tmp_path)
+        source_id = _get_item_row(tmp_path, item_id)["source_id"]
+        client.post("/lists/news/offline", data={"offline": "1"})
+        client.post(f"/sources/{source_id}/offline", data={"offline": "1"})
+
+        articles = client.get("/offline/articles").json()["articles"]
+
+        mine = [a for a in articles if f"/items/{item_id}?" in a["urls"][0]]
+        assert len(mine) == 1
+        assert f"/items/{item_id}?from_source={source_id}" in mine[0]["urls"]

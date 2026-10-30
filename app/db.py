@@ -145,7 +145,15 @@ def init_db(conn: sqlite3.Connection) -> None:
                 """,
                 (slug, name, position),
             )
+    # Whether the phone keeps a list's or a source's unread articles for
+    # offline. Read later always did, so it starts on.
+    lists_columns = {row["name"] for row in conn.execute("PRAGMA table_info(lists)")}
+    if "offline" not in lists_columns:
+        conn.execute("ALTER TABLE lists ADD COLUMN offline INTEGER NOT NULL DEFAULT 0")
+        conn.execute("UPDATE lists SET offline = 1 WHERE slug = 'later'")
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(sources)")}
+    if "offline" not in columns:
+        conn.execute("ALTER TABLE sources ADD COLUMN offline INTEGER NOT NULL DEFAULT 0")
     if "backfill" not in columns:
         conn.execute("ALTER TABLE sources ADD COLUMN backfill INTEGER")
     if "auto_title" not in columns:
@@ -365,8 +373,32 @@ def insert_list(conn: sqlite3.Connection, name: str) -> str:
 
 def lists_for_home_edit(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute(
-        "SELECT slug, name, position, on_home FROM lists ORDER BY position"
+        "SELECT slug, name, position, on_home, offline FROM lists ORDER BY position"
     ).fetchall()
+
+
+def set_list_offline(conn: sqlite3.Connection, slug: str, offline: bool) -> None:
+    conn.execute("UPDATE lists SET offline = ? WHERE slug = ?", (1 if offline else 0, slug))
+
+
+def set_source_offline(conn: sqlite3.Connection, source_id: str, offline: bool) -> None:
+    conn.execute(
+        "UPDATE sources SET offline = ? WHERE id = ?", (1 if offline else 0, source_id)
+    )
+
+
+def unread_items_for_source(conn: sqlite3.Connection, source_id: str) -> list[sqlite3.Row]:
+    """A source's items still to read: those on the first tab of a list it
+    is on (windows apply), or, for a source on no list, those never opened."""
+    memberships = source_memberships(conn, source_id)
+    if not memberships:
+        return [row for row in items_for_source(conn, source_id) if not row["seen_at"]]
+    found: dict[int, sqlite3.Row] = {}
+    for membership in memberships:
+        for row in items_for_list(conn, membership["list_slug"]):
+            if row["source_id"] == source_id:
+                found.setdefault(row["id"], row)
+    return list(found.values())
 
 
 def set_list_on_home(conn: sqlite3.Connection, slug: str, on_home: bool) -> None:

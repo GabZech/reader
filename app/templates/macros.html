@@ -4,6 +4,24 @@
 
 {% macro icon_plus(cls="icon-plus") %}<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{% endmacro %}
 
+{# "Available offline" on a list's or a source's own screen. Each button
+   posts its choice at once; offline, the form says it needs a connection. #}
+{% macro offline_switch(action, on, note) %}
+      <h2 class="section-label">Offline</h2>
+      <form method="post" action="{{ action }}">
+        <section class="list">
+          <div class="set-row">
+            <span class="set-name">Available offline</span>
+            <span class="seg offline-toggle" role="group" aria-label="Available offline">
+              <button type="submit" name="offline" value="0"{% if not on %} class="is-active"{% endif %}>Off</button>
+              <button type="submit" name="offline" value="1"{% if on %} class="is-active"{% endif %}>On</button>
+            </span>
+          </div>
+        </section>
+      </form>
+      <p class="section-note">{{ note }}</p>
+{% endmacro %}
+
 {% macro item_row(item, extra=false, source_id=none, list_slug=none, swipeable=false, from_home=false, view=none) %}
 {% if swipeable %}
 {% set context = "?from_source=" ~ source_id if source_id else ("?from_list=" ~ list_slug ~ ("&view=" ~ view if view else "") if list_slug else "") %}

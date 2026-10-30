@@ -69,12 +69,15 @@ from app.db import (
     set_highlight_subsection_title,
     set_item_exported_note_path,
     set_item_progress,
+    set_list_offline,
     set_list_on_home,
+    set_source_offline,
     source_byline,
     source_id_for,
     source_memberships,
     touch_item_highlights,
     unarchive_item_in_list,
+    unread_items_for_source,
     video_length,
 )
 from app.ingest import (
@@ -401,6 +404,7 @@ def edit_list(
             "slug": slug,
             "name": shown,
             "error": error,
+            "offline": bool(named["offline"]),
         },
     )
 
@@ -437,8 +441,44 @@ async def edit_list_submit(request: Request, slug: str):
             "slug": slug,
             "name": shown,
             "error": error,
+            "offline": bool(named["offline"]),
         },
     )
+
+
+async def _offline_choice(request: Request) -> bool:
+    form = await request.form()
+    return str(form.get("offline") or "") == "1"
+
+
+@app.post("/lists/{slug}/offline")
+async def list_offline_submit(request: Request, slug: str):
+    offline = await _offline_choice(request)
+    conn = connect()
+    try:
+        init_db(conn)
+        if get_list(conn, slug) is None:
+            raise HTTPException(status_code=404)
+        set_list_offline(conn, slug, offline)
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(f"/lists/{slug}/edit", status_code=303)
+
+
+@app.post("/sources/{source_id}/offline")
+async def source_offline_submit(request: Request, source_id: str):
+    offline = await _offline_choice(request)
+    conn = connect()
+    try:
+        init_db(conn)
+        if get_source(conn, source_id) is None:
+            raise HTTPException(status_code=404)
+        set_source_offline(conn, source_id, offline)
+        conn.commit()
+    finally:
+        conn.close()
+    return RedirectResponse(f"/sources/{source_id}", status_code=303)
 
 
 @app.post("/lists/{slug}/delete")
@@ -1732,16 +1772,17 @@ def sync():
 
 @app.get("/offline/articles")
 def offline_articles():
-    """What the service worker downloads ahead so Read Later opens offline:
-    Home and every list page (fetched fresh each time, since they change),
-    and each library article's page and, up to a cap, its images."""
-    articles = []
+    """What the service worker keeps for offline: Home and every list page
+    (fetched fresh each time, since they change), and each unread article of
+    the lists and sources made available offline (Read later's Library to
+    start with), with the ways in to it and, up to a cap, its images."""
     room = OFFLINE_IMAGE_CAP
     conn = connect()
     try:
         init_db(conn)
-        slugs = [row["slug"] for row in lists_for_home_edit(conn)]
-        sources = [row["id"] for row in all_sources(conn)]
+        lists = lists_for_home_edit(conn)
+        sources = all_sources(conn)
+        slugs = [row["slug"] for row in lists]
         pages = (
             ["/", "/lists"]
             + [f"/lists/{slug}" for slug in slugs]
@@ -1750,27 +1791,41 @@ def offline_articles():
             # Settings and Sources, to look at; what they change needs the server.
             + ["/settings", "/sources"]
             + [f"/lists/{slug}/edit" for slug in slugs]
-            + [f"/sources/{source}/items" for source in sources]
-            + [f"/sources/{source}" for source in sources]
+            + [f"/sources/{source['id']}/items" for source in sources]
+            + [f"/sources/{source['id']}" for source in sources]
             + list(OFFLINE_SHELLS)
         )
+        # Every way in to each wanted article, in order: Read later first,
+        # since its articles have no other way to be read later, so they
+        # get the images first.
+        wanted: dict[int, list[str]] = {}
+        ordered = sorted(lists, key=lambda row: row["slug"] != "later")
+        for row in ordered:
+            if not row["offline"]:
+                continue
+            for item in items_for_list(conn, row["slug"]):
+                url = f"/items/{item['id']}?from_list={row['slug']}"
+                ways = wanted.setdefault(item["id"], [])
+                ways.append(url)
+                if row["on_home"]:
+                    ways.append(f"{url}&from_home=1")
+        for source in sources:
+            if not source["offline"]:
+                continue
+            for item in unread_items_for_source(conn, source["id"]):
+                url = f"/items/{item['id']}?from_source={source['id']}"
+                wanted.setdefault(item["id"], []).append(url)
+        articles = []
         # One article's text at a time: the whole list's at once is what
         # filled the machine before (see `_item_columns`).
-        for item in items_for_list(conn, "later"):
-            full = get_item(conn, item["id"])
+        for item_id, urls in wanted.items():
+            item = get_item(conn, item_id)
             images = []
             if room:
-                images = image_urls(full["body_html"])[:room]
+                images = image_urls(item["body_html"])[:room]
                 room -= len(images)
-            # Stored once per way in, since Close and the buttons differ:
-            # from the Read later list, and from Home.
-            url = f"/items/{item['id']}?from_list=later"
             articles.append(
-                {
-                    "urls": [url, f"{url}&from_home=1"],
-                    "version": _article_version(conn, full),
-                    "images": images,
-                }
+                {"urls": urls, "version": _article_version(conn, item), "images": images}
             )
     finally:
         conn.close()
