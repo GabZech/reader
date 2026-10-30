@@ -203,3 +203,118 @@ def test_offline_highlight_page_templates_are_downloaded_with_the_lists(
             shell = client.get(path)
             assert shell.status_code == 200
             assert "data-offline-shell" in shell.text
+
+
+def _news_item(client, tmp_path):
+    from test_app import _add_to_news, _first_item_id
+
+    _add_to_news(client, "https://example.test/feed.xml")
+    return _first_item_id(tmp_path)
+
+
+def test_offline_articles_also_names_each_lists_second_tab(monkeypatch, tmp_path):
+    # An item moved to Read or Archive while offline has to land on a tab
+    # that is already stored.
+    with _client(monkeypatch, tmp_path) as client:
+        pages = client.get("/offline/articles").json()["pages"]
+
+        assert "/lists/later?view=archive" in pages
+        assert "/lists/news?view=read" in pages
+        assert "/lists/later?view=read" not in pages
+        assert "/lists/news?view=archive" not in pages
+
+
+def test_list_rows_say_which_item_and_list_they_are(monkeypatch, tmp_path):
+    # app.js finds a row by these when it applies what was done offline.
+    with _client(monkeypatch, tmp_path) as client:
+        item_id = _news_item(client, tmp_path)
+
+        page = client.get("/lists/news").text
+        home = client.get("/").text
+
+        assert f'data-item-id="{item_id}"' in page
+        assert 'data-list-slug="news"' in page
+        assert f'data-item-id="{item_id}"' in home
+        assert '<section class="list" data-list="news"' in home
+
+
+def test_the_article_page_carries_what_its_buttons_do_offline(monkeypatch, tmp_path):
+    import json
+    import re
+
+    with _client(monkeypatch, tmp_path) as client:
+        item_id = _news_item(client, tmp_path)
+        client.post(f"/items/{item_id}/later")
+
+        page = client.get(f"/items/{item_id}?from_list=news").text
+
+        moves = [json.loads(m) for m in re.findall(r"data-move='([^']*)'", page)]
+        by_action = {m["action"]: m for m in moves}
+        assert by_action["read"]["list"] == "news"
+        assert by_action["read"]["then"] == "/lists/news?flash=Read"
+        assert by_action["archive"]["list"] == "later"
+        assert by_action["archive"]["then"] == "/lists/news?flash=Archived"
+        assert by_action["later"]["then"] == f"/items/{item_id}?from_list=news"
+        assert by_action["read"]["url"] == f"/items/{item_id}/read?from_list=news"
+        assert by_action["later"]["url"] == f"/items/{item_id}/later?from_list=news"
+        # Saving to Read later offline unlocks Archive, so it carries that move.
+        assert by_action["later"]["archive"] == by_action["archive"]
+        # The row each button's item becomes on the tab it lands on.
+        templates = dict(
+            re.findall(r'<template id="(moved-row-\w+)">(.*?)</template>', page, re.DOTALL)
+        )
+        read_row = templates["moved-row-read"]
+        assert f'data-swipe-action="/items/{item_id}/unread?from_list=news"' in read_row
+        assert f'href="/items/{item_id}?from_list=news&view=read"' in read_row
+        archive_row = templates["moved-row-archive"]
+        assert f'data-swipe-action="/items/{item_id}/unarchive"' in archive_row
+        later_row = templates["moved-row-later"]
+        assert f'data-swipe-action="/items/{item_id}/archive?from_list=later"' in later_row
+
+
+def test_an_article_opened_outside_a_list_has_no_mark_as_read_move(monkeypatch, tmp_path):
+    import json
+    import re
+
+    with _client(monkeypatch, tmp_path) as client:
+        item_id = _news_item(client, tmp_path)
+
+        page = client.get(f"/items/{item_id}").text
+
+        actions = {json.loads(m)["action"] for m in re.findall(r"data-move='([^']*)'", page)}
+        assert "moved-row-read" not in page
+        assert "act-read" not in page
+        assert actions == {"later"}
+
+
+def test_offline_articles_names_settings_sources_and_each_sources_and_lists_pages(
+    monkeypatch, tmp_path
+):
+    # What a reader opens without a connection beyond the lists: Settings,
+    # Sources, every source's items and its own page, and each list's editor.
+    from app import db as dbmod
+
+    with _client(monkeypatch, tmp_path) as client:
+        _news_item(client, tmp_path)
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            source_id = conn.execute(
+                "SELECT id FROM sources WHERE id != 'captured'"
+            ).fetchone()["id"]
+        finally:
+            conn.close()
+
+        pages = client.get("/offline/articles").json()["pages"]
+
+        for path in (
+            "/settings",
+            "/sources",
+            f"/sources/{source_id}/items",
+            f"/sources/{source_id}",
+            "/lists/news/edit",
+            "/lists/later/edit",
+        ):
+            assert path in pages
+        # Adding things and the like need the server, so are not stored.
+        assert "/sources/add" not in pages
+        assert "/lists/add" not in pages

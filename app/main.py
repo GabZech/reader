@@ -1151,6 +1151,48 @@ def item_page(
     else:
         back = "/"
     context_query = _item_context_query(from_source, from_list, from_home, view)
+    later_action = (
+        f"/items/{item_id}/later{context_query}" if from_list != "later" else None
+    )
+    archive_action = f"/items/{item_id}/archive{context_query}"
+    mark_read_action = (
+        f"/items/{item_id}/read{context_query}"
+        if from_list and from_list != "later"
+        else None
+    )
+    # What each button does when the phone is offline (see initItemActions in
+    # app.js): the address it posts to, the list the item moves in, where to
+    # go next, and which of the page's <template> rows it becomes.
+    archive_move = {
+        "item": item_id,
+        "list": "later",
+        "action": "archive",
+        "url": archive_action,
+        "then": _origin_url(from_source, from_list, from_home, view, "Archived"),
+        "row": "moved-row-archive",
+    }
+    moves = {
+        "later": {
+            "item": item_id,
+            "list": "later",
+            "action": "later",
+            "url": later_action,
+            "then": f"/items/{item_id}{context_query}",
+            "row": "moved-row-later",
+            # Saving offline unlocks this button.
+            "archive": archive_move,
+        },
+        "archive": archive_move,
+    }
+    if mark_read_action:
+        moves["read"] = {
+            "item": item_id,
+            "list": from_list,
+            "action": "read",
+            "url": mark_read_action,
+            "then": _origin_url(from_source, from_list, from_home, view, "Read"),
+            "row": "moved-row-read",
+        }
     return templates.TemplateResponse(
         request,
         "item.html",
@@ -1160,21 +1202,15 @@ def item_page(
             "video_id": youtube_video_id(item["url"]),
             "back": back,
             "in_read_later": in_read_later,
-            "later_action": (
-                f"/items/{item_id}/later{context_query}"
-                if from_list != "later"
-                else None
-            ),
-            "archive_action": f"/items/{item_id}/archive{context_query}",
+            "later_action": later_action,
+            "archive_action": archive_action,
             "delete_action": f"/items/{item_id}/delete{context_query}",
             "progress_action": f"/items/{item_id}/progress",
             "highlight_action": f"/items/{item_id}/highlights",
             "highlights_json": highlights_json,
-            "mark_read_action": (
-                f"/items/{item_id}/read{context_query}"
-                if from_list and from_list != "later"
-                else None
-            ),
+            "moves": moves,
+            "read_list": from_list if "read" in moves else None,
+            "mark_read_action": mark_read_action,
         },
     )
 
@@ -1699,9 +1735,18 @@ def offline_articles():
     conn = connect()
     try:
         init_db(conn)
+        slugs = [row["slug"] for row in lists_for_home_edit(conn)]
+        sources = [row["id"] for row in all_sources(conn)]
         pages = (
             ["/", "/lists"]
-            + [f"/lists/{row['slug']}" for row in lists_for_home_edit(conn)]
+            + [f"/lists/{slug}" for slug in slugs]
+            # Each list's second tab, where an item moved offline lands.
+            + [_list_url(slug, "archive" if slug == "later" else "read") for slug in slugs]
+            # Settings and Sources, to look at; what they change needs the server.
+            + ["/settings", "/sources"]
+            + [f"/lists/{slug}/edit" for slug in slugs]
+            + [f"/sources/{source}/items" for source in sources]
+            + [f"/sources/{source}" for source in sources]
             + list(OFFLINE_SHELLS)
         )
         # One article's text at a time: the whole list's at once is what

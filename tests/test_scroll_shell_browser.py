@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 from playwright.sync_api import sync_playwright
-from test_service_worker_browser import _live_server, phone  # noqa: F401
+from test_service_worker_browser import _live_server
 
 
 @pytest.fixture
@@ -41,7 +41,7 @@ def test_the_page_never_scrolls_so_the_tab_bar_cannot_be_dragged_with_it(
         assert bar_bottom == height
 
 
-def test_the_tab_bar_sits_low_with_round_outer_corners(phone, monkeypatch, tmp_path):  # noqa: F811
+def test_the_tab_bar_sits_low_with_round_outer_corners(phone, monkeypatch, tmp_path):
     with _live_server(monkeypatch, tmp_path) as (origin, _server):
         phone.goto(f"{origin}/lists")
         corners = phone.evaluate(
@@ -60,7 +60,7 @@ def test_the_tab_bar_sits_low_with_round_outer_corners(phone, monkeypatch, tmp_p
 
 
 def test_the_side_padding_is_ten_pixels_and_full_width_rows_still_reach_the_edges(
-    phone, monkeypatch, tmp_path  # noqa: F811
+    phone, monkeypatch, tmp_path
 ):
     with _live_server(monkeypatch, tmp_path) as (origin, _server):
         phone.goto(f"{origin}/lists")
@@ -85,7 +85,7 @@ def test_the_side_padding_is_ten_pixels_and_full_width_rows_still_reach_the_edge
 
 
 def test_a_list_name_on_home_is_centred_with_its_count_at_the_right(
-    phone, monkeypatch, tmp_path  # noqa: F811
+    phone, monkeypatch, tmp_path
 ):
     from datetime import UTC, datetime
 
