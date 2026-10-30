@@ -38,10 +38,9 @@ None scoped yet.
 
 Choices explicitly put off for later, each with a real trigger to revisit. Removed once acted on.
 
-#### Switching over
+#### Looks
 
-- Bring the Library Over: importing sources from the subscriptions export (OPML), and saved items from the CSV and from the folder of files, so switching off the current reading app doesn't mean rebuilding by hand. Revisit when ready to actually switch off the current reading app
-- Keep the GitHub repo name and the current Fly app name through feature work. Before the MVP is put on the phone as the lasting URL, rename the repo, stand up a new Fly app name (Fly cannot rename in place), and add a home-screen logo that shows when the site is installed
+- Add a home-screen logo that shows when the site is installed
 
 #### Security
 
