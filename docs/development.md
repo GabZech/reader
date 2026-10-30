@@ -55,7 +55,7 @@ That is what continuous integration runs (`.github/workflows/test.yml`), lint th
 
 Copy `.env.example` to `.env` if you need to override defaults. Names only, no secrets in the repo.
 
-- `READER_PASSWORD`: the password the app asks for. Required to open the app locally: without it the login page says no password is set. Pick any value in your `.env`. Tests set their own and start signed in; a test about signing in itself asks for the `anonymous` fixture. A key to save pages (`/capture`) is made on the Devices page in Settings.
+- `READER_PASSWORD`: the password the app asks for. Required to open the app locally: without it the login page says no password is set. Pick any value in your `.env`. Tests set their own and start signed in; a test about signing in itself asks for the `anonymous` fixture. A key to save pages (`/capture`) is made on the Devices page in Settings. `ALERT_EMAIL` (with the mailbox variables below) turns on sign-in alert emails; leave it unset locally.
 
 - `DATABASE_PATH`: SQLite file (default `data/reader.db`)
 - `SKELETON_FEED_URL`: public RSS URL used by the skeleton sync (default is a public news feed)
