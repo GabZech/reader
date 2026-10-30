@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
+## 2026-10-30: Pages answer from the phone's copy online too, updated on each open
+
+**Decision:** The service worker answers a page or article from its kept copy whenever it has an up-to-date one, online included. Copies are fetched again each time the app is opened (at most once a minute: sync, then pages, then downloads), and a save made from the phone marks the copies it may touch as out of date, so their next visit goes to the server. An article keeps one copy per way in, and the unread articles of lists and sources switched to "Available offline" are downloaded ahead and removed once no longer wanted.
+
+**Why:** Fetching every tap from the server made the app slower online than offline, and the reader rarely has two devices open at once.
+
+**Rejected:** Showing the copy and refreshing it behind on every visit (a page one visit out of date after every change, and a request per tap anyway); one copy per article whatever the way in (wrong Close and buttons online); downloading every list's articles (too much on a phone).
+
+**Revisit when:** Two devices are in use at once often enough that changes made elsewhere showing only from the next open gets in the way.
+
 ## 2026-10-30: Item moves share the offline queue, and only a missing connection queues them
 
 **Decision:** Archive, move back to Library, mark read or unread and save to Read later are kept in the same `localStorage` queue as highlights and sent in the order they were made. A tap tries the server first through that queue; if the connection is missing or hangs past 15 seconds it stays queued and shows "will sync", but a server error is a failed save that puts the row back, as before. Delete, adding, renaming and Home order are not queued: offline they say they need a connection. The stored pages are not rewritten: `app.js` applies what still waits to each page as it opens.
