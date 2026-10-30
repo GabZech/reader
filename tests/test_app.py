@@ -2942,3 +2942,41 @@ def test_the_link_resend_happens_only_once(monkeypatch, tmp_path):
 
         assert calls == []
 
+
+
+def _past_export_of_wrapped_text(tmp_path, item_id, wrapped):
+    # Exported two days ago, after the links fix had already run once.
+    body = "<p>One two\nthree.</p>" if wrapped else "<p>One two three.</p>"
+    two_days_ago = (datetime.now(UTC) - timedelta(days=2)).isoformat()
+    conn = dbmod.connect(tmp_path / "reader.db")
+    try:
+        conn.execute(
+            "UPDATE items SET body_html = ?, highlights_touched_at = ?,"
+            " highlights_exported_at = ? WHERE id = ?",
+            (body, two_days_ago, two_days_ago, item_id),
+        )
+        conn.execute(
+            "UPDATE highlights SET start_block = 0, start_offset = 0, end_block = 0,"
+            " end_offset = 14, text = ? WHERE item_id = ?",
+            ("One two\nthree." if wrapped else "One two three.", item_id),
+        )
+        conn.execute("PRAGMA user_version = 1")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_a_restart_resends_past_notes_that_split_wrapped_sentences(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        wrapped_id, plain_id = _two_highlighted_items(client, tmp_path)
+        _past_export_of_wrapped_text(tmp_path, wrapped_id, wrapped=True)
+        _past_export_of_wrapped_text(tmp_path, plain_id, wrapped=False)
+
+        calls = _record_exports(monkeypatch)
+        from app.main import _run_startup_catch_up
+
+        _run_startup_catch_up()
+        assert [call[0] for call in calls] == [wrapped_id]
+
+        _run_startup_catch_up()
+        assert [call[0] for call in calls] == [wrapped_id]

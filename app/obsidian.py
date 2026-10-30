@@ -20,6 +20,14 @@ KEY_TAG = "#key"
 _UNSAFE_TITLE_CHARS = re.compile(r'[\\/:*?"<>|]')
 _WHITESPACE = re.compile(r"\s")
 _LINK_SCHEMES = ("http", "https", "mailto")
+_BLOCK_TAGS = frozenset(
+    {
+        "address", "article", "aside", "blockquote", "dd", "details", "div", "dl",
+        "dt", "fieldset", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4",
+        "h5", "h6", "header", "hr", "li", "main", "nav", "ol", "p", "pre", "section",
+        "table", "tr", "ul",
+    }
+)
 
 
 def _request(method: str, url: str, **kwargs):
@@ -116,16 +124,17 @@ def _plain_highlight_lines(highlight, body_html, base_url=None) -> list[str]:
         end_block = highlight["end_block"]
     except (KeyError, IndexError):
         start_block = end_block = None
-    if start_block is not None:
-        spans = _link_spans(highlight, body_html, base_url)
+    selection = (
+        _dom_selection(highlight, body_html, base_url) if start_block is not None else None
+    )
+    shapes = None
+    if selection:
+        text_lines, shapes, spans = selection
         text_lines = _apply_links(text_lines, spans)
     is_key = _is_key(highlight)
     text_lines = [_mark(line, is_key) for line in text_lines]
-    shapes = (
-        _block_range_shapes(body_html, start_block, end_block)
-        if start_block is not None
-        else None
-    )
+    if shapes is None and start_block is not None:
+        shapes = _block_range_shapes(body_html, start_block, end_block)
     if shapes is not None and len(shapes) == len(text_lines) and any(shapes):
         return _shaped_highlight_lines(highlight, text_lines, shapes)
 
@@ -181,89 +190,160 @@ def _block_range_shapes(
     shapes: list[tuple[int, str] | None] = []
     for block in blocks:
         if block.tag in ("ul", "ol"):
-            shapes.extend(_list_item_shapes(block, 1))
+            shapes.extend(shape for _, shape in _list_items(block, 1))
         else:
             shapes.append(None)
     return shapes
 
 
-def _list_item_shapes(list_el, depth: int) -> list[tuple[int, str]]:
+def _list_items(list_el, depth: int):
+    """Each <li> of a list, nested ones included, with its (depth, marker)."""
     is_ordered = list_el.tag == "ol"
     try:
         ordinal = int(list_el.get("start", "1"))
     except ValueError:
         ordinal = 1
-    shapes: list[tuple[int, str]] = []
     for item in list_el:
         if item.tag != "li":
             continue
-        shapes.append((depth, f"{ordinal}." if is_ordered else "-"))
+        yield item, (depth, f"{ordinal}." if is_ordered else "-")
         if is_ordered:
             ordinal += 1
         for child in item:
             if child.tag in ("ul", "ol"):
-                shapes.extend(_list_item_shapes(child, depth + 1))
-    return shapes
+                yield from _list_items(child, depth + 1)
 
 
-def _link_spans(highlight, body_html, base_url) -> list[tuple[int, int, str]]:
-    """Each link the highlight covers, as (start, end, url) counted in the
-    highlight's non-whitespace characters. Offsets are character offsets
-    into a block's text, the same ones `app/static/app.js` stores. Counting
-    without whitespace keeps the spans valid against the captured text,
-    whose newlines at block boundaries the HTML does not carry. Returns no
-    spans when the HTML's text no longer matches the captured text.
+def _dom_selection(highlight, body_html, base_url):
+    """The highlight rebuilt from the article's saved HTML: (lines, shapes,
+    links), or None when the HTML no longer matches the captured text.
+
+    A line is one paragraph, or one list item, with the whitespace the
+    source wrapped it in collapsed to single spaces. Offsets are character
+    offsets into a block's text, the same ones `app/static/app.js` stores.
+    The captured text cannot give the lines on its own: it breaks wherever
+    the source did, mid-sentence included. Links are (start, end, url)
+    counted in non-whitespace characters over all the lines, which is how
+    `_apply_links` finds them again after the lines are cleaned up.
     """
     if not body_html:
-        return []
+        return None
     start_block, end_block = highlight["start_block"], highlight["end_block"]
     try:
         start_offset, end_offset = highlight["start_offset"], highlight["end_offset"]
     except (KeyError, IndexError):
         start_offset, end_offset = 0, None
     blocks = list(fromstring(f"<div>{body_html}</div>"))[start_block : end_block + 1]
-    spans: list[tuple[int, int, str, int]] = []
+    if not blocks:
+        return None
+    lines: dict[tuple[int, int], list[str]] = {}
+    line_shapes: dict[tuple[int, int], tuple[int, str] | None] = {}
+    spans: list[tuple[int, int, str, tuple[int, int]]] = []
     selected = []
     pos = 0
     for index, block in enumerate(blocks, start_block):
         lo = start_offset if index == start_block else 0
         hi = end_offset if index == end_block else None
+        shapes, pieces = _line_pieces(block)
         offset = 0
-        for text, href in _text_pieces(block):
+        for text, href, line in pieces:
             begin, offset = offset, offset + len(text)
             cut = text[max(lo - begin, 0) : None if hi is None else max(hi - begin, 0)]
             compact = _WHITESPACE.sub("", cut)
             selected.append(compact)
+            if line is None:
+                continue
+            key = (index, line)
+            lines.setdefault(key, []).append(cut)
+            line_shapes[key] = shapes[line]
             url = _export_href(href, base_url)
             if url and compact:
                 last = spans[-1] if spans else None
-                if last and last[2] == url and last[1] == pos and last[3] == index:
-                    spans[-1] = (last[0], pos + len(compact), url, index)
+                if last and last[2] == url and last[1] == pos and last[3] == key:
+                    spans[-1] = (last[0], pos + len(compact), url, key)
                 else:
-                    spans.append((pos, pos + len(compact), url, index))
+                    spans.append((pos, pos + len(compact), url, key))
             pos += len(compact)
     if "".join(selected) != _WHITESPACE.sub("", highlight["text"]):
-        return []
-    return [(start, end, url) for start, end, url, _ in spans]
+        return None
+    texts, shapes = [], []
+    for key, parts in lines.items():
+        text = re.sub(r"\s+", " ", "".join(parts)).strip()
+        if text:
+            texts.append(text)
+            shapes.append(line_shapes[key])
+    if not texts:
+        return None
+    return texts, shapes, [(start, end, url) for start, end, url, _ in spans]
 
 
 def highlights_have_links(item, highlights) -> bool:
-    return any(
-        _link_spans(highlight, item["body_html"], item["url"]) for highlight in highlights
-    )
+    for highlight in highlights:
+        selection = _dom_selection(highlight, item["body_html"], item["url"])
+        if selection and selection[2]:
+            return True
+    return False
 
 
-def _text_pieces(el, href=None):
-    # Text in document order with the href of the link it sits in, matching
-    # the text nodes the browser's textContent walks (comments carry none).
-    if el.tag == "a" and el.get("href"):
-        href = el.get("href")
-    if isinstance(el.tag, str) and el.text:
-        yield el.text, href
-    for child in el:
-        yield from _text_pieces(child, href)
-        if child.tail:
-            yield child.tail, href
+def highlights_export_differently(item, highlights) -> bool:
+    """Whether a note written from the captured text alone, which breaks
+    wherever the source wrapped a line, would read differently from one
+    rebuilt from the article now.
+    """
+    for highlight in highlights:
+        selection = _dom_selection(highlight, item["body_html"], item["url"])
+        if not selection:
+            continue
+        captured = [
+            re.sub(r"\s+", " ", line).strip()
+            for line in highlight["text"].split("\n")
+            if line.strip()
+        ]
+        if captured != selection[0]:
+            return True
+    return False
+
+
+def _line_pieces(block):
+    """A block's shape per line and its text pieces in document order, each
+    with the href of the link it sits in and the line it belongs to (None
+    for whitespace between a list's items). A plain block is one line; a
+    list has a line per item, a nested item's text staying on its own line.
+    """
+    is_list = block.tag in ("ul", "ol")
+    if is_list:
+        items = list(_list_items(block, 1))
+        line_of = {item: number for number, (item, _) in enumerate(items)}
+        shapes = [shape for _, shape in items]
+        first_line = None
+    else:
+        line_of, shapes, first_line = {}, [None], 0
+
+    def fresh_line():
+        shapes.append(None)
+        return len(shapes) - 1
+
+    def starts_line(el):
+        # Inside a plain block, a paragraph (or the like) nested in it is a
+        # line of its own; inside a list, an item's text stays on its line.
+        return not is_list and el is not block and el.tag in _BLOCK_TAGS
+
+    def walk(el, line, href):
+        line = line_of.get(el, line)
+        if starts_line(el):
+            line = fresh_line()
+        if el.tag == "a" and el.get("href"):
+            href = el.get("href")
+        if isinstance(el.tag, str) and el.text:
+            yield el.text, href, line
+        for child in el:
+            yield from walk(child, line, href)
+            if starts_line(child):
+                line = fresh_line()
+            if child.tail:
+                yield child.tail, href, line
+
+    return shapes, list(walk(block, first_line, None))
 
 
 def _export_href(href: str | None, base_url: str | None) -> str | None:
