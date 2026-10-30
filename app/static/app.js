@@ -1757,7 +1757,56 @@
     showToast("This needs a connection");
   });
 
+  // A form that asks first: the small dialog the swipe delete uses, with a
+  // Cancel and a button naming what the form will do. Without the script the
+  // form simply posts.
+  const initConfirmForms = () => {
+    document.querySelectorAll("form[data-confirm-title]").forEach((form) => {
+      form.addEventListener("submit", (event) => {
+        if (form.dataset.confirmed) return;
+        event.preventDefault();
+        const backdrop = document.createElement("div");
+        backdrop.className = "swipe-dialog-backdrop";
+        backdrop.innerHTML = `
+          <div class="swipe-dialog" role="alertdialog" aria-modal="true" aria-labelledby="swipe-dialog-title">
+            <div class="swipe-dialog-body">
+              <h2 id="swipe-dialog-title"></h2>
+              <p></p>
+            </div>
+            <div class="swipe-dialog-buttons">
+              <button type="button">Cancel</button>
+              <button type="button"></button>
+            </div>
+          </div>`;
+        backdrop.querySelector("h2").textContent = form.dataset.confirmTitle;
+        backdrop.querySelector("p").textContent = form.dataset.confirmText || "";
+        const [cancel, confirm] = backdrop.querySelectorAll("button");
+        confirm.textContent = form.dataset.confirmButton || "Confirm";
+        const close = () => {
+          backdrop.remove();
+          document.removeEventListener("keydown", onKey);
+        };
+        const onKey = (key) => {
+          if (key.key === "Escape") close();
+        };
+        cancel.addEventListener("click", close);
+        backdrop.addEventListener("click", (click) => {
+          if (click.target === backdrop) close();
+        });
+        confirm.addEventListener("click", () => {
+          close();
+          form.dataset.confirmed = "1";
+          form.requestSubmit();
+        });
+        document.addEventListener("keydown", onKey);
+        document.body.appendChild(backdrop);
+        cancel.focus();
+      });
+    });
+  };
+
   initThemeToggle();
+  initConfirmForms();
   applyMoves();
   initSwipe();
   initItemActions();
