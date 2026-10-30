@@ -34,13 +34,13 @@
     }
   };
 
-  // The Settings cog on Home turns inside two thin arrows while Home syncs
-  // or Read Later downloads for offline; it stops once both are done.
-  const busy = { syncing: false, downloading: false };
+  // The Settings cog on Home turns inside two thin arrows while the app
+  // brings itself up to date on opening; it stops once that is done.
+  const busy = { downloading: false };
   const showBusy = () => {
     const status = document.getElementById("sync-status");
     if (!status) return;
-    const on = busy.syncing || busy.downloading;
+    const on = busy.downloading;
     status.classList.toggle("is-updating", on);
     status.setAttribute("aria-label", on ? "Settings (updating)" : "Settings");
   };
@@ -56,26 +56,51 @@
     showBusy();
   };
 
-  // Ask the service worker to download Read Later ahead, so a saved article
-  // opens offline without being opened first. The worker spaces out the runs.
+  // Articles with something still to send (a highlight, a move, an opening,
+  // a reading spot): the worker must not clear their stored copy out.
+  const itemsWaiting = () => {
+    const ids = new Set();
+    const idIn = (path) => (/^\/items\/(\d+)/.exec(path || "") || [])[1];
+    outbox.now().forEach((entry) => {
+      const id = entry.item != null ? String(entry.item) : idIn(entry.article);
+      if (id) ids.add(id);
+    });
+    Object.entries(readProgress()).forEach(([path, spot]) => {
+      if (spot.unsent && idIn(path)) ids.add(idIn(path));
+    });
+    return [...ids];
+  };
+
+  // Each time the app is opened (launched, or come back to), ask the service
+  // worker to bring everything up to date: sync the sources, fetch the
+  // stored pages again and download Read Later ahead. In between, pages open
+  // from what it stored. Moving from page to page is not opening the app.
   // Asking again when a new worker takes over (the one that got the first
-  // ask may be the older worker it replaced), and on coming back to the app
-  // or the network, so a download cut short gets finished.
-  const precacheReadLater = async () => {
+  // ask may be the older worker it replaced), and on getting the network
+  // back, so a run cut short gets finished. The worker spaces out the runs.
+  const OPENED_FLAG = "reader-synced";
+  const updateOnOpen = async () => {
     if (!("serviceWorker" in navigator)) return;
     const ask = () => {
       if (!navigator.onLine) return;
       const worker = navigator.serviceWorker.controller;
-      if (worker) worker.postMessage({ type: "precache" });
+      if (worker) worker.postMessage({ type: "precache", keep: itemsWaiting() });
     };
     navigator.serviceWorker.addEventListener("message", (event) => {
-      if (event.data && event.data.type === "downloading") setDownloading(event.data.running);
+      if (!event.data) return;
+      if (event.data.type === "downloading") setDownloading(event.data.running);
+      // Home shows what the sync brought in, now stored.
+      if (event.data.type === "refreshed" && event.data.arrived && location.pathname === "/") {
+        location.reload();
+      }
     });
     navigator.serviceWorker.addEventListener("controllerchange", ask);
     window.addEventListener("online", ask);
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") ask();
     });
+    if (sessionStorage.getItem(OPENED_FLAG) === "1") return;
+    sessionStorage.setItem(OPENED_FLAG, "1");
     try {
       await navigator.serviceWorker.ready;
       ask();
@@ -474,10 +499,12 @@
         if (count && change) count.textContent = String(Math.max(0, Number(count.textContent) + change));
       });
     }
-    // Opened offline: dimmed like any opened title.
-    const seen = new Set(
-      outbox.now().filter((entry) => entry.kind === "seen").map((entry) => String(entry.item))
-    );
+    // Opened offline, or since the stored page was made: dimmed like any
+    // opened title.
+    const seen = new Set([
+      ...outbox.now().filter((entry) => entry.kind === "seen").map((entry) => String(entry.item)),
+      ...openedHere(),
+    ]);
     if (seen.size) {
       document.querySelectorAll("a.item[data-item-id]").forEach((link) => {
         if (seen.has(link.dataset.itemId)) link.classList.add("is-seen");
@@ -485,11 +512,29 @@
     }
   };
 
+  // Articles opened on this phone, newest last: the stored lists may be
+  // older than the opening, so they dim them here.
+  const OPENED_KEY = "reader-opened";
+  const openedHere = () => {
+    try {
+      return JSON.parse(localStorage.getItem(OPENED_KEY) || "[]");
+    } catch {
+      return [];
+    }
+  };
+
   // An article opened without a connection is not marked opened on the
   // server; it is told once the connection returns.
   const initSeen = () => {
     const found = /^\/items\/(\d+)$/.exec(location.pathname);
-    if (!found || navigator.onLine) return;
+    if (!found) return;
+    try {
+      const opened = openedHere().filter((id) => id !== found[1]);
+      localStorage.setItem(OPENED_KEY, JSON.stringify([...opened, found[1]].slice(-500)));
+    } catch {
+      /* best-effort */
+    }
+    if (navigator.onLine) return;
     const item = Number(found[1]);
     if (outbox.now().some((entry) => entry.kind === "seen" && entry.item === item)) return;
     outbox.add({ kind: "seen", item, url: `/items/${item}` }).catch(() => {});
@@ -640,28 +685,6 @@
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") flushOutbox();
     });
-  };
-
-  const syncHome = async () => {
-    if (location.pathname !== "/") return;
-    if (!navigator.onLine) return;
-    if (sessionStorage.getItem("reader-synced") === "1") return;
-    const updating = (on) => {
-      busy.syncing = on;
-      showBusy();
-    };
-    updating(true);
-    sessionStorage.setItem("reader-synced", "1");
-    try {
-      const response = await fetch("/sync", { method: "POST" });
-      if (response.ok) {
-        location.reload();
-      } else {
-        updating(false);
-      }
-    } catch {
-      updating(false);
-    }
   };
 
   // Home shows three rows per list, the rest behind Show more. Laid out
@@ -1029,11 +1052,13 @@
     const highlight = hashMatch
       ? body.querySelector(`[data-highlight-id="${hashMatch[1]}"]`)
       : null;
-    // The page's own spot is the server's; offline it comes from the stored
-    // copy and can be older than where the reader got to on this phone.
+    // The page's own spot is the server's as it stood when the page was
+    // made; a stored copy can be older than where the reader got to on
+    // this phone.
     const mine = readProgress()[location.pathname];
+    const renderedAt = Number(body.dataset.renderedAt) || 0;
     const resumeIndex =
-      mine && (!navigator.onLine || mine.unsent)
+      mine && (!navigator.onLine || mine.unsent || mine.at > renderedAt)
         ? mine.index
         : parseInt(body.dataset.progressIndex || "", 10);
     const resumeBlock =
@@ -1718,6 +1743,5 @@
   initHighlightDetail();
   registerWorker();
   initOutbox();
-  precacheReadLater();
-  syncHome();
+  updateOnOpen();
 })();

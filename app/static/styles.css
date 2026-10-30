@@ -1089,12 +1089,14 @@ form.is-apart {
   color: var(--muted);
 }
 
-.seg.theme-toggle {
+.seg.theme-toggle,
+.seg.offline-toggle {
   width: 9.5rem;
   margin: 0;
 }
 
-.seg.theme-toggle button {
+.seg.theme-toggle button,
+.seg.offline-toggle button {
   min-height: 2.125rem;
   font-size: 0.84375rem;
 }

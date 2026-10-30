@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import offline_switch %}
 {% block title %}Edit list{% endblock %}
 {% block body %}
       <form method="post" action="/lists/{{ slug }}/edit">
@@ -15,6 +16,7 @@
         <p class="field-error" id="list-name-error">{{ error }}</p>
         {% endif %}
       </form>
+{{ offline_switch("/lists/" ~ slug ~ "/offline", offline, "Keeps this list’s unread articles on the phone, downloaded each time the app opens. An article leaves once it is read or leaves the list.") }}
       <form class="danger-zone" method="post" action="/lists/{{ slug }}/delete">
         <button class="btn btn-danger" type="submit">Delete list</button>
       </form>

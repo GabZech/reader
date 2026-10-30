@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon_plus %}
+{% from "macros.html" import icon_plus, offline_switch %}
 {% block title %}{{ source.title }}{% endblock %}
 {% block body %}
       <a class="back" href="/sources/{{ source.id }}/items">Items</a>
@@ -31,6 +31,8 @@
         {% endfor %}
         <a class="item add-row" href="/sources/{{ source.id }}/list">{{ icon_plus() }}Add to a list</a>
       </section>
+
+{{ offline_switch("/sources/" ~ source.id ~ "/offline", source.offline, "Keeps this source’s unread articles on the phone, downloaded each time the app opens. An article leaves once it is read.") }}
 
       <form class="danger-zone" method="post" action="/sources/{{ source.id }}/delete">
         <button class="btn btn-danger" type="submit">Delete source</button>

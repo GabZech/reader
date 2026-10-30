@@ -82,7 +82,18 @@ def _seen(tmp_path, item_id):
 def _ready(phone, origin, *paths):
     """Open the app so the worker takes over and has downloaded these pages."""
     phone.goto(f"{origin}/settings")
-    phone.wait_for_function("navigator.serviceWorker.controller !== null")
+    try:
+        phone.wait_for_function("navigator.serviceWorker.controller !== null")
+    except Exception as error:
+        # Say where the worker got stuck, not only that it did.
+        state = phone.evaluate(
+            """async () => {
+              const r = await navigator.serviceWorker.getRegistration();
+              const of = (w) => (w ? w.state : "none");
+              return r ? `installing=${of(r.installing)} waiting=${of(r.waiting)} active=${of(r.active)}` : "no registration";
+            }"""
+        )
+        raise AssertionError(f"the page never came under the worker: {state}") from error
     for path in paths:
         _wait_until_cached(phone, f"{origin}{path}")
 
