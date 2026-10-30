@@ -24,18 +24,23 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
+  // Taking over the open pages is part of activating: left unawaited, WebKit
+  // at times dropped it, and a page stayed without the worker until reloaded.
+  const claimed = self.clients.claim();
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((key) => key !== CACHE && key !== IMAGES).map((key) => caches.delete(key))
-      )
-    )
+    Promise.all([
+      claimed,
+      caches.keys().then((keys) =>
+        Promise.all(
+          keys.filter((key) => key !== CACHE && key !== IMAGES).map((key) => caches.delete(key))
+        )
+      ),
+    ])
   );
-  self.clients.claim();
   // Download straight away, since the page that asked was still controlled by
   // the worker this one replaces, which ignored the ask. Not inside waitUntil:
   // pages wait for activation to finish, and would wait on every download.
-  precache().catch(() => {});
+  claimed.then(() => precache()).catch(() => {});
 });
 
 self.addEventListener("fetch", (event) => {
