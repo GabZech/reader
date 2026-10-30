@@ -185,7 +185,8 @@ def locked_for(client: str) -> timedelta | None:
     return left
 
 
-def note_failed_login(client: str) -> None:
+def note_failed_login(client: str) -> bool:
+    """Count a wrong password. True when this one started a lockout."""
     moment = now()
     for other in [c for c, until in _locked_until.items() if until <= moment]:
         del _locked_until[other]
@@ -195,13 +196,15 @@ def note_failed_login(client: str) -> None:
         del _failures[other]
     recent = [t for t in _failures.get(client, []) if moment - t < LOCK_FOR]
     recent.append(moment)
-    if len(recent) >= LOCK_AFTER:
+    locked = len(recent) >= LOCK_AFTER
+    if locked:
         _locked_until[client] = moment + LOCK_FOR
         recent = []
     if recent:
         _failures[client] = recent
     else:
         _failures.pop(client, None)
+    return locked
 
 
 def note_good_login(client: str) -> None:

@@ -10,13 +10,13 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.concurrency import run_in_threadpool
 
-from app import auth, diag
+from app import alerts, auth, diag
 from app.config import app_password, database_path, git_sha, mail_imap_config
 from app.db import (
     add_highlight,
@@ -425,21 +425,22 @@ def _start_sign_in(name: str) -> str:
 
 
 @app.post("/login")
-async def login_submit(request: Request):
+async def login_submit(request: Request, background: BackgroundTasks):
     form = await request.form()
     next_path = auth.safe_next(str(form.get("next") or "/"))
     client = auth.client_id(request)
     if auth.locked_for(client):
         return _login_response(request, status=401, next_path=next_path)
     if not auth.password_matches(str(form.get("password") or "")):
-        if app_password():
-            auth.note_failed_login(client)
+        if app_password() and auth.note_failed_login(client):
+            background.add_task(alerts.locked_out, client)
         return _login_response(request, status=401, wrong=True, next_path=next_path)
     auth.note_good_login(client)
     name = auth.device_name(
         request.headers.get("user-agent", ""), installed=form.get("installed") == "1"
     )
     token = await run_in_threadpool(_start_sign_in, name)
+    background.add_task(alerts.new_sign_in, name, client)
     response = RedirectResponse(next_path, status_code=303)
     response.set_cookie(
         auth.SESSION_COOKIE,
