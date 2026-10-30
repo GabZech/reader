@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import http.server
+import re
 import socket
 import threading
 import time
@@ -253,7 +254,14 @@ def _image_server():
 
 
 def _wait_until_cached(phone, url, cache=None, timeout=15):
-    lookup = f"caches.open('{cache}').then(c => c.match(u))" if cache else "caches.match(u)"
+    # An article is stored once per way in (?from_list=...): any will do.
+    ignore = "true" if re.search(r"/items/\d+$", url) else "false"
+    options = f"{{ ignoreSearch: {ignore} }}"
+    lookup = (
+        f"caches.open('{cache}').then(c => c.match(u, {options}))"
+        if cache
+        else f"caches.match(u, {options})"
+    )
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if phone.evaluate(f"(u) => {lookup}.then(r => !!r)", url):

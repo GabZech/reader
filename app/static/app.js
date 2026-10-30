@@ -474,10 +474,12 @@
         if (count && change) count.textContent = String(Math.max(0, Number(count.textContent) + change));
       });
     }
-    // Opened offline: dimmed like any opened title.
-    const seen = new Set(
-      outbox.now().filter((entry) => entry.kind === "seen").map((entry) => String(entry.item))
-    );
+    // Opened offline, or since the stored page was made: dimmed like any
+    // opened title.
+    const seen = new Set([
+      ...outbox.now().filter((entry) => entry.kind === "seen").map((entry) => String(entry.item)),
+      ...openedHere(),
+    ]);
     if (seen.size) {
       document.querySelectorAll("a.item[data-item-id]").forEach((link) => {
         if (seen.has(link.dataset.itemId)) link.classList.add("is-seen");
@@ -485,11 +487,29 @@
     }
   };
 
+  // Articles opened on this phone, newest last: the stored lists may be
+  // older than the opening, so they dim them here.
+  const OPENED_KEY = "reader-opened";
+  const openedHere = () => {
+    try {
+      return JSON.parse(localStorage.getItem(OPENED_KEY) || "[]");
+    } catch {
+      return [];
+    }
+  };
+
   // An article opened without a connection is not marked opened on the
   // server; it is told once the connection returns.
   const initSeen = () => {
     const found = /^\/items\/(\d+)$/.exec(location.pathname);
-    if (!found || navigator.onLine) return;
+    if (!found) return;
+    try {
+      const opened = openedHere().filter((id) => id !== found[1]);
+      localStorage.setItem(OPENED_KEY, JSON.stringify([...opened, found[1]].slice(-500)));
+    } catch {
+      /* best-effort */
+    }
+    if (navigator.onLine) return;
     const item = Number(found[1]);
     if (outbox.now().some((entry) => entry.kind === "seen" && entry.item === item)) return;
     outbox.add({ kind: "seen", item, url: `/items/${item}` }).catch(() => {});
@@ -1029,11 +1049,13 @@
     const highlight = hashMatch
       ? body.querySelector(`[data-highlight-id="${hashMatch[1]}"]`)
       : null;
-    // The page's own spot is the server's; offline it comes from the stored
-    // copy and can be older than where the reader got to on this phone.
+    // The page's own spot is the server's as it stood when the page was
+    // made; a stored copy can be older than where the reader got to on
+    // this phone.
     const mine = readProgress()[location.pathname];
+    const renderedAt = Number(body.dataset.renderedAt) || 0;
     const resumeIndex =
-      mine && (!navigator.onLine || mine.unsent)
+      mine && (!navigator.onLine || mine.unsent || mine.at > renderedAt)
         ? mine.index
         : parseInt(body.dataset.progressIndex || "", 10);
     const resumeBlock =

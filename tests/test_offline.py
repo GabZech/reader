@@ -28,7 +28,10 @@ def test_offline_articles_lists_the_read_later_library_with_its_images(
 
         assert listed["articles"] == [
             {
-                "url": f"/items/{item_id}",
+                "urls": [
+                    f"/items/{item_id}?from_list=later",
+                    f"/items/{item_id}?from_list=later&from_home=1",
+                ],
                 "images": ["https://img.test/a.png", "/static/b.png"],
             }
         ]
@@ -54,9 +57,9 @@ def test_offline_articles_leaves_out_the_archive(monkeypatch, tmp_path):
         archived = _capture(client, "archived")
         assert client.post(f"/items/{archived}/archive", follow_redirects=False).status_code == 303
 
-        urls = [a["url"] for a in client.get("/offline/articles").json()["articles"]]
+        urls = [a["urls"][0] for a in client.get("/offline/articles").json()["articles"]]
 
-        assert urls == [f"/items/{kept}"]
+        assert urls == [f"/items/{kept}?from_list=later"]
 
 
 def test_offline_articles_caps_the_images_but_keeps_every_article(monkeypatch, tmp_path):

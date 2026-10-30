@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
@@ -1201,6 +1202,9 @@ def item_page(
             "item": item,
             "video_id": youtube_video_id(item["url"]),
             "back": back,
+            # When this copy was made, in ms: the phone may store it, and a
+            # reading spot it saved since is newer than the one in it.
+            "rendered_at": int(time.time() * 1000),
             "in_read_later": in_read_later,
             "later_action": later_action,
             "archive_action": archive_action,
@@ -1756,7 +1760,10 @@ def offline_articles():
             if room:
                 images = image_urls(get_item(conn, item["id"])["body_html"])[:room]
                 room -= len(images)
-            articles.append({"url": f"/items/{item['id']}", "images": images})
+            # Stored once per way in, since Close and the buttons differ:
+            # from the Read later list, and from Home.
+            url = f"/items/{item['id']}?from_list=later"
+            articles.append({"urls": [url, f"{url}&from_home=1"], "images": images})
     finally:
         conn.close()
     return {"pages": pages, "articles": articles}
