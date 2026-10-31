@@ -9,7 +9,7 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 ### Planned
 
 - Slice 1: sync fills in the article text (shared extraction, fetch after feed read, feed refresh keeps longer stored text): built, tests pass, awaiting Try
-- Slice 2: the phone picks up the new text (article version includes text length): not started
+- Slice 2: the phone picks up the new text (article version includes text length): built, tests pass, awaiting Try
 
 ## Blocked
 
