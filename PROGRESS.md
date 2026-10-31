@@ -4,7 +4,7 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ## In flight
 
-**Fetch full text for feed items that come without it** (Bug + Behaviour + External system). Branch `dev/fetch-full-text-for-empty-feed-items`. Vitalik Buterin's feed ships every post with an empty description, so the post opened blank. Agreed: after a source's feed is read, fetch the linked page for items with an empty body (newest 5 per source per sync, retried until they succeed) or, for new items only, a body under 50 words; clean it with the same extraction Read later uses; skip YouTube; never fail the sync; keep stored text when the feed refresh brings a shorter body. Leaves alone: schema, feed parsing, Read later capture behaviour, the look. Feedback rounds: 0.
+**Fetch full text for feed items that come without it** (Bug + Behaviour + External system). Branch `dev/fetch-full-text-for-empty-feed-items`. Vitalik Buterin's feed ships every post with an empty description, so the post opened blank. Agreed: after a source's feed is read, fetch the linked page for items with an empty body (every one, newest first, retried each sync until a page gives text; the cap of 5 per source per sync was dropped at the client's request, a long first sync being fine) or, for new items only, a body under 50 words; clean it with the same extraction Read later uses; skip YouTube; never fail the sync; keep stored text when the feed refresh brings a shorter body. Leaves alone: schema, feed parsing, Read later capture behaviour, the look. Feedback rounds: 0.
 
 ### Planned
 

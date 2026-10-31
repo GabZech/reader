@@ -1483,7 +1483,7 @@ def test_text_fetched_from_a_page_survives_the_next_sync(monkeypatch, tmp_path):
     assert pages == []
 
 
-def test_a_sync_fetches_at_most_five_pages_per_source_newest_first(
+def test_one_sync_fetches_every_page_that_is_missing_its_text_newest_first(
     monkeypatch, tmp_path
 ):
     feed = _empty_description_feed(7)
@@ -1496,13 +1496,8 @@ def test_a_sync_fetches_at_most_five_pages_per_source_newest_first(
 
     ingest_url(conn, "https://blog.test/feed.xml", source_id)
     conn.commit()
-    assert pages == [f"https://blog.test/post-{n}" for n in (7, 6, 5, 4, 3)]
 
-    pages.clear()
-    ingest_url(conn, "https://blog.test/feed.xml", source_id)
-    conn.commit()
-    # The next sync carries on with what is still empty.
-    assert pages == ["https://blog.test/post-2", "https://blog.test/post-1"]
+    assert pages == [f"https://blog.test/post-{n}" for n in range(7, 0, -1)]
     assert all(count > 100 for count in _stored_words(conn, source_id).values())
 
 

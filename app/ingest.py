@@ -937,9 +937,6 @@ def ingest_url(
 # A feed item with fewer words than this is a teaser (or nothing) rather than
 # the article, so the linked page is fetched for it.
 TEASER_WORDS = 50
-# How many pages one sync fetches for one source, newest first, so a source
-# with many empty items cannot stretch the sync; the rest wait for the next.
-FILL_PAGES_PER_SYNC = 5
 PAGE_TIMEOUT = 5.0
 
 
@@ -961,7 +958,8 @@ def fill_missing_text(
     conn, source_id: str, short_new: list[str], *, release_lock: bool = False
 ) -> int:
     """Fetch the linked page for items a feed gave without its text, clean it
-    like a Read later page and keep it as the item's body. Candidates are every
+    like a Read later page and keep it as the item's body. Candidates, newest
+    first and without a limit (a long wait once beats blank articles), are every
     stored item with no text (retried each sync until a page gives some) and
     the teaser items this sync just brought in (tried once, since a source of
     genuinely short posts must not cost a fetch per sync). Never raises: a page
@@ -987,7 +985,7 @@ def fill_missing_text(
             wanted[guid] = row
     candidates = sorted(
         wanted.values(), key=lambda row: row["published_at"] or "", reverse=True
-    )[:FILL_PAGES_PER_SYNC]
+    )
     filled = 0
     for row in candidates:
         try:
