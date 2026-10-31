@@ -20,10 +20,10 @@ Never edit a Jinja template or `app/static/styles.css` to produce a preview. Tho
 Phone width, the app's current theme only. Do not produce a second capture for a theme the app does not ship.
 
 ```text
-npx --yes playwright screenshot --channel=msedge --viewport-size=390,844 --full-page preview/<file>.html preview/<name>.png
+uv run playwright screenshot --browser=webkit --viewport-size=390,844 --full-page preview/<file>.html preview/<name>.png
 ```
 
-Use `--channel=chrome` if Edge is absent. Add a desktop capture only when the change affects the wider column.
+Add a desktop capture only when the change affects the wider column.
 
 **Read the PNG before the client sees it.** Check overlap, truncated labels, missing controls, wrong viewport, and whether it still matches `docs/ui-guidelines.md`. Fix and recapture. If capture fails, say so rather than posting an unreviewed image or describing the look in words as a substitute.
 
