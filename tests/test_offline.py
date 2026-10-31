@@ -63,6 +63,22 @@ def test_an_articles_version_changes_with_its_highlights_and_reading_spot(
         assert len({before, after_spot, version()}) == 3
 
 
+def test_an_articles_version_changes_when_its_text_is_filled_in(monkeypatch, tmp_path):
+    # A feed item stored blank and filled in by a later sync: a phone holding
+    # the blank copy must download the article again.
+    with _client(monkeypatch, tmp_path) as client:
+        item_id = _capture(client, "one")
+        _set_body_html(tmp_path, item_id, "")
+
+        def version():
+            return client.get("/offline/articles").json()["articles"][0]["version"]
+
+        blank = version()
+        _set_body_html(tmp_path, item_id, "<p>The text that was fetched</p>")
+
+        assert version() != blank
+
+
 def test_offline_articles_names_home_and_every_list_to_refresh(monkeypatch, tmp_path):
     # Read Later's articles are no use offline if the list leading to them
     # never got stored.

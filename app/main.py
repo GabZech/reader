@@ -1874,11 +1874,13 @@ def offline_articles():
 
 def _article_version(conn, item) -> str:
     """What an article's stored copy shows that can change after it was
-    saved: its highlights and reading spot. The phone downloads the copy
-    again only when this differs from the one it holds."""
+    saved: its highlights, reading spot and text (a feed item stored blank is
+    filled in by a later sync). The phone downloads the copy again only when
+    this differs from the one it holds."""
     shown = [
         item["title"],
         item["progress_index"],
+        hashlib.sha1((item["body_html"] or "").encode()).hexdigest(),
         [dict(h) for h in highlights_for_item(conn, item["id"])],
     ]
     return hashlib.sha1(json.dumps(shown, default=str).encode()).hexdigest()[:12]
