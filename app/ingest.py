@@ -924,7 +924,7 @@ def ingest_url(
         # A sync commits here so the next download does not hold the write lock.
         conn.commit()
     if source_kind_for(url) != "youtube":
-        fill_missing_text(conn, source_id, release_lock=release_lock)
+        fill_missing_text(conn, source_id, url, release_lock=release_lock)
     _store_youtube_durations(conn, url, source_id)
     return result
 
@@ -957,14 +957,29 @@ def _report(url: str, outcome: str) -> None:
         return
 
 
-def fill_missing_text(conn, source_id: str, *, release_lock: bool = False) -> int:
+def _on_feed_host(page_url: str, feed_url: str) -> str | None:
+    """The same path as `page_url` on the host the feed was served from, when
+    that host is a different one (a feed served from one host often links to
+    another, and the other can be dead: Vitalik's links point at an apex domain
+    with no DNS record), else None."""
+    page, feed = urlparse(page_url), urlparse(feed_url)
+    if not feed.hostname or not page.hostname or feed.hostname == page.hostname:
+        return None
+    return page._replace(scheme=feed.scheme, netloc=feed.netloc).geturl()
+
+
+def fill_missing_text(
+    conn, source_id: str, feed_url: str, *, release_lock: bool = False
+) -> int:
     """Fetch the linked page for items a feed gave without any text, clean it
     like a Read later page and keep it as the item's body. Every stored item
     with no text is tried, newest first and without a limit (a long wait once
     beats blank articles), and again on each sync until a page gives some. An
     item with any text, however short, is left alone: a deliberately short post
     must not be swapped for its page. Never raises: a page that fails leaves
-    its item as it was. Returns how many items got text."""
+    its item as it was. A post whose own host cannot be reached is fetched from the
+    feed's host instead, and that host is then used first for the rest. Returns
+    how many items got text."""
     candidates = conn.execute(
         """
         SELECT guid, url, word_count FROM items
@@ -975,22 +990,40 @@ def fill_missing_text(conn, source_id: str, *, release_lock: bool = False) -> in
         (source_id,),
     ).fetchall()
     filled = 0
+    dead_hosts: set[str] = set()
     for position, row in enumerate(candidates):
         began = time.monotonic()
-        try:
-            body, why = _fetched_text(row["url"])
-        except httpx.TransportError as error:
-            # The site is down or slow: one timeout per sync, not one per item.
+        own_host = urlparse(row["url"]).hostname or ""
+        fallback = _on_feed_host(row["url"], feed_url)
+        attempts = [row["url"]]
+        if fallback is not None:
+            attempts = [fallback] if own_host in dead_hosts else [row["url"], fallback]
+        body, why, error, used = None, "", None, row["url"]
+        for attempt in attempts:
+            try:
+                body, why = _fetched_text(attempt)
+            except httpx.TransportError as raised:
+                error = raised
+                if attempt == row["url"]:
+                    dead_hosts.add(own_host)
+                continue
+            error, used = None, attempt
+            break
+        if error is not None:
+            # No host answers: one failure per sync, not one per item.
             skipped = len(candidates) - position - 1
             _report(
                 row["url"],
-                f"unreachable: {type(error).__name__} after "
+                f"unreachable: {type(error).__name__} {error} after "
                 f"{time.monotonic() - began:.1f}s, skipped {skipped} more",
             )
             break
+        via = ""
+        if used != row["url"]:
+            via = f", via {urlparse(used).hostname} ({own_host} unreachable)"
         words = word_count(body) if body else 0
         if words == 0:
-            _report(row["url"], why or "page had no text")
+            _report(row["url"], f"{why or 'page had no text'}{via}")
             continue
         conn.execute(
             "UPDATE items SET body_html = ?, word_count = ?"
@@ -1002,7 +1035,7 @@ def fill_missing_text(conn, source_id: str, *, release_lock: bool = False) -> in
         filled += 1
         _report(
             row["url"],
-            f"filled, {words} words, {int((time.monotonic() - began) * 1000)}ms",
+            f"filled, {words} words, {int((time.monotonic() - began) * 1000)}ms{via}",
         )
     return filled
 
