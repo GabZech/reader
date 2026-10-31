@@ -1,22 +1,6 @@
 {% extends "base.html" %}
 {% from "macros.html" import icon_plus %}
-{% block title %}Devices        {% if access_keys %}
-        <h2 class="section-label">Access keys</h2>
-        <section class="list">
-          {% for key in access_keys %}
-          <div class="set-row is-stacked device-row">
-            <span class="set-name">{{ key.name }}</span>
-            <span class="set-value">Everything except devices and keys · {% if key.created_at == key.last_used_at %}not used yet{% else %}last used {{ last_used_words(key.last_used_at) }}{% endif %}</span>
-            <span class="device-actions">
-              <form method="post" action="/settings/devices/{{ key.id }}/revoke" data-confirm-title="Revoke this access key?" data-confirm-text="Whatever uses the {{ key.name }} key will lose access at once." data-confirm-button="Revoke">
-                <button class="chip" type="submit">Revoke</button>
-              </form>
-            </span>
-          </div>
-          {% endfor %}
-        </section>
-        {% endif %}
-{% endblock %}
+{% block title %}Devices{% endblock %}
 {% block body %}
         <a class="back" href="/settings">Settings</a>
         <header class="top">
@@ -63,4 +47,21 @@
           <a class="item add-row" href="/settings/devices/keys/new">{{ icon_plus() }}Add a save key</a>
         </section>
         <p class="section-note">A save key can only send a page to Read later. It can't read, change or delete anything in your library, and it never expires until you revoke it.</p>
+
+        {% if access_keys %}
+        <h2 class="section-label">Access keys</h2>
+        <section class="list">
+          {% for key in access_keys %}
+          <div class="set-row is-stacked device-row">
+            <span class="set-name">{{ key.name }}</span>
+            <span class="set-value">Everything except devices and keys · {% if key.created_at == key.last_used_at %}not used yet{% else %}last used {{ last_used_words(key.last_used_at) }}{% endif %}</span>
+            <span class="device-actions">
+              <form method="post" action="/settings/devices/{{ key.id }}/revoke" data-confirm-title="Revoke this access key?" data-confirm-text="Whatever uses the {{ key.name }} key will lose access at once." data-confirm-button="Revoke">
+                <button class="chip" type="submit">Revoke</button>
+              </form>
+            </span>
+          </div>
+          {% endfor %}
+        </section>
+        {% endif %}
 {% endblock %}
