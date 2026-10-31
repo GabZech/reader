@@ -110,3 +110,32 @@ def test_the_server_reports_its_memory_and_whether_it_was_ever_killed_for_it(mon
         assert system["oom_kills"] >= 0
         page = client.get("/diagnostics").text
         assert "oom" in page.lower()
+
+
+def test_page_fetches_are_listed_in_the_json_and_on_the_page(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        diag.record_page_fetch("https://blog.test/post-1", "unreachable: ConnectTimeout")
+        data = _snapshot(client)
+        [fetch] = data["page_fetches"]
+        assert fetch["url"] == "https://blog.test/post-1"
+        assert fetch["outcome"] == "unreachable: ConnectTimeout"
+        assert fetch["at"]
+        page = client.get("/diagnostics").text
+        assert "Page fetches" in page
+        assert "https://blog.test/post-1" in page and "ConnectTimeout" in page
+
+
+def test_the_page_fetch_list_says_so_when_empty(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        assert _snapshot(client)["page_fetches"] == []
+        assert "Page fetches" in client.get("/diagnostics").text
+
+
+def test_only_the_newest_page_fetches_are_kept_and_long_text_is_cut(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        for n in range(diag.MAX_PAGE_FETCHES + 5):
+            diag.record_page_fetch(f"https://blog.test/{n}", "x" * 1000)
+        fetches = _snapshot(client)["page_fetches"]
+        assert len(fetches) == diag.MAX_PAGE_FETCHES
+        assert fetches[-1]["url"] == f"https://blog.test/{diag.MAX_PAGE_FETCHES + 4}"
+        assert len(fetches[0]["outcome"]) <= 200

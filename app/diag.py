@@ -15,6 +15,7 @@ MAX_EVENTS = 1500
 MAX_REQUESTS = 400
 MAX_BODY_BYTES = 64_000
 MAX_BATCH = 100
+MAX_PAGE_FETCHES = 100
 
 # Paths that would only add noise to the request trace.
 QUIET_PATHS = {"/health", "/diag", "/diagnostics", "/sw.js", "/manifest.webmanifest", "/favicon.ico"}
@@ -23,6 +24,7 @@ _started = datetime.now(UTC)
 _events: deque[dict] = deque()
 _seen: set[tuple[str, int]] = set()
 _requests: deque[dict] = deque(maxlen=MAX_REQUESTS)
+_page_fetches: deque[dict] = deque(maxlen=MAX_PAGE_FETCHES)
 _in_flight = 0
 
 
@@ -31,6 +33,7 @@ def reset() -> None:
     _events.clear()
     _seen.clear()
     _requests.clear()
+    _page_fetches.clear()
     _in_flight = 0
 
 
@@ -96,6 +99,18 @@ def request_finished(method: str, path: str, status: int, started: tuple[float, 
     )
 
 
+def record_page_fetch(url: str, outcome: str) -> None:
+    """Note what became of fetching a feed post's own page, because a sync
+    that fetches none must say why: the sync itself never fails over it."""
+    _page_fetches.append(
+        {
+            "at": datetime.now(UTC).strftime("%H:%M:%S"),
+            "url": _text(url, 120),
+            "outcome": _text(outcome, 200),
+        }
+    )
+
+
 def _proc_number(path: str, key: str) -> int | None:
     """One number from a /proc file ("Key:   123 kB" or "key 123"), else None."""
     try:
@@ -138,4 +153,5 @@ def snapshot() -> dict:
         "uptime_s": int((now - _started).total_seconds()),
         "events": list(_events),
         "requests": list(_requests),
+        "page_fetches": list(_page_fetches),
     }

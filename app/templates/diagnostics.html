@@ -15,6 +15,12 @@
 {% else %}Nothing yet.
 {% endfor %}</pre>
 
+        <h2 class="section-label">Page fetches</h2>
+        <p class="section-note">Each time a sync fetched the page of a feed post that came with no text, and what came of it.</p>
+        <pre class="diag-log">{% for line in page_fetch_lines %}{{ line }}
+{% else %}Nothing yet.
+{% endfor %}</pre>
+
         <h2 class="section-label">Server requests</h2>
         <pre class="diag-log">{% for line in request_lines %}{{ line }}
 {% else %}Nothing yet.

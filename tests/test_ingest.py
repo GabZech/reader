@@ -1623,3 +1623,113 @@ def test_a_youtube_channel_is_not_fetched_for_its_pages(monkeypatch, tmp_path):
 
     # Only the feed itself (a long-form feed asked for first): no video pages.
     assert requested == [LONGFORM_FEED_URL]
+
+
+# --- Page fetches are reported to Diagnostics ------------------------------
+
+
+def _fetch_lines(diag_module) -> list[tuple[str, str]]:
+    return [(f["url"], f["outcome"]) for f in diag_module.snapshot()["page_fetches"]]
+
+
+def test_a_filled_in_page_is_reported_with_its_size(monkeypatch, tmp_path):
+    from app import diag
+
+    diag.reset()
+    _serve_pages(
+        monkeypatch,
+        "https://blog.test/feed.xml",
+        _empty_description_feed(1),
+        _capture_fixture("blog.html"),
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+
+    [(url, outcome)] = _fetch_lines(diag)
+    assert url == "https://blog.test/post-1"
+    assert outcome.startswith("filled") and "words" in outcome and "ms" in outcome
+
+
+def test_an_unreachable_site_is_reported_once_with_the_error_and_what_was_skipped(
+    monkeypatch, tmp_path
+):
+    import httpx
+
+    from app import diag
+
+    diag.reset()
+    _serve_pages(
+        monkeypatch,
+        "https://blog.test/feed.xml",
+        _empty_description_feed(3),
+        httpx.ConnectTimeout("site is down"),
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+
+    lines = _fetch_lines(diag)
+    assert len(lines) == 1
+    assert lines[0][0] == "https://blog.test/post-3"
+    assert "unreachable" in lines[0][1] and "ConnectTimeout" in lines[0][1]
+    assert "skipped 2 more" in lines[0][1]
+
+
+def test_a_refused_page_and_a_page_with_no_text_are_reported_with_the_reason(
+    monkeypatch, tmp_path
+):
+    import httpx
+
+    from app import diag
+
+    def page(url: str):
+        if url.endswith("post-2"):
+            request = httpx.Request("GET", url)
+            return httpx.HTTPStatusError(
+                "refused", request=request, response=httpx.Response(403, request=request)
+            )
+        return "<html><body></body></html>"
+
+    diag.reset()
+    _serve_pages(
+        monkeypatch, "https://blog.test/feed.xml", _empty_description_feed(2), page
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+
+    outcomes = dict(_fetch_lines(diag))
+    assert "HTTP 403" in outcomes["https://blog.test/post-2"]
+    assert "no text" in outcomes["https://blog.test/post-1"]
+
+
+def test_a_failure_in_reporting_never_stops_the_text_being_filled_in(
+    monkeypatch, tmp_path
+):
+    from app import diag
+
+    def broken(url, outcome):
+        raise RuntimeError("diagnostics broke")
+
+    monkeypatch.setattr(diag, "record_page_fetch", broken)
+    _serve_pages(
+        monkeypatch,
+        "https://blog.test/feed.xml",
+        _empty_description_feed(1),
+        _capture_fixture("blog.html"),
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+    conn.commit()
+
+    assert _stored_words(conn, source_id)["https://blog.test/post-1"] > 100

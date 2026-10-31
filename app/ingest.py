@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import time
 from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC
@@ -15,6 +16,7 @@ import trafilatura
 from lxml import etree
 from lxml.html import fromstring, tostring
 
+from app import diag
 from app.db import (
     CAPTURED_SOURCE_ID,
     add_item_to_list,
@@ -930,18 +932,29 @@ def ingest_url(
 PAGE_TIMEOUT = 5.0
 
 
-def _fetched_text(url: str) -> str | None:
-    """The cleaned text of the page at `url`, or None when it is gone, refused
-    or has none. A site that cannot be reached at all raises, so the caller can
-    stop asking it."""
+def _fetched_text(url: str) -> tuple[str | None, str]:
+    """The cleaned text of the page at `url` (None when it is gone, refused or
+    has none) and, when there is none, why. A site that cannot be reached at
+    all raises, so the caller can stop asking it."""
     try:
         _final_url, html = fetch_url(url, timeout=PAGE_TIMEOUT)
         body, _metadata = _extract_article(html, url)
     except httpx.TransportError:
         raise
-    except Exception:  # noqa: BLE001 - a gone or refused page, or HTML that will not parse, skips only its own item
-        return None
-    return body
+    except httpx.HTTPStatusError as error:
+        return None, f"HTTP {error.response.status_code}"
+    except Exception as error:  # noqa: BLE001 - HTML that will not parse, or any other fault, skips only its own item
+        return None, f"error: {type(error).__name__}"
+    return (body, "") if body else (None, "page had no text")
+
+
+def _report(url: str, outcome: str) -> None:
+    """Tell Diagnostics what became of a page fetch. Never raises: a fault in
+    reporting must not cost the text or fail the sync."""
+    try:
+        diag.record_page_fetch(url, outcome)
+    except Exception:  # noqa: BLE001 - reporting is best effort
+        return
 
 
 def fill_missing_text(conn, source_id: str, *, release_lock: bool = False) -> int:
@@ -962,14 +975,22 @@ def fill_missing_text(conn, source_id: str, *, release_lock: bool = False) -> in
         (source_id,),
     ).fetchall()
     filled = 0
-    for row in candidates:
+    for position, row in enumerate(candidates):
+        began = time.monotonic()
         try:
-            body = _fetched_text(row["url"])
-        except httpx.TransportError:
+            body, why = _fetched_text(row["url"])
+        except httpx.TransportError as error:
             # The site is down or slow: one timeout per sync, not one per item.
+            skipped = len(candidates) - position - 1
+            _report(
+                row["url"],
+                f"unreachable: {type(error).__name__} after "
+                f"{time.monotonic() - began:.1f}s, skipped {skipped} more",
+            )
             break
         words = word_count(body) if body else 0
         if words == 0:
+            _report(row["url"], why or "page had no text")
             continue
         conn.execute(
             "UPDATE items SET body_html = ?, word_count = ?"
@@ -979,6 +1000,10 @@ def fill_missing_text(conn, source_id: str, *, release_lock: bool = False) -> in
         if release_lock:
             conn.commit()
         filled += 1
+        _report(
+            row["url"],
+            f"filled, {words} words, {int((time.monotonic() - began) * 1000)}ms",
+        )
     return filled
 
 

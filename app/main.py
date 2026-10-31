@@ -1991,6 +1991,10 @@ def diagnostics_page(request: Request, fmt: str | None = Query(None, alias="form
         f"{r['at']}  {r['method']:<4} {r['path']:<28} {r['status']}  {r['ms']}ms  busy={r['busy']}"
         for r in reversed(snapshot["requests"])
     ]
+    fetched = [
+        f"{f['at']}  {f['url']}  {f['outcome']}"
+        for f in reversed(snapshot["page_fetches"])
+    ]
     return templates.TemplateResponse(
         request,
         "diagnostics.html",
@@ -2001,6 +2005,7 @@ def diagnostics_page(request: Request, fmt: str | None = Query(None, alias="form
             "system": snapshot["system"],
             "event_lines": lines[:300],
             "request_lines": served[:150],
+            "page_fetch_lines": fetched,
         },
     )
 
