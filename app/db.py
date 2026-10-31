@@ -982,38 +982,52 @@ def upsert_item(
     body_html: str | None,
     image_url: str | None,
     word_count: int | None,
+    keep_longer_text_under: int | None = None,
 ) -> bool:
+    """Store an item, refreshing it if its (source, guid) is already stored.
+    With `keep_longer_text_under`, a refresh that brings fewer words than that
+    leaves a longer stored text in place: a feed that ships only a teaser must
+    not undo the full text fetched from the page."""
     existing = conn.execute(
         "SELECT id FROM items WHERE source_id = ? AND guid = ?",
         (source_id, guid),
     ).fetchone()
+    # True when this refresh is only a teaser sitting over a longer stored text.
+    keep = (
+        ":under IS NOT NULL AND COALESCE(excluded.word_count, 0) < :under"
+        " AND COALESCE(items.word_count, 0) > COALESCE(excluded.word_count, 0)"
+    )
     conn.execute(
-        """
+        f"""
         INSERT INTO items (
             source_id, guid, title, author, url, published_at,
             body_html, image_url, word_count
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (
+            :source_id, :guid, :title, :author, :url, :published_at,
+            :body_html, :image_url, :word_count
+        )
         ON CONFLICT(source_id, guid) DO UPDATE SET
             title = excluded.title,
             author = excluded.author,
             url = excluded.url,
             published_at = excluded.published_at,
-            body_html = excluded.body_html,
+            body_html = CASE WHEN {keep} THEN items.body_html ELSE excluded.body_html END,
             image_url = excluded.image_url,
-            word_count = excluded.word_count
+            word_count = CASE WHEN {keep} THEN items.word_count ELSE excluded.word_count END
         """,
-        (
-            source_id,
-            guid,
-            title,
-            author,
-            url,
-            published_at,
-            body_html,
-            image_url,
-            word_count,
-        ),
+        {
+            "source_id": source_id,
+            "guid": guid,
+            "title": title,
+            "author": author,
+            "url": url,
+            "published_at": published_at,
+            "body_html": body_html,
+            "image_url": image_url,
+            "word_count": word_count,
+            "under": keep_longer_text_under,
+        },
     )
     return existing is None
 
