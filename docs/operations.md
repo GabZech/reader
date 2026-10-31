@@ -55,6 +55,16 @@ Injected as environment variables on the host. Secrets stay out of Git.
 - `ALERT_EMAIL`: where to send an email when a new browser signs in or a network is locked out for wrong passwords. Set as a Fly secret. It goes out through the same Gmail account as the newsletter mailbox (`smtp.gmail.com`, port 587, the same app password; `MAIL_SMTP_HOST` overrides the host). Without it, or without the mailbox, no alert is sent and signing in is unaffected. A failed send never blocks anything: it shows under Diagnostics as `alert-failed`. Not yet proved against Gmail from Fly: the first sign-in after setting it is the test, so check the inbox and Diagnostics.
 - `MAIL_IMAP_HOST`, `MAIL_IMAP_USER`, `MAIL_IMAP_PASSWORD`: isolated newsletter mailbox (dedicated Gmail account, app password, IMAP enabled), set as Fly secrets 2026-08-24. Never personal-mailbox credentials.
 
+## Debugging the live app: the access key
+
+Diagnostics and every other page sit behind the sign-in, so a cloud agent session cannot read them without a key. Make an **access key** on the Devices page (Add a save key, then Claude access): it can use everything a signed-in browser can except the Devices pages, making keys and signing out, so a leaked one cannot lock you out. It is shown once.
+
+1. Store it as an environment variable in the cloud session's environment settings (the cloud environment menu in the session's title bar, then Edit), named `READER_ACCESS_KEY`. A new session picks it up. Never paste it into a chat.
+2. A session sends it as a header, never in an address: `curl -sS -H "Authorization: Bearer $READER_ACCESS_KEY" "https://reader-skeleton.fly.dev/diagnostics?format=json"`.
+3. It ends when you revoke it (Devices page, which also shows when it was last used) or change `LOGIN_PASSWORD`; make a new one after a password change and update the variable.
+
+The library is live and there is no test copy, so an agent reads freely and asks before anything that deletes or rewrites content.
+
 ## Capturing a page to Read later
 
 Sending a link to Read later from outside the app (any site, not just a subscribed source) uses the same `/capture` endpoint from two one-time setups, since Reader is a web app rather than a native app with its own Share Sheet extension. Neither tool can use the browser's sign-in (a request from another website carries no cookie), so each has its own **save key**: made under Settings, Devices, Add a save key, shown once, and good for saving to Read later and nothing else. A key never expires; revoke it on the same page, where each one shows when it was last used. A tool whose key was revoked gets a 401 saying so.

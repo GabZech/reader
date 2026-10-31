@@ -107,14 +107,22 @@ def signed_in_device(conn: sqlite3.Connection, token: str | None) -> sqlite3.Row
 
 def _note_used(conn: sqlite3.Connection, device: sqlite3.Row, idle: timedelta, moment: datetime):
     # Not on every tap, but a key's first use always: "not used yet" must go away.
-    first_use = device["kind"] == "key" and device["created_at"] == device["last_used_at"]
+    first_use = device["kind"] in ("key", "access") and device["created_at"] == device["last_used_at"]
     if idle >= TOUCH_EVERY or first_use:
         touch_device(conn, device["id"], moment)
         conn.commit()
 
 
-def new_key() -> str:
-    return "rk_" + secrets.token_urlsafe(24)
+def new_key(prefix: str = "rk_") -> str:
+    return prefix + secrets.token_urlsafe(24)
+
+
+def bearer_token(request: Request) -> str | None:
+    """The key a tool sends as `Authorization: Bearer <key>`. Only the header:
+    a key in an address or a form would end up in logs and history."""
+    scheme, _, token = request.headers.get("authorization", "").partition(" ")
+    token = token.strip()
+    return token if scheme.lower() == "bearer" and token else None
 
 
 def valid_save_key(conn: sqlite3.Connection, key: str | None) -> sqlite3.Row | None:
@@ -129,6 +137,30 @@ def valid_save_key(conn: sqlite3.Connection, key: str | None) -> sqlite3.Row | N
     moment = now()
     _note_used(conn, device, moment - datetime.fromisoformat(device["last_used_at"]), moment)
     return device
+
+
+def valid_access_key(conn: sqlite3.Connection, key: str | None) -> sqlite3.Row | None:
+    """An access key lets a developer's tooling use the whole app except the
+    pages that manage devices and keys (the middleware keeps it out of them).
+    It does not expire from disuse, but it is tied to the password like a
+    browser sign-in: changing the password ends it."""
+    if not key or epoch() is None:
+        return None
+    device = find_device(conn, token_hash(key))
+    if device is None or device["kind"] != "access":
+        return None
+    if device["epoch"] != epoch():
+        delete_device(conn, device["id"])
+        conn.commit()
+        return None
+    moment = now()
+    _note_used(conn, device, moment - datetime.fromisoformat(device["last_used_at"]), moment)
+    return device
+
+
+# What an access key may never reach, whatever else it can do.
+def is_device_management(path: str) -> bool:
+    return path.startswith("/settings/devices") or path == "/logout"
 
 
 def wants_page(request: Request) -> bool:

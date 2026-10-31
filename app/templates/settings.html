@@ -49,7 +49,7 @@
 
         <h2 class="section-label">Security</h2>
         <section class="list">
-          <a class="item list-row" href="/settings/devices"><span class="title">Devices</span><span class="set-value">{{ browser_count }} browser{{ "" if browser_count == 1 else "s" }}{% if key_count %} · {{ key_count }} save key{{ "" if key_count == 1 else "s" }}{% endif %}</span></a>
+          <a class="item list-row" href="/settings/devices"><span class="title">Devices</span><span class="set-value">{{ browser_count }} browser{{ "" if browser_count == 1 else "s" }}{% if key_count %} · {{ key_count }} save key{{ "" if key_count == 1 else "s" }}{% endif %}{% if access_count %} · {{ access_count }} access key{{ "" if access_count == 1 else "s" }}{% endif %}</span></a>
         </section>
         <form method="post" action="/logout">
           <button class="btn btn-danger" type="submit">Sign out of this device</button>

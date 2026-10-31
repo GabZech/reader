@@ -14,6 +14,16 @@
           </div>
         </section>
         <p class="section-note">Click it on any page to send that page to Read later. If you lose it, revoke this key on the Devices page and make a new one.</p>
+        {% elif kind == "access" %}
+        <p class="lede">Copy this key now. It is shown only once.</p>
+        <label class="field-label">{{ name }}</label>
+        <section class="list">
+          <div class="set-row is-stacked">
+            <span class="set-value key-text">{{ key }}</span>
+          </div>
+        </section>
+        <button class="btn btn-accent" type="button" data-copy-text="{{ key }}">Copy key</button>
+        <p class="section-note">Store it as a secret where the tool runs, never in a chat. Send it as the header <b>Authorization: Bearer</b> followed by the key; it does not work in an address or a form. It can do everything except manage devices and keys, and it ends if you change the password or revoke it on the Devices page.</p>
         {% else %}
         <p class="lede">Copy this key now. It is shown only once.</p>
         <label class="field-label">{{ name }}</label>

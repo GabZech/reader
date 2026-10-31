@@ -14,4 +14,10 @@
           <input type="hidden" name="kind" value="bookmarklet">
           <button class="btn" type="submit">Computer bookmarklet</button>
         </form>
+        <h2 class="section-label">Something else</h2>
+        <form method="post" action="/settings/devices/keys">
+          <input type="hidden" name="kind" value="access">
+          <button class="btn" type="submit">Claude access</button>
+        </form>
+        <p class="section-note">Claude access can do everything except manage devices and keys, so it can read and change your library. It stops working if you change the password.</p>
 {% endblock %}

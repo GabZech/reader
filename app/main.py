@@ -263,7 +263,17 @@ async def require_sign_in(request: Request, call_next):
         return await call_next(request)
     token = request.cookies.get(auth.SESSION_COOKIE)
     device = await run_in_threadpool(_signed_in_device, token) if token else None
+    request.state.access = False
     if device is None:
+        # A developer's tooling sends an access key as a bearer header. It
+        # may use everything except the pages that manage devices and keys.
+        key = auth.bearer_token(request)
+        if key and await run_in_threadpool(_is_access_key, key):
+            if auth.is_device_management(path):
+                return Response("Not available to an access key", status_code=403)
+            request.state.device = None
+            request.state.access = True
+            return await call_next(request)
         # The tools that save a page carry a key instead of a cookie, which
         # only the route can read from the form.
         if path == "/capture" and request.method == "POST":
@@ -347,6 +357,15 @@ def home(request: Request, flash: str = ""):
     )
 
 
+def _is_access_key(key: str) -> bool:
+    conn = connect()
+    try:
+        init_db(conn)
+        return auth.valid_access_key(conn, key) is not None
+    finally:
+        conn.close()
+
+
 def _is_save_key(key: str) -> bool:
     conn = connect()
     try:
@@ -384,6 +403,7 @@ def settings_page(request: Request):
         lists = lists_for_home_edit(conn)
         browser_count = len(devices_of_kind(conn, "browser"))
         key_count = len(devices_of_kind(conn, "key"))
+        access_count = len(devices_of_kind(conn, "access"))
     finally:
         conn.close()
     return templates.TemplateResponse(
@@ -394,6 +414,7 @@ def settings_page(request: Request):
             "lists": lists,
             "browser_count": browser_count,
             "key_count": key_count,
+            "access_count": access_count,
             "newsletter_address": newsletter_address,
         },
     )
@@ -501,6 +522,7 @@ def devices_page(request: Request, flash: str = ""):
         init_db(conn)
         browsers = devices_of_kind(conn, "browser")
         keys = devices_of_kind(conn, "key")
+        access_keys = devices_of_kind(conn, "access")
     finally:
         conn.close()
     here = request.state.device["id"]
@@ -515,6 +537,7 @@ def devices_page(request: Request, flash: str = ""):
             "browsers": [{**dict(row), "is_here": row["id"] == here} for row in ordered],
             "has_others": len(browsers) > 1,
             "keys": [dict(row) for row in keys],
+            "access_keys": [dict(row) for row in access_keys],
         },
     )
 
@@ -533,7 +556,11 @@ def devices_sign_out_others(request: Request):
     return _devices_flash(f"Signed out {count} other browser{'' if count == 1 else 's'}")
 
 
-KEY_KINDS = {"shortcut": "iPhone Shortcut", "bookmarklet": "Computer bookmarklet"}
+KEY_KINDS = {
+    "shortcut": "iPhone Shortcut",
+    "bookmarklet": "Computer bookmarklet",
+    "access": "Claude access",
+}
 
 
 @app.get("/settings/devices/keys/new")
@@ -547,11 +574,19 @@ async def key_create(request: Request):
     kind = str(form.get("kind") or "")
     if kind not in KEY_KINDS:
         raise HTTPException(status_code=400)
-    key = auth.new_key()
+    access = kind == "access"
+    key = auth.new_key("ak_" if access else "rk_")
     conn = connect()
     try:
         init_db(conn)
-        create_device(conn, "key", KEY_KINDS[kind], auth.token_hash(key), None, auth.now())
+        create_device(
+            conn,
+            "access" if access else "key",
+            KEY_KINDS[kind],
+            auth.token_hash(key),
+            auth.epoch() if access else None,
+            auth.now(),
+        )
         conn.commit()
     finally:
         conn.close()
@@ -2075,7 +2110,7 @@ def item_delete(
 @app.post("/capture")
 async def capture(request: Request):
     form = await request.form()
-    if request.state.device is None and not await run_in_threadpool(
+    if request.state.device is None and not request.state.access and not await run_in_threadpool(
         _is_save_key, str(form.get("key") or "").strip()
     ):
         raise HTTPException(
