@@ -95,6 +95,31 @@
   // Asking again when a new worker takes over (the one that got the first
   // ask may be the older worker it replaced), and on getting the network
   // back, so a run cut short gets finished. The worker spaces out the runs.
+  // Home and the lists change behind the phone's back (a sync, the computer,
+  // the Shortcut). The page shows a stored copy, so once the worker has stored
+  // a different one, reload to show it, but never under the reader: not with a
+  // finger down, a dialog open, or the page scrolled away from the top.
+  let fingerDown = false;
+  document.addEventListener("pointerdown", () => (fingerDown = true), true);
+  ["pointerup", "pointercancel"].forEach((type) =>
+    document.addEventListener(type, () => (fingerDown = false), true)
+  );
+  const LIVE_PAGE = /^\/(lists\/[^/]+)?$/;
+  const CATCH_UP_TRIES = 20;
+  const catchUp = (changed, tries = 0) => {
+    const here = new URL(location.href);
+    here.searchParams.delete("flash");
+    if (!LIVE_PAGE.test(here.pathname) || !changed.includes(here.pathname + here.search)) return;
+    const scroller = document.querySelector(".scroller");
+    if (scroller && scroller.scrollTop > 100) return;
+    const busy =
+      fingerDown ||
+      document.querySelector("[data-busy], .swipe-dialog-backdrop") ||
+      ["INPUT", "TEXTAREA"].includes(document.activeElement && document.activeElement.tagName);
+    if (!busy) location.reload();
+    else if (tries < CATCH_UP_TRIES) setTimeout(() => catchUp(changed, tries + 1), 500);
+  };
+
   const OPENED_FLAG = "reader-synced";
   const updateOnOpen = async () => {
     if (!("serviceWorker" in navigator)) return;
@@ -110,6 +135,8 @@
       // Home shows what the sync brought in, now stored.
       if (event.data.type === "refreshed" && event.data.arrived && location.pathname === "/") {
         location.reload();
+      } else if (event.data.type === "refreshed") {
+        catchUp(event.data.changed || []);
       }
     });
     navigator.serviceWorker.addEventListener("controllerchange", ask);

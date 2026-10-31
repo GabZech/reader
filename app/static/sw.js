@@ -313,13 +313,21 @@ async function downloadEverything(keep) {
 
   // Home and the lists first: they are what the reader sees on opening.
   // The one from last time is kept when fetching fails.
+  // The pages whose new copy differs from the one kept are named, so the page
+  // on screen can catch up (something saved from elsewhere shows at once).
+  const changed = [];
   await eachAtOnce([...lists, ...SHELL], async (path) => {
     const askedAt = Date.now();
+    const key = new URL(path, location.origin).href;
     const response = await fetch(path, { cache: "no-store" });
-    if (response.ok) await store(pages, new URL(path, location.origin).href, response, askedAt);
+    if (!response.ok) return;
+    const before = SHELL.includes(path) ? null : await pages.match(key);
+    const fresh = before ? response.clone() : null;
+    await store(pages, key, response, askedAt);
+    if (before && (await before.text()) !== (await fresh.text())) changed.push(path);
   });
   // Home shows what the sync brought in once its new copy is stored.
-  tell("refreshed", null, { arrived });
+  tell("refreshed", null, { arrived, changed });
 
   // Each article for each way in to it (from the Read later list and from
   // Home), when not stored yet or changed since (a highlight, a reading
