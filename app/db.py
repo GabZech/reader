@@ -992,38 +992,52 @@ def upsert_item(
     body_html: str | None,
     image_url: str | None,
     word_count: int | None,
+    keep_text_if_empty: bool = False,
 ) -> bool:
+    """Store an item, refreshing it if its (source, guid) is already stored.
+    With `keep_text_if_empty`, a refresh that brings no text leaves the stored
+    text in place: a feed that ships none must not undo the text fetched from
+    the page."""
     existing = conn.execute(
         "SELECT id FROM items WHERE source_id = ? AND guid = ?",
         (source_id, guid),
     ).fetchone()
+    # True when this refresh brings no text over a stored text.
+    keep = (
+        ":keep_text_if_empty AND COALESCE(excluded.word_count, 0) = 0"
+        " AND COALESCE(items.word_count, 0) > 0"
+    )
     conn.execute(
-        """
+        f"""
         INSERT INTO items (
             source_id, guid, title, author, url, published_at,
             body_html, image_url, word_count
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (
+            :source_id, :guid, :title, :author, :url, :published_at,
+            :body_html, :image_url, :word_count
+        )
         ON CONFLICT(source_id, guid) DO UPDATE SET
             title = excluded.title,
             author = excluded.author,
             url = excluded.url,
             published_at = excluded.published_at,
-            body_html = excluded.body_html,
+            body_html = CASE WHEN {keep} THEN items.body_html ELSE excluded.body_html END,
             image_url = excluded.image_url,
-            word_count = excluded.word_count
+            word_count = CASE WHEN {keep} THEN items.word_count ELSE excluded.word_count END
         """,
-        (
-            source_id,
-            guid,
-            title,
-            author,
-            url,
-            published_at,
-            body_html,
-            image_url,
-            word_count,
-        ),
+        {
+            "source_id": source_id,
+            "guid": guid,
+            "title": title,
+            "author": author,
+            "url": url,
+            "published_at": published_at,
+            "body_html": body_html,
+            "image_url": image_url,
+            "word_count": word_count,
+            "keep_text_if_empty": keep_text_if_empty,
+        },
     )
     return existing is None
 

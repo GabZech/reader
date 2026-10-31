@@ -1367,3 +1367,259 @@ def test_sync_does_not_hold_the_write_lock_while_downloading(monkeypatch, tmp_pa
     assert served.pages == [VIDEOS_PAGE_URL]
     conn.commit()
     assert _durations(conn, "yt-channel")
+
+
+# --- Full text for feed items that come without it -------------------------
+
+VITALIK_FEED = Path(__file__).parent / "fixtures" / "vitalik_feed.xml"
+VITALIK_FEED_URL = "https://vitalik.eth.limo/feed.xml"
+VITALIK_ARTICLE = "https://vitalik.ca/general/2026/10/31/digital_minimalism.html"
+VITALIK_OLDER = [
+    "https://vitalik.ca/general/2026/09/27/the_cryptographic_world_computer.html",
+    "https://vitalik.ca/general/2026/08/21/obfuscation_part_iii_local_mixing.html",
+]
+
+
+def _empty_description_feed(count: int) -> str:
+    """A feed shaped like Vitalik's: a title, a link and a date, no text."""
+    items = "".join(
+        f"""<item><title>Post {n}</title>
+<link>https://blog.test/post-{n}</link><guid>https://blog.test/post-{n}</guid>
+<pubDate>{datetime(2026, 9, n, tzinfo=UTC):%a, %d %b %Y %H:%M:%S +0000}</pubDate>
+<description></description></item>"""
+        for n in range(1, count + 1)
+    )
+    return f'<rss version="2.0"><channel><title>Blog</title>{items}</channel></rss>'
+
+
+def _serve_pages(monkeypatch, feed_url: str, feed: str, page=None):
+    """Stand in for a blog: the feed answers with `feed`; any other address is
+    an article page, answered by `page(url)` (a string, or an exception to
+    raise). Returns the addresses asked for, pages only."""
+    pages: list[str] = []
+
+    def fake_fetch_url(url: str, timeout: float = 8.0):
+        if url == feed_url:
+            return url, feed
+        pages.append(url)
+        answer = page(url) if callable(page) else page
+        if isinstance(answer, Exception):
+            raise answer
+        return url, answer
+
+    monkeypatch.setattr("app.ingest.fetch_url", fake_fetch_url)
+    return pages
+
+
+def _blog_source(conn, feed_url: str, source_id: str = "blog") -> str:
+    insert_source(
+        conn,
+        source_id=source_id,
+        kind="rss",
+        title="Blog",
+        feed_url=feed_url,
+        backfill=None,
+    )
+    return source_id
+
+
+def _stored_words(conn, source_id: str) -> dict[str, int | None]:
+    rows = conn.execute(
+        "SELECT url, word_count FROM items WHERE source_id = ?", (source_id,)
+    )
+    return {row["url"]: row["word_count"] for row in rows}
+
+
+def test_a_feed_with_empty_descriptions_gets_its_text_from_the_linked_page(
+    monkeypatch, tmp_path
+):
+    # The reported bug: Vitalik's feed has a title, link and date per post and
+    # nothing else, so the post was stored (and shown) blank.
+    pages = _serve_pages(
+        monkeypatch,
+        VITALIK_FEED_URL,
+        VITALIK_FEED.read_text(encoding="utf-8"),
+        _capture_fixture("vitalik_techno_optimism.html"),
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, VITALIK_FEED_URL)
+
+    ingest_url(conn, VITALIK_FEED_URL, source_id, limit=5)
+    conn.commit()
+
+    assert pages == [VITALIK_ARTICLE, *VITALIK_OLDER]
+    item = conn.execute(
+        "SELECT * FROM items WHERE url = ?", (VITALIK_ARTICLE,)
+    ).fetchone()
+    assert item["title"] == "Digital minimalism"
+    assert item["word_count"] > 1000
+    assert "techno-optimism" in item["body_html"].lower()
+
+
+def test_text_fetched_from_a_page_survives_the_next_sync(monkeypatch, tmp_path):
+    # The feed refresh rewrites every stored item; it must not put the feed's
+    # empty body back over the page's text.
+    feed = _empty_description_feed(2)
+    pages = _serve_pages(
+        monkeypatch, "https://blog.test/feed.xml", feed, _capture_fixture("blog.html")
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+    conn.commit()
+    first = _stored_words(conn, source_id)
+    assert all(count > 100 for count in first.values())
+    pages.clear()
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+    conn.commit()
+
+    assert _stored_words(conn, source_id) == first
+    assert pages == []
+
+
+def test_one_sync_fetches_every_page_that_is_missing_its_text_newest_first(
+    monkeypatch, tmp_path
+):
+    feed = _empty_description_feed(7)
+    pages = _serve_pages(
+        monkeypatch, "https://blog.test/feed.xml", feed, _capture_fixture("blog.html")
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+    conn.commit()
+
+    assert pages == [f"https://blog.test/post-{n}" for n in range(7, 0, -1)]
+    assert all(count > 100 for count in _stored_words(conn, source_id).values())
+
+
+def test_an_unreachable_site_does_not_fail_the_sync_or_get_hammered(
+    monkeypatch, tmp_path
+):
+    import httpx
+
+    feed = _empty_description_feed(3)
+    pages = _serve_pages(
+        monkeypatch,
+        "https://blog.test/feed.xml",
+        feed,
+        httpx.ConnectTimeout("site is down"),
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    result = ingest_url(conn, "https://blog.test/feed.xml", source_id)
+    conn.commit()
+
+    assert result["created"] == 3
+    # One timeout, not one per item.
+    assert len(pages) == 1
+    assert set(_stored_words(conn, source_id).values()) == {0}
+
+
+def test_a_page_that_is_gone_is_skipped_and_the_others_still_fill_in(
+    monkeypatch, tmp_path
+):
+    import httpx
+
+    def page(url: str):
+        if url.endswith("post-2"):
+            request = httpx.Request("GET", url)
+            return httpx.HTTPStatusError(
+                "gone", request=request, response=httpx.Response(404, request=request)
+            )
+        return _capture_fixture("blog.html")
+
+    feed = _empty_description_feed(3)
+    _serve_pages(monkeypatch, "https://blog.test/feed.xml", feed, page)
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+    conn.commit()
+
+    words = _stored_words(conn, source_id)
+    assert words["https://blog.test/post-2"] == 0
+    assert words["https://blog.test/post-1"] > 100
+    assert words["https://blog.test/post-3"] > 100
+
+
+def test_a_page_with_no_text_leaves_the_item_as_it_was(monkeypatch, tmp_path):
+    feed = _empty_description_feed(1)
+    _serve_pages(
+        monkeypatch,
+        "https://blog.test/feed.xml",
+        feed,
+        "<html><body></body></html>",
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+    conn.commit()
+
+    assert _stored_words(conn, source_id) == {"https://blog.test/post-1": 0}
+
+
+def _teaser_feed(words: int) -> str:
+    teaser = " ".join(["teaser"] * words)
+    return (
+        '<rss version="2.0"><channel><title>Blog</title><item><title>Post</title>'
+        "<link>https://blog.test/post</link><guid>https://blog.test/post</guid>"
+        "<pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>"
+        f"<description>&lt;p&gt;{teaser}&lt;/p&gt;</description></item></channel></rss>"
+    )
+
+
+def test_a_short_update_in_the_feed_is_kept_as_it_is_and_never_fetched(
+    monkeypatch, tmp_path
+):
+    # Deliberately short posts must not be swapped for their page's clutter.
+    feed = _teaser_feed(20)
+    pages = _serve_pages(
+        monkeypatch, "https://blog.test/feed.xml", feed, _capture_fixture("blog.html")
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+    conn.commit()
+
+    assert pages == []
+    assert _stored_words(conn, source_id) == {"https://blog.test/post": 20}
+
+
+def test_a_feed_with_a_full_body_is_not_fetched_for_its_pages(monkeypatch, tmp_path):
+    feed = _teaser_feed(80).replace("teaser", "word")
+    pages = _serve_pages(monkeypatch, "https://blog.test/feed.xml", feed, "unused")
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+
+    assert pages == []
+
+
+def test_a_youtube_channel_is_not_fetched_for_its_pages(monkeypatch, tmp_path):
+    requested = _serve_youtube(
+        monkeypatch, longform=_youtube_fixture("longform_feed.xml")
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _youtube_source(conn)
+
+    ingest_url(conn, CHANNEL_FEED_URL, source_id, limit=5)
+
+    # Only the feed itself (a long-form feed asked for first): no video pages.
+    assert requested == [LONGFORM_FEED_URL]
