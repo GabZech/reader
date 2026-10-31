@@ -28,12 +28,13 @@ For Development and Maintenance sessions.
 - If the change builds on an open PR (session start lists them), stop before branching: say that merging it first is the best course, and continue only once the user merges it or tells you how to proceed.
 - Pull `main`, then branch: `dev/<name>` for Development, `maint/<name>` for Maintenance, where `<name>` is short, lowercase and hyphenated (e.g. `dev/highlight-export`).
 - Commit as you go. Load `commits` before each commit, `writing-docs` before editing `docs/`, and `write-skills` before editing a skill.
-- Suggest a PR once the user has signed off the change, and open it on a yes, following `pull-requests`. Before opening it, run the full suite locally the way CI runs it on pull requests (`uv run pytest --browsers=webkit,chromium`), and fix what fails first; if an engine cannot run in this environment, run the rest and say which part was left to CI. The user merges it, or tells you to; when you merge, squash and delete the branch (`gh pr merge --squash --delete-branch`).
+- Suggest a PR once the user has signed off the change, and open it on a yes, following `pull-requests`. Before opening it, run the full suite locally the way CI runs it on pull requests (`uv run pytest --browsers=webkit,chromium`), and fix what fails first; if an engine cannot run in this environment, run the rest and say which part was left to CI. A Maintenance change that touches only docs and skills skips the full run: run `uv run ruff check` and `uv run pytest tests/test_harness_refs.py` instead, and say in the PR that CI runs the rest. The user merges it, or tells you to; when you merge, squash and delete the branch (`gh pr merge --squash --delete-branch`).
 
 ## Commands
 
 - Full health check (install, lint, test): `bash init.sh`
 - Run, test, lint, and local config: `docs/development.md`
+- Browser: WebKit is the default for anything run in a browser (tests, screenshots, trying a page or the live app), since the app is used mostly on an iPhone. Use Chromium only where WebKit cannot do the job, or as the second engine before a pull request.
 
 ## Chat conduct
 
