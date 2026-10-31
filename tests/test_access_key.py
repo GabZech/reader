@@ -209,15 +209,26 @@ def test_using_it_is_noted_from_the_first_time(monkeypatch, tmp_path):
     assert "not used yet" not in owner.get("/settings/devices", headers=NAVIGATE).text
 
 
+def _devices_page(owner):
+    """The Devices page split into its <title> and its body, so a section that
+    lands in the title instead of the body is not mistaken for one on the page."""
+    html = owner.get("/settings/devices", headers=NAVIGATE).text
+    title = re.search(r"<title>(.*?)</title>", html, re.DOTALL).group(1)
+    return title, html.split("</head>", 1)[1]
+
+
 def test_the_devices_page_lists_it_apart_with_what_it_can_do():
     owner = _owner()
-    assert "Access keys" not in owner.get("/settings/devices", headers=NAVIGATE).text
+    assert "Access keys" not in _devices_page(owner)[1]
     _make(owner)
-    page = owner.get("/settings/devices", headers=NAVIGATE).text
+    title, page = _devices_page(owner)
+    assert title.strip() == "Devices"
     assert "Access keys" in page
     assert "Claude access" in page
     assert "Everything except devices and keys" in page
     assert 'data-confirm-title="Revoke this access key?"' in page
+    # After the save keys, as the last section.
+    assert page.index("Save keys") < page.index("Access keys")
 
 
 def test_settings_counts_it():
