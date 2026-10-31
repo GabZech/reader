@@ -1623,3 +1623,223 @@ def test_a_youtube_channel_is_not_fetched_for_its_pages(monkeypatch, tmp_path):
 
     # Only the feed itself (a long-form feed asked for first): no video pages.
     assert requested == [LONGFORM_FEED_URL]
+
+
+# --- Page fetches are reported to Diagnostics ------------------------------
+
+
+def _fetch_lines(diag_module) -> list[tuple[str, str]]:
+    return [(f["url"], f["outcome"]) for f in diag_module.snapshot()["page_fetches"]]
+
+
+def test_a_filled_in_page_is_reported_with_its_size(monkeypatch, tmp_path):
+    from app import diag
+
+    diag.reset()
+    _serve_pages(
+        monkeypatch,
+        "https://blog.test/feed.xml",
+        _empty_description_feed(1),
+        _capture_fixture("blog.html"),
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+
+    [(url, outcome)] = _fetch_lines(diag)
+    assert url == "https://blog.test/post-1"
+    assert outcome.startswith("filled") and "words" in outcome and "ms" in outcome
+
+
+def test_an_unreachable_site_is_reported_once_with_the_error_and_what_was_skipped(
+    monkeypatch, tmp_path
+):
+    import httpx
+
+    from app import diag
+
+    diag.reset()
+    _serve_pages(
+        monkeypatch,
+        "https://blog.test/feed.xml",
+        _empty_description_feed(3),
+        httpx.ConnectTimeout("site is down"),
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+
+    lines = _fetch_lines(diag)
+    assert len(lines) == 1
+    assert lines[0][0] == "https://blog.test/post-3"
+    assert "unreachable" in lines[0][1] and "ConnectTimeout" in lines[0][1]
+    assert "skipped 2 more" in lines[0][1]
+
+
+def test_a_refused_page_and_a_page_with_no_text_are_reported_with_the_reason(
+    monkeypatch, tmp_path
+):
+    import httpx
+
+    from app import diag
+
+    def page(url: str):
+        if url.endswith("post-2"):
+            request = httpx.Request("GET", url)
+            return httpx.HTTPStatusError(
+                "refused", request=request, response=httpx.Response(403, request=request)
+            )
+        return "<html><body></body></html>"
+
+    diag.reset()
+    _serve_pages(
+        monkeypatch, "https://blog.test/feed.xml", _empty_description_feed(2), page
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+
+    outcomes = dict(_fetch_lines(diag))
+    assert "HTTP 403" in outcomes["https://blog.test/post-2"]
+    assert "no text" in outcomes["https://blog.test/post-1"]
+
+
+def test_a_failure_in_reporting_never_stops_the_text_being_filled_in(
+    monkeypatch, tmp_path
+):
+    from app import diag
+
+    def broken(url, outcome):
+        raise RuntimeError("diagnostics broke")
+
+    monkeypatch.setattr(diag, "record_page_fetch", broken)
+    _serve_pages(
+        monkeypatch,
+        "https://blog.test/feed.xml",
+        _empty_description_feed(1),
+        _capture_fixture("blog.html"),
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+    conn.commit()
+
+    assert _stored_words(conn, source_id)["https://blog.test/post-1"] > 100
+
+
+# --- Posts whose links point at a dead host --------------------------------
+
+
+def _feed_linking_elsewhere(count: int, link_host: str) -> str:
+    """A feed served from one host whose posts link to another, as Vitalik's
+    does: served from vitalik.eth.limo, linking to the vitalik.ca apex, which
+    has no DNS record."""
+    items = "".join(
+        f"""<item><title>Post {n}</title>
+<link>https://{link_host}/post-{n}</link><guid>https://{link_host}/post-{n}</guid>
+<pubDate>{datetime(2026, 9, n, tzinfo=UTC):%a, %d %b %Y %H:%M:%S +0000}</pubDate>
+<description></description></item>"""
+        for n in range(1, count + 1)
+    )
+    return f'<rss version="2.0"><channel><title>Blog</title>{items}</channel></rss>'
+
+
+def test_a_post_linked_to_a_dead_host_is_fetched_from_the_feeds_own_host(
+    monkeypatch, tmp_path
+):
+    import httpx
+
+    from app import diag
+
+    def page(url: str):
+        if url.startswith("https://dead.test/"):
+            return httpx.ConnectError("[Errno -5] No address associated with hostname")
+        return _capture_fixture("blog.html")
+
+    diag.reset()
+    pages = _serve_pages(
+        monkeypatch,
+        "https://blog.test/feed.xml",
+        _feed_linking_elsewhere(3, "dead.test"),
+        page,
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+    conn.commit()
+
+    # The dead host is tried once; after that the feed's host is used straight away.
+    assert pages == [
+        "https://dead.test/post-3",
+        "https://blog.test/post-3",
+        "https://blog.test/post-2",
+        "https://blog.test/post-1",
+    ]
+    assert all(count > 100 for count in _stored_words(conn, source_id).values())
+    # The stored link is the feed's own, left as the feed gave it.
+    assert set(_stored_words(conn, source_id)) == {
+        f"https://dead.test/post-{n}" for n in (1, 2, 3)
+    }
+    outcomes = dict(_fetch_lines(diag))
+    assert "blog.test" in outcomes["https://dead.test/post-3"]
+    assert "dead.test" in outcomes["https://dead.test/post-3"]
+
+
+def test_when_both_the_posts_host_and_the_feeds_host_are_down_it_stops_there(
+    monkeypatch, tmp_path
+):
+    import httpx
+
+    from app import diag
+
+    diag.reset()
+    pages = _serve_pages(
+        monkeypatch,
+        "https://blog.test/feed.xml",
+        _feed_linking_elsewhere(3, "dead.test"),
+        httpx.ConnectError("[Errno -5] No address associated with hostname"),
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+
+    assert pages == ["https://dead.test/post-3", "https://blog.test/post-3"]
+    [(_url, outcome)] = _fetch_lines(diag)
+    assert "unreachable" in outcome and "No address associated" in outcome
+    assert "skipped 2 more" in outcome
+
+
+def test_a_refused_page_is_not_retried_on_another_host(monkeypatch, tmp_path):
+    import httpx
+
+    def page(url: str):
+        request = httpx.Request("GET", url)
+        return httpx.HTTPStatusError(
+            "gone", request=request, response=httpx.Response(404, request=request)
+        )
+
+    pages = _serve_pages(
+        monkeypatch,
+        "https://blog.test/feed.xml",
+        _feed_linking_elsewhere(1, "other.test"),
+        page,
+    )
+    conn = connect(tmp_path / "reader.db")
+    init_db(conn)
+    source_id = _blog_source(conn, "https://blog.test/feed.xml")
+
+    ingest_url(conn, "https://blog.test/feed.xml", source_id)
+
+    assert pages == ["https://other.test/post-1"]
