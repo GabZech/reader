@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
+## 2026-10-31: One password, with a cookie or a key per device kept as a hash
+
+**Decision:** One password, held as the `LOGIN_PASSWORD` host secret, opens the app. Each browser that gives it gets a long-lived cookie, kept only as a hash in a `devices` table, that ends after 30 days unused or when the password changes. The Shortcut, the bookmarklet and development tooling use separate hashed keys (save keys, an access key) instead of the cookie. A request that is not a person opening a page gets a plain 401, and only page navigations are sent to the login page.
+
+**Why:** It is one person's app, so a password is enough, but a phone must stay signed in and any device must be revocable.
+
+**Rejected:** Passkeys (tied to the address, which the planned rename changes); basic auth (no device list, no revoke, prompts again); a signed cookie with no server record (cannot be revoked); redirecting every refused request to the login page (the service worker stores the login page as the page it asked for).
+
+**Revisit when:** The app's address changes with the rename (passkeys become worth their cost), or anyone other than the owner needs access.
+
 ## 2026-10-30: Pages answer from the phone's copy online too, updated on each open
 
 **Decision:** The service worker answers a page or article from its kept copy whenever it has an up-to-date one, online included. Copies are fetched again each time the app is opened (at most once a minute: sync, then pages, then downloads), and a save made from the phone marks the copies it may touch as out of date, so their next visit goes to the server. An article keeps one copy per way in, and the unread articles of lists and sources switched to "Available offline" are downloaded ahead and removed once no longer wanted.
