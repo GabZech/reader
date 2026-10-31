@@ -25,6 +25,23 @@
     });
   };
 
+  // Signed out (revoked, or the password changed). Nothing is lost: what
+  // waits in the outbox stays there, and is sent once signed in again.
+  const goToLogin = () => {
+    if (location.pathname === "/login") return;
+    location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+  };
+
+  // A reply that means "stop sending, try again later": the server failing,
+  // or no longer letting this phone in.
+  const holdsBack = (response) => {
+    if (response.status === 401) {
+      goToLogin();
+      return true;
+    }
+    return response.status >= 500;
+  };
+
   const registerWorker = async () => {
     if (!("serviceWorker" in navigator)) return;
     try {
@@ -78,6 +95,31 @@
   // Asking again when a new worker takes over (the one that got the first
   // ask may be the older worker it replaced), and on getting the network
   // back, so a run cut short gets finished. The worker spaces out the runs.
+  // Home and the lists change behind the phone's back (a sync, the computer,
+  // the Shortcut). The page shows a stored copy, so once the worker has stored
+  // a different one, reload to show it, but never under the reader: not with a
+  // finger down, a dialog open, or the page scrolled away from the top.
+  let fingerDown = false;
+  document.addEventListener("pointerdown", () => (fingerDown = true), true);
+  ["pointerup", "pointercancel"].forEach((type) =>
+    document.addEventListener(type, () => (fingerDown = false), true)
+  );
+  const LIVE_PAGE = /^\/(lists\/[^/]+)?$/;
+  const CATCH_UP_TRIES = 20;
+  const catchUp = (changed, tries = 0) => {
+    const here = new URL(location.href);
+    here.searchParams.delete("flash");
+    if (!LIVE_PAGE.test(here.pathname) || !changed.includes(here.pathname + here.search)) return;
+    const scroller = document.querySelector(".scroller");
+    if (scroller && scroller.scrollTop > 100) return;
+    const busy =
+      fingerDown ||
+      document.querySelector("[data-busy], .swipe-dialog-backdrop") ||
+      ["INPUT", "TEXTAREA"].includes(document.activeElement && document.activeElement.tagName);
+    if (!busy) location.reload();
+    else if (tries < CATCH_UP_TRIES) setTimeout(() => catchUp(changed, tries + 1), 500);
+  };
+
   const OPENED_FLAG = "reader-synced";
   const updateOnOpen = async () => {
     if (!("serviceWorker" in navigator)) return;
@@ -89,9 +131,12 @@
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (!event.data) return;
       if (event.data.type === "downloading") setDownloading(event.data.running);
+      if (event.data.type === "signed-out") goToLogin();
       // Home shows what the sync brought in, now stored.
       if (event.data.type === "refreshed" && event.data.arrived && location.pathname === "/") {
         location.reload();
+      } else if (event.data.type === "refreshed") {
+        catchUp(event.data.changed || []);
       }
     });
     navigator.serviceWorker.addEventListener("controllerchange", ask);
@@ -555,7 +600,7 @@
         if (entry.kind === "seen") {
           try {
             const response = await fetch(entry.url);
-            if (response.status >= 500) return;
+            if (holdsBack(response)) return;
           } catch {
             return;
           }
@@ -592,8 +637,10 @@
         } finally {
           clearTimeout(timer);
         }
-        if (response.status >= 500) {
-          if (entry.kind === "move") refused.set(entry.key, response.status);
+        if (holdsBack(response)) {
+          if (entry.kind === "move" && response.status !== 401) {
+            refused.set(entry.key, response.status);
+          }
           return;
         }
         if (response.ok || response.type === "opaqueredirect") {
@@ -640,7 +687,7 @@
         } catch {
           return;
         }
-        if (response.status >= 500) return;
+        if (holdsBack(response)) return;
         const latest = readProgress();
         if (latest[path] && latest[path].at === spot.at) {
           latest[path].unsent = false;
@@ -738,6 +785,7 @@
       // `manual` keeps the redirect the form routes answer with from being
       // followed: a 303 back to the list is success, and nothing else loads.
       const response = await fetch(url, { method: "POST", redirect: "manual" });
+      if (response.status === 401) goToLogin();
       if (!(response.ok || response.type === "opaqueredirect")) {
         throw new Error(`status ${response.status}`);
       }
@@ -1366,6 +1414,11 @@
         return;
       }
       fetch(saveUrl, { method: "POST", body: data }).then((r) => {
+        // Signed out: keep the highlight like one made offline, and sign in.
+        if (r.status === 401) {
+          keep();
+          return null;
+        }
         if (!r.ok) return null;
         return r.json().then((result) => {
           const ordered = [...overlapping].sort(byStart);
@@ -1683,14 +1736,15 @@
     });
   };
 
+  // A button that copies the text it carries: a highlight's, or a save key.
   const initHighlightDetail = () => {
-    const button = document.getElementById("copy-highlight");
-    if (!button) return;
-    button.addEventListener("click", () => {
-      const text = button.dataset.copyText || "";
-      navigator.clipboard?.writeText(text)
-        .then(() => showToast("Copied"))
-        .catch(() => {});
+    document.querySelectorAll("button[data-copy-text]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const text = button.dataset.copyText || "";
+        navigator.clipboard?.writeText(text)
+          .then(() => showToast("Copied"))
+          .catch(() => {});
+      });
     });
   };
 
@@ -1731,7 +1785,56 @@
     showToast("This needs a connection");
   });
 
+  // A form that asks first: the small dialog the swipe delete uses, with a
+  // Cancel and a button naming what the form will do. Without the script the
+  // form simply posts.
+  const initConfirmForms = () => {
+    document.querySelectorAll("form[data-confirm-title]").forEach((form) => {
+      form.addEventListener("submit", (event) => {
+        if (form.dataset.confirmed) return;
+        event.preventDefault();
+        const backdrop = document.createElement("div");
+        backdrop.className = "swipe-dialog-backdrop";
+        backdrop.innerHTML = `
+          <div class="swipe-dialog" role="alertdialog" aria-modal="true" aria-labelledby="swipe-dialog-title">
+            <div class="swipe-dialog-body">
+              <h2 id="swipe-dialog-title"></h2>
+              <p></p>
+            </div>
+            <div class="swipe-dialog-buttons">
+              <button type="button">Cancel</button>
+              <button type="button"></button>
+            </div>
+          </div>`;
+        backdrop.querySelector("h2").textContent = form.dataset.confirmTitle;
+        backdrop.querySelector("p").textContent = form.dataset.confirmText || "";
+        const [cancel, confirm] = backdrop.querySelectorAll("button");
+        confirm.textContent = form.dataset.confirmButton || "Confirm";
+        const close = () => {
+          backdrop.remove();
+          document.removeEventListener("keydown", onKey);
+        };
+        const onKey = (key) => {
+          if (key.key === "Escape") close();
+        };
+        cancel.addEventListener("click", close);
+        backdrop.addEventListener("click", (click) => {
+          if (click.target === backdrop) close();
+        });
+        confirm.addEventListener("click", () => {
+          close();
+          form.dataset.confirmed = "1";
+          form.requestSubmit();
+        });
+        document.addEventListener("keydown", onKey);
+        document.body.appendChild(backdrop);
+        cancel.focus();
+      });
+    });
+  };
+
   initThemeToggle();
+  initConfirmForms();
   applyMoves();
   initSwipe();
   initItemActions();

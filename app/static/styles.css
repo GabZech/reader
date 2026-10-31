@@ -194,6 +194,38 @@ button {
   text-wrap: balance;
 }
 
+.top.is-login {
+  margin-top: 2.5rem;
+}
+
+/* A device on the Devices page: its name, when it was used, then its buttons. */
+.device-row .set-name {
+  white-space: normal;
+}
+
+.device-here {
+  min-height: 1.5rem;
+  min-width: 0;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  vertical-align: middle;
+}
+
+.key-text {
+  font: 0.8125rem/1.5 ui-monospace, Menlo, monospace;
+  color: var(--text);
+}
+
+.device-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+}
+
+.device-actions form {
+  margin: 0;
+}
+
 .top-row {
   display: flex;
   align-items: center;

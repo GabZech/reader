@@ -18,7 +18,14 @@ const SHELL = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(["/", "/lists", "/sources", ...SHELL]))
+    caches.open(CACHE).then(async (cache) => {
+      await cache.addAll(SHELL);
+      // The pages need a sign-in, which a phone updating its worker may have
+      // lost: a refusal must not fail the install, or the phone would keep
+      // the old worker and its stored pages and never be asked to sign in.
+      // The first download run finds out and says so.
+      await Promise.allSettled(["/", "/lists", "/sources"].map((path) => cache.add(path)));
+    })
   );
   self.skipWaiting();
 });
@@ -143,6 +150,9 @@ self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "precache") {
     event.waitUntil(precache(event.data.keep || null));
   }
+  // The login page is open: nobody is signed in, so nothing of the library
+  // should stay on this phone.
+  if (event.data && event.data.type === "forget") event.waitUntil(forgetEverything());
 });
 
 // One stored copy per page whatever banner an action sent the reader back
@@ -241,28 +251,56 @@ async function eachAtOnce(things, work) {
   await Promise.all(Array.from({ length: DOWNLOADS_AT_ONCE }, worker));
 }
 
+// The server no longer lets this phone in (revoked, or the password changed).
+class SignedOut extends Error {}
+
+// Everything of the library this phone keeps: the stored pages and the
+// downloaded images. What waits to be sent lives in the page, not here, and
+// stays until the phone is signed in again.
+async function forgetEverything() {
+  changes = null;
+  precachedAt = 0;
+  await caches.delete(CACHE).catch(() => {});
+  await caches.delete(IMAGES).catch(() => {});
+}
+
 // How many items the sources brought in, or null when the sync failed.
 async function syncSources() {
   try {
     const response = await fetch("/sync", { method: "POST" });
+    if (response.status === 401) throw new SignedOut();
     if (!response.ok) throw new Error(`status ${response.status}`);
     const result = await response.json();
     return (result.created || 0) + ((result.mail && result.mail.created) || 0);
   } catch (error) {
+    if (error instanceof SignedOut) throw error;
     tell("sw-sync", `failed ${error}`);
     return null;
   }
 }
 
 async function updateEverything(keep) {
+  try {
+    await downloadEverything(keep);
+  } catch (error) {
+    if (!(error instanceof SignedOut)) throw error;
+    tell("sw-precache", "signed out");
+    await forgetEverything();
+    tell("signed-out", null, {});
+  }
+}
+
+async function downloadEverything(keep) {
   const arrived = await syncSources();
   let listed;
   let lists;
   try {
     const response = await fetch("/offline/articles", { cache: "no-store" });
+    if (response.status === 401) throw new SignedOut();
     if (!response.ok) throw new Error(`status ${response.status}`);
     ({ articles: listed, pages: lists } = await response.json());
   } catch (error) {
+    if (error instanceof SignedOut) throw error;
     tell("sw-precache", `failed ${error}`);
     return;
   }
@@ -275,13 +313,21 @@ async function updateEverything(keep) {
 
   // Home and the lists first: they are what the reader sees on opening.
   // The one from last time is kept when fetching fails.
+  // The pages whose new copy differs from the one kept are named, so the page
+  // on screen can catch up (something saved from elsewhere shows at once).
+  const changed = [];
   await eachAtOnce([...lists, ...SHELL], async (path) => {
     const askedAt = Date.now();
+    const key = new URL(path, location.origin).href;
     const response = await fetch(path, { cache: "no-store" });
-    if (response.ok) await store(pages, new URL(path, location.origin).href, response, askedAt);
+    if (!response.ok) return;
+    const before = SHELL.includes(path) ? null : await pages.match(key);
+    const fresh = before ? response.clone() : null;
+    await store(pages, key, response, askedAt);
+    if (before && (await before.text()) !== (await fresh.text())) changed.push(path);
   });
   // Home shows what the sync brought in once its new copy is stored.
-  tell("refreshed", null, { arrived });
+  tell("refreshed", null, { arrived, changed });
 
   // Each article for each way in to it (from the Read later list and from
   // Home), when not stored yet or changed since (a highlight, a reading
@@ -425,8 +471,9 @@ async function answer(request, event) {
   const askedAt = Date.now();
   try {
     const response = await fetch(request);
-    // A page with a banner carries it in its markup: only the plain page is kept.
-    if (response.ok && !url.searchParams.has("flash")) {
+    // A page with a banner carries it in its markup: only the plain page is
+    // kept, and never the login page, whatever address asked for it.
+    if (response.ok && !url.searchParams.has("flash") && new URL(response.url).pathname !== "/login") {
       const copy = response.clone();
       caches
         .open(CACHE)
@@ -458,10 +505,11 @@ async function answer(request, event) {
   }
 }
 
-// Pages that only make sense with the server (adding things, Diagnostics):
+// Pages that only make sense with the server (adding things, Diagnostics,
+// Devices: what other devices and tools did is only known there):
 // never stored, so offline they say what they need.
 const NEEDS_SERVER =
-  /^\/(lists\/add|home\/edit|diagnostics|sources\/add(\/.*)?|sources\/added\/[^/]+|sources\/[^/]+\/(list|window|new-list))$/;
+  /^\/(login|settings\/devices(\/.*)?|lists\/add|home\/edit|diagnostics|sources\/add(\/.*)?|sources\/added\/[^/]+|sources\/[^/]+\/(list|window|new-list))$/;
 
 // What a page that cannot load says: an article not downloaded, a page that
 // needs the server, or (for anything else) just to try again.

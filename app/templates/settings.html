@@ -47,14 +47,13 @@
           </div>
         </section>
 
-        <h2 class="section-label">Save from the browser</h2>
+        <h2 class="section-label">Security</h2>
         <section class="list">
-          <div class="set-row">
-            <span class="set-name">Read later button</span>
-            <a class="bookmarklet" href="{{ bookmarklet_href }}" onclick="return false;">Drag to bookmarks</a>
-          </div>
+          <a class="item list-row" href="/settings/devices"><span class="title">Devices</span><span class="set-value">{{ browser_count }} browser{{ "" if browser_count == 1 else "s" }}{% if key_count %} · {{ key_count }} save key{{ "" if key_count == 1 else "s" }}{% endif %}{% if access_count %} · {{ access_count }} access key{{ "" if access_count == 1 else "s" }}{% endif %}</span></a>
         </section>
-        <p class="section-note">Drag that button to your browser's bookmarks bar. Click it on any page to send that page to Read later.</p>
+        <form method="post" action="/logout">
+          <button class="btn btn-danger" type="submit">Sign out of this device</button>
+        </form>
 
         <h2 class="section-label">Troubleshooting</h2>
         <section class="list">

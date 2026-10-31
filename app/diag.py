@@ -75,6 +75,25 @@ def record_events(batch: list) -> None:
             _seen.discard((old["l"], old["s"]))
 
 
+def note(event: str, detail: str) -> None:
+    """Something the server itself did or failed to do, shown with the phone's
+    events."""
+    moment = int(datetime.now(UTC).timestamp() * 1000)
+    _events.append(
+        {
+            "s": moment,
+            "t": moment,
+            "e": _text(event, 40),
+            "p": "",
+            "d": _text(detail, 200),
+            "n": "server",
+            "l": "server",
+        }
+    )
+    while len(_events) > MAX_EVENTS:
+        _events.popleft()
+
+
 def request_started() -> tuple[float, int]:
     """Note a request arriving; returns what `request_finished` needs."""
     global _in_flight

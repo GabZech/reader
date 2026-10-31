@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#17120e" />
+    <meta name="robots" content="noindex" />
+    <title>Sign in</title>
+    <link rel="preload" href="/static/fonts/fraunces-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/static/fonts/fraunces-italic.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/static/fonts/figtree-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <script>
+      (() => {
+        if (localStorage.getItem("reader-theme") !== "light") {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="scroller">
+      <div class="page">
+        <header class="top is-login">
+          <h1>Reader</h1>
+        </header>
+        {% if no_password %}
+        <p class="lede is-error">No password is set on the server yet, so nobody can sign in.</p>
+        {% elif not wrong and not locked %}
+        <p class="lede">Enter your password to open your library.</p>
+        {% endif %}
+        <form method="post" action="/login">
+          <input type="hidden" name="next" value="{{ next_path }}">
+          <input type="hidden" name="installed" value="0" id="installed">
+          <label class="field-label" for="password">Password</label>
+          <input class="field{% if wrong or locked %} is-error{% endif %}" id="password" name="password" type="password" autocomplete="current-password" required{% if locked or no_password %} disabled{% endif %}{% if wrong or locked %} aria-describedby="password-error"{% endif %}>
+          {% if wrong %}
+          <p class="field-error" id="password-error">That password isn't right.</p>
+          {% elif locked %}
+          <p class="field-error" id="password-error">Too many wrong tries. Try again in {{ locked }}.</p>
+          {% endif %}
+          <button class="btn btn-accent" type="submit"{% if locked or no_password %} disabled style="opacity: 0.5"{% endif %}>Sign in</button>
+        </form>
+      </div>
+    </div>
+    <script>
+      // The installed app is a browser of its own: say so, so the Devices page can name it.
+      try {
+        if (window.navigator.standalone || matchMedia("(display-mode: standalone)").matches) {
+          document.getElementById("installed").value = "1";
+        }
+      } catch (_) {}
+      // Nobody is signed in here, so nothing from the library should stay on this phone.
+      try {
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: "forget" });
+        }
+      } catch (_) {}
+    </script>
+  </body>
+</html>

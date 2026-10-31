@@ -51,19 +51,31 @@ Injected as environment variables on the host. Secrets stay out of Git.
 
 - `DATABASE_PATH`: path to the SQLite file on the volume (`/data/reader.db` on Fly)
 - `SKELETON_FEED_URL`: public RSS URL for the skeleton sync
+- `LOGIN_PASSWORD`: the one password that opens the app. Set only as a Fly secret (Fly's website, Secrets, or `fly secrets set`), never typed into chat or committed. Without it nobody can sign in, so set it before a deploy that carries the sign-in gate. Changing it signs every browser out. Locked out: set it again.
+- `ALERT_EMAIL`: where to send an email when a new browser signs in or a network is locked out for wrong passwords. Set as a Fly secret. It goes out through the same Gmail account as the newsletter mailbox (`smtp.gmail.com`, port 587, the same app password; `MAIL_SMTP_HOST` overrides the host). Without it, or without the mailbox, no alert is sent and signing in is unaffected. A failed send never blocks anything: it shows under Diagnostics as `alert-failed`. Not yet proved against Gmail from Fly: the first sign-in after setting it is the test, so check the inbox and Diagnostics.
 - `MAIL_IMAP_HOST`, `MAIL_IMAP_USER`, `MAIL_IMAP_PASSWORD`: isolated newsletter mailbox (dedicated Gmail account, app password, IMAP enabled), set as Fly secrets 2026-08-24. Never personal-mailbox credentials.
+
+## Debugging the live app: the access key
+
+Diagnostics and every other page sit behind the sign-in, so a cloud agent session cannot read them without a key. Make an **access key** on the Devices page (Add a save key, then Claude access): it can use everything a signed-in browser can except the Devices pages, making keys and signing out, so a leaked one cannot lock you out. It is shown once.
+
+1. Store it as an environment variable in the cloud session's environment settings (the cloud environment menu in the session's title bar, then Edit), named `READER_ACCESS_KEY`. A new session picks it up. Never paste it into a chat.
+2. A session sends it as a header, never in an address: `curl -sS -H "Authorization: Bearer $READER_ACCESS_KEY" "https://reader-skeleton.fly.dev/diagnostics?format=json"`.
+3. It ends when you revoke it (Devices page, which also shows when it was last used) or change `LOGIN_PASSWORD`; make a new one after a password change and update the variable.
+
+The library is live and there is no test copy, so an agent reads freely and asks before anything that deletes or rewrites content.
 
 ## Capturing a page to Read later
 
-Sending a link to Read later from outside the app (any site, not just a subscribed source) uses the same `/capture` endpoint from two one-time setups, since Reader is a web app rather than a native app with its own Share Sheet extension:
+Sending a link to Read later from outside the app (any site, not just a subscribed source) uses the same `/capture` endpoint from two one-time setups, since Reader is a web app rather than a native app with its own Share Sheet extension. Neither tool can use the browser's sign-in (a request from another website carries no cookie), so each has its own **save key**: made under Settings, Devices, Add a save key, shown once, and good for saving to Read later and nothing else. A key never expires; revoke it on the same page, where each one shows when it was last used. A tool whose key was revoked gets a 401 saying so.
 
-- **Desktop:** a bookmarklet, listed in Settings. Drag it to the bookmarks bar once; clicking it on any page sends that page.
+- **Desktop:** a bookmarklet. Add a save key for the bookmarklet and drag the button on the page that shows it to the bookmarks bar once (the key is built into it); clicking it on any page sends that page.
 - **iPhone:** a Shortcut, set up once in the Shortcuts app so it then appears in the Share Sheet:
   1. Create a new shortcut. Set "Accepts" (under the shortcut's Share Sheet settings) to Safari web pages.
   2. Add **Run JavaScript on Webpage**, script `completion(document.documentElement.outerHTML);`. Make sure the action's page field (labeled "Web Page" in the action header) is bound to the incoming page, not a fixed one picked while building the shortcut - if it points at whatever page was open at setup time instead of the shared page, every capture silently sends that same stale page's HTML (or none) regardless of what you actually share, which looks identical to a site simply failing to capture.
-  3. Add **Get Contents of URL**: URL `https://reader-skeleton.fly.dev/capture`, Method POST, Request Body Form, with fields `url` (Shortcut Input) and `html` (the previous action's result). No headers needed; `/capture` returns JSON by default and only serves the confirmation page when called with `?format=html` (what the bookmarklet uses).
-  4. Parse the response as a dictionary and read its `title` and `item_url` fields.
-  5. Show an alert with the title and two options, Done and Read now; Read now opens `https://reader-skeleton.fly.dev` + the returned `item_url`.
+  3. Add **Get Contents of URL**: URL `https://reader-skeleton.fly.dev/capture`, Method POST, Request Body Form, with fields `url` (Shortcut Input), `html` (the previous action's result) and `key` (the save key for the Shortcut, from Devices). No headers needed; `/capture` returns JSON by default and only serves the confirmation page when called with `?format=html` (what the bookmarklet uses).
+  4. **Optional.** Parse the response as a dictionary and read its `title` and `item_url` fields. Only needed for step 5.
+  5. **Optional.** Show an alert with the title and two options, Done and Read now; Read now opens `https://reader-skeleton.fly.dev` + the returned `item_url`. Without steps 4 and 5 the page is still saved; the Shortcut just gives no confirmation.
   6. Name it (e.g. "Save to Reader"), turn on "Show in Share Sheet", and restrict its share types to Safari web pages.
 
 Once set up, sharing any page from Safari offers this shortcut, saving it to Read later with a confirmation and a way to jump straight in.

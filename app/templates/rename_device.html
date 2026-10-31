@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Rename device{% endblock %}
+{% block body %}
+      <form method="post" action="/settings/devices/{{ device.id }}/rename">
+        <div class="top-bar">
+          <a class="top-edit is-quiet" href="/settings/devices">Cancel</a>
+          <button class="top-edit is-strong" type="submit">Done</button>
+        </div>
+        <header class="top">
+          <h1>Rename device</h1>
+        </header>
+        <label class="field-label" for="device-name">Name</label>
+        <input class="field{% if error %} is-error{% endif %}" id="device-name" name="name" type="text" autocomplete="off" maxlength="60" value="{{ name }}"{% if error %} aria-describedby="device-name-error"{% endif %}>
+        {% if error %}
+        <p class="field-error" id="device-name-error">{{ error }}</p>
+        {% endif %}
+      </form>
+{% endblock %}

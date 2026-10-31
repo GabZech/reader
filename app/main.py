@@ -10,13 +10,14 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.concurrency import run_in_threadpool
 
-from app import diag
-from app.config import database_path, git_sha, mail_imap_config
+from app import alerts, auth, diag
+from app.config import app_password, database_path, git_sha, mail_imap_config
 from app.db import (
     add_highlight,
     add_item_to_list,
@@ -28,16 +29,21 @@ from app.db import (
     clear_source_notice,
     connect,
     count_for_list,
+    create_device,
     data_version,
+    delete_device,
     delete_highlight,
     delete_highlights,
     delete_item,
     delete_list,
+    delete_other_browsers,
     delete_source,
+    devices_of_kind,
     exported_items_with_highlights,
     find_list_by_name,
     find_source_by_feed_url,
     format_when,
+    get_device,
     get_highlight,
     get_highlights_by_ids,
     get_item,
@@ -65,6 +71,7 @@ from app.db import (
     overlapping_highlights,
     reading_length,
     remove_source_from_list,
+    rename_device,
     rename_list,
     rename_source,
     set_data_version,
@@ -140,6 +147,10 @@ OFFLINE_IMAGE_CAP = 200
 
 # Brasilia has had no daylight saving since 2019, so a fixed offset is exact.
 EXPORT_TIMEZONE = timezone(timedelta(hours=-3), "BRT")
+templates.env.globals["signed_in_words"] = lambda stamp: auth.signed_in_words(
+    stamp, EXPORT_TIMEZONE
+)
+templates.env.globals["last_used_words"] = auth.last_used_words
 EXPORT_HOUR = 5
 
 
@@ -228,14 +239,54 @@ app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="stati
 @app.middleware("http")
 async def no_cache_static(request: Request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith("/static/"):
+    if request.scope["path"].startswith("/static/"):
         response.headers["Cache-Control"] = "no-cache"
     return response
 
 
+def _signed_in_device(token: str | None):
+    conn = connect()
+    try:
+        init_db(conn)
+        device = auth.signed_in_device(conn, token)
+        return dict(device) if device else None
+    finally:
+        conn.close()
+
+
+@app.middleware("http")
+async def require_sign_in(request: Request, call_next):
+    # The path the router serves. Never request.url.path: Starlette rebuilds
+    # that from the Host header, so "Host: x/static" made /lists look open.
+    path = request.scope["path"]
+    if auth.is_open(path):
+        return await call_next(request)
+    token = request.cookies.get(auth.SESSION_COOKIE)
+    device = await run_in_threadpool(_signed_in_device, token) if token else None
+    request.state.access = False
+    if device is None:
+        # A developer's tooling sends an access key as a bearer header. It
+        # may use everything except the pages that manage devices and keys.
+        key = auth.bearer_token(request)
+        if key and await run_in_threadpool(_is_access_key, key):
+            if auth.is_device_management(path):
+                return Response("Not available to an access key", status_code=403)
+            request.state.device = None
+            request.state.access = True
+            return await call_next(request)
+        # The tools that save a page carry a key instead of a cookie, which
+        # only the route can read from the form.
+        if path == "/capture" and request.method == "POST":
+            request.state.device = None
+            return await call_next(request)
+        return auth.turn_away(request)
+    request.state.device = device
+    return await call_next(request)
+
+
 @app.middleware("http")
 async def trace_requests(request: Request, call_next):
-    path = request.url.path
+    path = request.scope["path"]
     if path.startswith("/static/") or path in diag.QUIET_PATHS:
         return await call_next(request)
     started = diag.request_started()
@@ -246,6 +297,19 @@ async def trace_requests(request: Request, call_next):
         return response
     finally:
         diag.request_finished(request.method, path, status, started)
+
+
+@app.middleware("http")
+async def check_host_and_framing(request: Request, call_next):
+    # A Host header is a hostname and maybe a port. Anything else (a slash,
+    # "?", "#", "@") is refused before it can bend a URL built from it.
+    if not auth.host_is_plain(request.headers.get("host", "")):
+        return Response("Bad Host header", status_code=400)
+    response = await call_next(request)
+    # No other site may show these pages in a frame (a hidden Revoke button).
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'none'"
+    return response
 
 
 def _sources_view(conn, rows) -> list[dict]:
@@ -293,7 +357,25 @@ def home(request: Request, flash: str = ""):
     )
 
 
-def _bookmarklet_href(request: Request) -> str:
+def _is_access_key(key: str) -> bool:
+    conn = connect()
+    try:
+        init_db(conn)
+        return auth.valid_access_key(conn, key) is not None
+    finally:
+        conn.close()
+
+
+def _is_save_key(key: str) -> bool:
+    conn = connect()
+    try:
+        init_db(conn)
+        return auth.valid_save_key(conn, key) is not None
+    finally:
+        conn.close()
+
+
+def _bookmarklet_href(request: Request, key: str) -> str:
     action = f"{str(request.base_url).rstrip('/')}/capture?format=html"
     script = (
         "(function(){"
@@ -302,6 +384,7 @@ def _bookmarklet_href(request: Request) -> str:
         f"f.action='{action}';"
         "function a(n,v){var i=document.createElement('input');"
         "i.type='hidden';i.name=n;i.value=v;f.appendChild(i);}"
+        f"a('key','{key}');"
         "a('url',location.href);"
         "a('html',document.documentElement.outerHTML);"
         "document.body.appendChild(f);f.submit();f.remove();"
@@ -318,6 +401,9 @@ def settings_page(request: Request):
     try:
         init_db(conn)
         lists = lists_for_home_edit(conn)
+        browser_count = len(devices_of_kind(conn, "browser"))
+        key_count = len(devices_of_kind(conn, "key"))
+        access_count = len(devices_of_kind(conn, "access"))
     finally:
         conn.close()
     return templates.TemplateResponse(
@@ -326,10 +412,264 @@ def settings_page(request: Request):
         {
             "nav": "home",
             "lists": lists,
+            "browser_count": browser_count,
+            "key_count": key_count,
+            "access_count": access_count,
             "newsletter_address": newsletter_address,
-            "bookmarklet_href": _bookmarklet_href(request),
         },
     )
+
+
+def _login_response(
+    request: Request,
+    status: int = 200,
+    wrong: bool = False,
+    next_path: str = "/",
+):
+    locked = auth.locked_for(auth.client_id(request))
+    return templates.TemplateResponse(
+        request,
+        "login.html",
+        {
+            "wrong": wrong and not locked and bool(app_password()),
+            "locked": auth.minutes_left(locked) if locked else None,
+            "no_password": not app_password(),
+            "next_path": next_path,
+        },
+        status_code=429 if locked else status,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/login")
+async def login_page(request: Request, next: str = "/"):
+    token = request.cookies.get(auth.SESSION_COOKIE)
+    if token and await run_in_threadpool(_signed_in_device, token):
+        return RedirectResponse(auth.safe_next(next), status_code=303)
+    return _login_response(request, next_path=auth.safe_next(next))
+
+
+def _start_sign_in(name: str) -> str:
+    token = auth.new_token()
+    conn = connect()
+    try:
+        init_db(conn)
+        create_device(conn, "browser", name, auth.token_hash(token), auth.epoch(), auth.now())
+        conn.commit()
+    finally:
+        conn.close()
+    return token
+
+
+@app.post("/login")
+async def login_submit(request: Request, background: BackgroundTasks):
+    form = await request.form()
+    next_path = auth.safe_next(str(form.get("next") or "/"))
+    client = auth.client_id(request)
+    if auth.locked_for(client):
+        return _login_response(request, status=401, next_path=next_path)
+    if not auth.password_matches(str(form.get("password") or "")):
+        if app_password() and auth.note_failed_login(client):
+            background.add_task(alerts.locked_out, client)
+        return _login_response(request, status=401, wrong=True, next_path=next_path)
+    auth.note_good_login(client)
+    name = auth.device_name(
+        request.headers.get("user-agent", ""), installed=form.get("installed") == "1"
+    )
+    token = await run_in_threadpool(_start_sign_in, name)
+    background.add_task(alerts.new_sign_in, name, client)
+    response = RedirectResponse(next_path, status_code=303)
+    response.set_cookie(
+        auth.SESSION_COOKIE,
+        token,
+        max_age=auth.COOKIE_MAX_AGE,
+        httponly=True,
+        samesite="lax",
+        secure=request.url.scheme == "https"
+        or request.headers.get("x-forwarded-proto") == "https",
+        path="/",
+    )
+    return response
+
+
+@app.post("/logout")
+def logout(request: Request):
+    device = getattr(request.state, "device", None)
+    if device:
+        conn = connect()
+        try:
+            init_db(conn)
+            delete_device(conn, device["id"])
+            conn.commit()
+        finally:
+            conn.close()
+    response = RedirectResponse("/login", status_code=303)
+    response.delete_cookie(auth.SESSION_COOKIE, path="/")
+    return response
+
+
+DEVICE_NAME_LIMIT = 60
+
+
+def _devices_flash(text: str) -> RedirectResponse:
+    return RedirectResponse(f"/settings/devices?{urlencode({'flash': text})}", status_code=303)
+
+
+@app.get("/settings/devices")
+def devices_page(request: Request, flash: str = ""):
+    conn = connect()
+    try:
+        init_db(conn)
+        browsers = devices_of_kind(conn, "browser")
+        keys = devices_of_kind(conn, "key")
+        access_keys = devices_of_kind(conn, "access")
+    finally:
+        conn.close()
+    here = request.state.device["id"]
+    # This browser first, then the rest by when they were last used.
+    ordered = sorted(browsers, key=lambda row: row["id"] != here)
+    return templates.TemplateResponse(
+        request,
+        "devices.html",
+        {
+            "nav": "home",
+            "flash": flash,
+            "browsers": [{**dict(row), "is_here": row["id"] == here} for row in ordered],
+            "has_others": len(browsers) > 1,
+            "keys": [dict(row) for row in keys],
+            "access_keys": [dict(row) for row in access_keys],
+        },
+    )
+
+
+@app.post("/settings/devices/sign-out-others")
+def devices_sign_out_others(request: Request):
+    conn = connect()
+    try:
+        init_db(conn)
+        count = delete_other_browsers(conn, request.state.device["id"])
+        conn.commit()
+    finally:
+        conn.close()
+    if not count:
+        return _devices_flash("No other browsers are signed in")
+    return _devices_flash(f"Signed out {count} other browser{'' if count == 1 else 's'}")
+
+
+KEY_KINDS = {
+    "shortcut": "iPhone Shortcut",
+    "bookmarklet": "Computer bookmarklet",
+    "access": "Claude access",
+}
+
+
+@app.get("/settings/devices/keys/new")
+def key_new_page(request: Request):
+    return templates.TemplateResponse(request, "add_save_key.html", {"nav": "home"})
+
+
+@app.post("/settings/devices/keys")
+async def key_create(request: Request):
+    form = await request.form()
+    kind = str(form.get("kind") or "")
+    if kind not in KEY_KINDS:
+        raise HTTPException(status_code=400)
+    access = kind == "access"
+    key = auth.new_key("ak_" if access else "rk_")
+    conn = connect()
+    try:
+        init_db(conn)
+        create_device(
+            conn,
+            "access" if access else "key",
+            KEY_KINDS[kind],
+            auth.token_hash(key),
+            auth.epoch() if access else None,
+            auth.now(),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    # Shown here, once: only a hash of it is kept, and it is not in any address.
+    return templates.TemplateResponse(
+        request,
+        "save_key.html",
+        {
+            "nav": "home",
+            "kind": kind,
+            "name": KEY_KINDS[kind],
+            "key": key,
+            "bookmarklet_href": _bookmarklet_href(request, key) if kind == "bookmarklet" else "",
+            "capture_url": f"{str(request.base_url).rstrip('/')}/capture",
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+def _device_or_404(conn, device_id: int):
+    device = get_device(conn, device_id)
+    if device is None:
+        raise HTTPException(status_code=404)
+    return device
+
+
+@app.get("/settings/devices/{device_id}/rename")
+def device_rename_page(request: Request, device_id: int, error: str | None = None):
+    conn = connect()
+    try:
+        init_db(conn)
+        device = _device_or_404(conn, device_id)
+    finally:
+        conn.close()
+    return templates.TemplateResponse(
+        request,
+        "rename_device.html",
+        {"nav": "home", "device": dict(device), "name": device["name"], "error": error},
+    )
+
+
+@app.post("/settings/devices/{device_id}/rename")
+async def device_rename_submit(request: Request, device_id: int):
+    form = await request.form()
+    name = str(form.get("name") or "").strip()[:DEVICE_NAME_LIMIT]
+    conn = connect()
+    try:
+        init_db(conn)
+        device = _device_or_404(conn, device_id)
+        if not name:
+            return templates.TemplateResponse(
+                request,
+                "rename_device.html",
+                {
+                    "nav": "home",
+                    "device": dict(device),
+                    "name": "",
+                    "error": "A device needs a name.",
+                },
+            )
+        rename_device(conn, device_id, name)
+        conn.commit()
+    finally:
+        conn.close()
+    return _devices_flash("Saved")
+
+
+@app.post("/settings/devices/{device_id}/revoke")
+def device_revoke(request: Request, device_id: int):
+    if device_id == request.state.device["id"]:
+        # Ending this one is Sign out, which also tidies the cookie.
+        raise HTTPException(status_code=400)
+    conn = connect()
+    try:
+        init_db(conn)
+        device = get_device(conn, device_id)
+        if device is None:
+            return RedirectResponse("/settings/devices", status_code=303)
+        delete_device(conn, device_id)
+        conn.commit()
+    finally:
+        conn.close()
+    return _devices_flash(f"Signed out {device['name']}")
 
 
 @app.get("/home/edit")
@@ -1770,6 +2110,13 @@ def item_delete(
 @app.post("/capture")
 async def capture(request: Request):
     form = await request.form()
+    if request.state.device is None and not request.state.access and not await run_in_threadpool(
+        _is_save_key, str(form.get("key") or "").strip()
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Needs a valid save key. Make a new one on the Devices page in Settings.",
+        )
     url = str(form.get("url") or "").strip()
     if not url:
         raise HTTPException(status_code=400, detail="Missing url")

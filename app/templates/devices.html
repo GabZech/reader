@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon_plus %}
+{% block title %}Devices        {% if access_keys %}
+        <h2 class="section-label">Access keys</h2>
+        <section class="list">
+          {% for key in access_keys %}
+          <div class="set-row is-stacked device-row">
+            <span class="set-name">{{ key.name }}</span>
+            <span class="set-value">Everything except devices and keys · {% if key.created_at == key.last_used_at %}not used yet{% else %}last used {{ last_used_words(key.last_used_at) }}{% endif %}</span>
+            <span class="device-actions">
+              <form method="post" action="/settings/devices/{{ key.id }}/revoke" data-confirm-title="Revoke this access key?" data-confirm-text="Whatever uses the {{ key.name }} key will lose access at once." data-confirm-button="Revoke">
+                <button class="chip" type="submit">Revoke</button>
+              </form>
+            </span>
+          </div>
+          {% endfor %}
+        </section>
+        {% endif %}
+{% endblock %}
+{% block body %}
+        <a class="back" href="/settings">Settings</a>
+        <header class="top">
+          <h1>Devices</h1>
+        </header>
+        <p class="lede">Everything that can open your library. Revoke anything you don't recognise.</p>
+
+        <h2 class="section-label">Browsers</h2>
+        <section class="list">
+          {% for device in browsers %}
+          <div class="set-row is-stacked device-row">
+            <span class="set-name">{{ device.name }}{% if device.is_here %} <span class="chip is-on device-here">This device</span>{% endif %}</span>
+            <span class="set-value">Signed in {{ signed_in_words(device.created_at) }} · last used {{ last_used_words(device.last_used_at) }}</span>
+            <span class="device-actions">
+              <a class="chip" href="/settings/devices/{{ device.id }}/rename">Rename</a>
+              {% if not device.is_here %}
+              <form method="post" action="/settings/devices/{{ device.id }}/revoke" data-confirm-title="Sign out this browser?" data-confirm-text="{{ device.name }} will have to enter the password again." data-confirm-button="Revoke">
+                <button class="chip" type="submit">Revoke</button>
+              </form>
+              {% endif %}
+            </span>
+          </div>
+          {% endfor %}
+        </section>
+        {% if has_others %}
+        <form method="post" action="/settings/devices/sign-out-others" data-confirm-title="Sign out every other browser?" data-confirm-text="Each will have to enter the password again." data-confirm-button="Sign out">
+          <button class="btn btn-danger" type="submit">Sign out all other browsers</button>
+        </form>
+        {% endif %}
+
+        <h2 class="section-label">Save keys</h2>
+        <section class="list">
+          {% for key in keys %}
+          <div class="set-row is-stacked device-row">
+            <span class="set-name">{{ key.name }}</span>
+            <span class="set-value">Saves to Read later · {% if key.created_at == key.last_used_at %}not used yet{% else %}last used {{ last_used_words(key.last_used_at) }}{% endif %}</span>
+            <span class="device-actions">
+              <form method="post" action="/settings/devices/{{ key.id }}/revoke" data-confirm-title="Revoke this save key?" data-confirm-text="The {{ key.name }} will stop saving pages until you make a new key." data-confirm-button="Revoke">
+                <button class="chip" type="submit">Revoke</button>
+              </form>
+            </span>
+          </div>
+          {% endfor %}
+          <a class="item add-row" href="/settings/devices/keys/new">{{ icon_plus() }}Add a save key</a>
+        </section>
+        <p class="section-note">A save key can only send a page to Read later. It can't read, change or delete anything in your library, and it never expires until you revoke it.</p>
+{% endblock %}
