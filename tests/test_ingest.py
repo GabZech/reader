@@ -1326,10 +1326,7 @@ def test_a_feed_that_is_not_a_youtube_channel_never_asks_for_lengths(
     init_db(conn)
     _source(conn)
     ingest_url(conn, "https://example.test/feed.xml", SOURCE_ID)
-    # The feed's short items now make the app fetch their pages, but never a
-    # YouTube channel's /videos page.
-    assert requested[0] == "https://example.test/feed.xml"
-    assert not any("youtube" in url for url in requested)
+    assert requested == ["https://example.test/feed.xml"]
 
 
 def test_sync_does_not_hold_the_write_lock_while_downloading(monkeypatch, tmp_path):
@@ -1582,9 +1579,10 @@ def _teaser_feed(words: int) -> str:
     )
 
 
-def test_a_new_item_with_only_a_teaser_gets_the_full_page_once(
+def test_a_short_update_in_the_feed_is_kept_as_it_is_and_never_fetched(
     monkeypatch, tmp_path
 ):
+    # Deliberately short posts must not be swapped for their page's clutter.
     feed = _teaser_feed(20)
     pages = _serve_pages(
         monkeypatch, "https://blog.test/feed.xml", feed, _capture_fixture("blog.html")
@@ -1594,43 +1592,11 @@ def test_a_new_item_with_only_a_teaser_gets_the_full_page_once(
     source_id = _blog_source(conn, "https://blog.test/feed.xml")
 
     ingest_url(conn, "https://blog.test/feed.xml", source_id)
-    conn.commit()
-    full = _stored_words(conn, source_id)["https://blog.test/post"]
-    assert full > 100
-    assert pages == ["https://blog.test/post"]
-
-    # Next sync: the feed still says 20 words, the stored text stays, and the
-    # page is not fetched again.
-    ingest_url(conn, "https://blog.test/feed.xml", source_id)
-    conn.commit()
-    assert _stored_words(conn, source_id)["https://blog.test/post"] == full
-    assert pages == ["https://blog.test/post"]
-
-
-def test_a_short_stored_item_is_not_fetched_again_on_every_sync(
-    monkeypatch, tmp_path
-):
-    # A source of genuinely short posts must not cost a page fetch per sync.
-    feed = _teaser_feed(20)
-    # The page has less to say than the feed's own 20 words, so it is not used.
-    pages = _serve_pages(
-        monkeypatch,
-        "https://blog.test/feed.xml",
-        feed,
-        "<html><body><article><p>Short.</p></article></body></html>",
-    )
-    conn = connect(tmp_path / "reader.db")
-    init_db(conn)
-    source_id = _blog_source(conn, "https://blog.test/feed.xml")
-    ingest_url(conn, "https://blog.test/feed.xml", source_id)
-    conn.commit()
-    assert pages == ["https://blog.test/post"]
-    assert _stored_words(conn, source_id)["https://blog.test/post"] == 20
-
     ingest_url(conn, "https://blog.test/feed.xml", source_id)
     conn.commit()
 
-    assert pages == ["https://blog.test/post"]
+    assert pages == []
+    assert _stored_words(conn, source_id) == {"https://blog.test/post": 20}
 
 
 def test_a_feed_with_a_full_body_is_not_fetched_for_its_pages(monkeypatch, tmp_path):

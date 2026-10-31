@@ -885,7 +885,6 @@ def ingest_xml(
                 "UPDATE sources SET title = ?, auto_title = ? WHERE id = ?",
                 (title, feed_title, source_id),
             )
-    short_new = []
     for entry in kept:
         is_new = upsert_item(
             conn,
@@ -898,17 +897,14 @@ def ingest_xml(
             body_html=entry["body_html"],
             image_url=entry["image_url"],
             word_count=entry["word_count"],
-            keep_longer_text_under=TEASER_WORDS,
+            keep_text_if_empty=True,
         )
         if is_new:
             created += 1
-            if entry["word_count"] < TEASER_WORDS:
-                short_new.append(entry["guid"])
     return {
         "created": created,
         "kept": len(kept),
         "feed_total": feed_total,
-        "short_new": short_new,
     }
 
 
@@ -922,21 +918,15 @@ def ingest_url(
 ) -> dict:
     xml = fetch_feed_xml(url)
     result = ingest_xml(conn, xml, source_id, limit=limit)
-    short_new = result.pop("short_new")
     if release_lock:
         # A sync commits here so the next download does not hold the write lock.
         conn.commit()
     if source_kind_for(url) != "youtube":
-        fill_missing_text(
-            conn, source_id, short_new, release_lock=release_lock
-        )
+        fill_missing_text(conn, source_id, release_lock=release_lock)
     _store_youtube_durations(conn, url, source_id)
     return result
 
 
-# A feed item with fewer words than this is a teaser (or nothing) rather than
-# the article, so the linked page is fetched for it.
-TEASER_WORDS = 50
 PAGE_TIMEOUT = 5.0
 
 
@@ -954,38 +944,23 @@ def _fetched_text(url: str) -> str | None:
     return body
 
 
-def fill_missing_text(
-    conn, source_id: str, short_new: list[str], *, release_lock: bool = False
-) -> int:
-    """Fetch the linked page for items a feed gave without its text, clean it
-    like a Read later page and keep it as the item's body. Candidates, newest
-    first and without a limit (a long wait once beats blank articles), are every
-    stored item with no text (retried each sync until a page gives some) and
-    the teaser items this sync just brought in (tried once, since a source of
-    genuinely short posts must not cost a fetch per sync). Never raises: a page
-    that fails leaves its item as it was. Returns how many items got text."""
-    wanted = {
-        row["guid"]: row
-        for row in conn.execute(
-            """
-            SELECT guid, url, word_count, published_at FROM items
-            WHERE source_id = ? AND COALESCE(word_count, 0) = 0
-              AND url IS NOT NULL AND url != ''
-            """,
-            (source_id,),
-        )
-    }
-    for guid in short_new:
-        row = conn.execute(
-            "SELECT guid, url, word_count, published_at FROM items"
-            " WHERE source_id = ? AND guid = ? AND url IS NOT NULL AND url != ''",
-            (source_id, guid),
-        ).fetchone()
-        if row is not None:
-            wanted[guid] = row
-    candidates = sorted(
-        wanted.values(), key=lambda row: row["published_at"] or "", reverse=True
-    )
+def fill_missing_text(conn, source_id: str, *, release_lock: bool = False) -> int:
+    """Fetch the linked page for items a feed gave without any text, clean it
+    like a Read later page and keep it as the item's body. Every stored item
+    with no text is tried, newest first and without a limit (a long wait once
+    beats blank articles), and again on each sync until a page gives some. An
+    item with any text, however short, is left alone: a deliberately short post
+    must not be swapped for its page. Never raises: a page that fails leaves
+    its item as it was. Returns how many items got text."""
+    candidates = conn.execute(
+        """
+        SELECT guid, url, word_count FROM items
+        WHERE source_id = ? AND COALESCE(word_count, 0) = 0
+          AND url IS NOT NULL AND url != ''
+        ORDER BY published_at DESC, id DESC
+        """,
+        (source_id,),
+    ).fetchall()
     filled = 0
     for row in candidates:
         try:
@@ -994,7 +969,7 @@ def fill_missing_text(
             # The site is down or slow: one timeout per sync, not one per item.
             break
         words = word_count(body) if body else 0
-        if words <= (row["word_count"] or 0):
+        if words == 0:
             continue
         conn.execute(
             "UPDATE items SET body_html = ?, word_count = ?"

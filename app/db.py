@@ -982,20 +982,20 @@ def upsert_item(
     body_html: str | None,
     image_url: str | None,
     word_count: int | None,
-    keep_longer_text_under: int | None = None,
+    keep_text_if_empty: bool = False,
 ) -> bool:
     """Store an item, refreshing it if its (source, guid) is already stored.
-    With `keep_longer_text_under`, a refresh that brings fewer words than that
-    leaves a longer stored text in place: a feed that ships only a teaser must
-    not undo the full text fetched from the page."""
+    With `keep_text_if_empty`, a refresh that brings no text leaves the stored
+    text in place: a feed that ships none must not undo the text fetched from
+    the page."""
     existing = conn.execute(
         "SELECT id FROM items WHERE source_id = ? AND guid = ?",
         (source_id, guid),
     ).fetchone()
-    # True when this refresh is only a teaser sitting over a longer stored text.
+    # True when this refresh brings no text over a stored text.
     keep = (
-        ":under IS NOT NULL AND COALESCE(excluded.word_count, 0) < :under"
-        " AND COALESCE(items.word_count, 0) > COALESCE(excluded.word_count, 0)"
+        ":keep_text_if_empty AND COALESCE(excluded.word_count, 0) = 0"
+        " AND COALESCE(items.word_count, 0) > 0"
     )
     conn.execute(
         f"""
@@ -1026,7 +1026,7 @@ def upsert_item(
             "body_html": body_html,
             "image_url": image_url,
             "word_count": word_count,
-            "under": keep_longer_text_under,
+            "keep_text_if_empty": keep_text_if_empty,
         },
     )
     return existing is None
