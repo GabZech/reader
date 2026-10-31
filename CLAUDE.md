@@ -34,6 +34,7 @@ For Development and Maintenance sessions.
 
 - Full health check (install, lint, test): `bash init.sh`
 - Run, test, lint, and local config: `docs/development.md`
+- Browser: WebKit is the default for anything run in a browser (tests, screenshots, trying a page or the live app), since the app is used mostly on an iPhone. Use Chromium only where WebKit cannot do the job, or as the second engine before a pull request.
 
 ## Chat conduct
 
