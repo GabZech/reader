@@ -984,32 +984,69 @@
   // (top bar) buttons. Pressed
   // offline they are kept and the page moves on as if they had been sent.
   const initItemActions = () => {
+    // Read later also takes the article out of the list it was opened from,
+    // as Mark read does: its Mark read button carries that move. An article
+    // opened from a source's own page has no list, and is only saved.
+    const readMove = () => {
+      const forms = Array.from(document.querySelectorAll("form[data-move]"));
+      const spec = forms.map((f) => JSON.parse(f.dataset.move)).find((m) => m.action === "read");
+      return spec || null;
+    };
+
+    const send = (spec) => {
+      const template = document.getElementById(spec.row);
+      return sendMove({
+        item: spec.item,
+        list: spec.list,
+        action: spec.action,
+        to: MOVE_TO[spec.action],
+        url: spec.url,
+        row: template ? template.innerHTML.trim() : "",
+      });
+    };
+
+    // Saved: stay on the article, so its buttons do not change under the
+    // reader, and say so.
+    const saveForLater = async (form, spec, button) => {
+      let outcome;
+      try {
+        outcome = await send(spec);
+      } catch {
+        if (button) button.disabled = false;
+        showToast("Couldn't save");
+        return;
+      }
+      showSaved(form, spec);
+      const read = readMove();
+      if (read) {
+        try {
+          if ((await send(read)) === "queued") outcome = "queued";
+        } catch {
+          showToast("Saved, but couldn't mark it read");
+          return;
+        }
+      }
+      showToast(outcome === "queued" ? queuedFlash("later") : MOVE_FLASH.later);
+    };
+
     const bind = (form, spec) => {
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         const button = form.querySelector("button");
+        // Already saved: nothing more to send.
+        if (spec.action === "later" && button && button.classList.contains("is-active")) return;
         if (button) button.disabled = true;
-        const template = document.getElementById(spec.row);
+        if (spec.action === "later") {
+          await saveForLater(form, spec, button);
+          if (button) button.disabled = false;
+          return;
+        }
         let outcome;
         try {
-          outcome = await sendMove({
-            item: spec.item,
-            list: spec.list,
-            action: spec.action,
-            to: MOVE_TO[spec.action],
-            url: spec.url,
-            row: template ? template.innerHTML.trim() : "",
-          });
+          outcome = await send(spec);
         } catch {
           if (button) button.disabled = false;
           showToast("Couldn't save");
-          return;
-        }
-        if (outcome === "queued" && spec.action === "later") {
-          // Stay on the article: it now says it is saved.
-          showSaved(form, spec);
-          if (button) button.disabled = false;
-          showToast(queuedFlash("later"));
           return;
         }
         const next = new URL(spec.then, location.origin);
