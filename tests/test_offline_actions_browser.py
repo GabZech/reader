@@ -316,7 +316,7 @@ def test_read_later_on_an_article_also_marks_it_read_in_its_list(phone, monkeypa
         assert phone.url == url
         # Saved to Read later, and out of News's Unread tab (under Read instead).
         _wait_for(lambda: _titles(tmp_path, "later") == [FIRST])
-        assert _titles(tmp_path, "news") == [SECOND]
+        _wait_for(lambda: _titles(tmp_path, "news") == [SECOND])
         assert _titles(tmp_path, "news", read=True) == [FIRST]
 
 
