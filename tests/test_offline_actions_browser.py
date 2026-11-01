@@ -303,7 +303,7 @@ def test_archive_and_read_later_on_an_article_work_offline(phone, monkeypatch, t
 
 def test_read_later_on_an_article_also_marks_it_read_in_its_list(phone, monkeypatch, tmp_path):
     with _live_server(monkeypatch, tmp_path) as (origin, _server):
-        first, second = _seed_news(tmp_path, [FIRST, SECOND])
+        first, _second = _seed_news(tmp_path, [FIRST, SECOND])
         url = f"{origin}/items/{first}?from_list=news"
         phone.goto(url)
 
