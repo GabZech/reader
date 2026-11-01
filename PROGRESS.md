@@ -4,7 +4,7 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ## In flight
 
-**Read later in the article's top bar** (kinds: visual + behaviour), branch `dev/read-later-in-top-bar`. Live is on `main`; nothing deployed from this branch yet. Feedback rounds: 0.
+**Read later in the article's top bar** (kinds: visual + behaviour), branch `dev/read-later-in-top-bar`. Live is on `main`; nothing deployed from this branch yet. Feedback rounds: 0. Browser tests ran on Chromium only (WebKit is not installed in the cloud container); the WebKit run is left to CI.
 
 Shape agreed:
 
@@ -18,8 +18,8 @@ Shape agreed:
 
 ### Planned
 
-1. Layout: bar labels and Read later in the bar, bottom row Delete | Archive. Not started.
-2. Read later also marks read in the origin list, page stays put. Not started.
+1. Layout: bar labels and Read later in the bar, bottom row Delete | Archive. Done, committed; tried locally.
+2. Read later also marks read in the origin list, page stays put. Done, committed; tried locally. Next: client's call on deploying to try it live.
 
 Signed-off mockups are in `preview/` (gitignored): `u-news`, `u-news-saved`, `u-later-list`.
 
