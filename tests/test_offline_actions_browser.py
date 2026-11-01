@@ -255,7 +255,7 @@ def test_mark_as_read_on_an_article_offline_returns_to_the_list_without_it(
         phone.goto(f"{origin}/items/{first}?from_list=news")
         _go_offline(phone, server)
 
-        phone.click("text=Mark as read")
+        phone.click("text=Mark read")
 
         phone.wait_for_url(f"{origin}/lists/news")
         expect(_row(phone, FIRST)).to_have_count(0)
@@ -280,7 +280,7 @@ def test_archive_and_read_later_on_an_article_work_offline(phone, monkeypatch, t
 
         # Save the News article to Read later: the button says so at once.
         phone.click("text=Read later")
-        expect(phone.locator(".article-actions")).to_contain_text("Saved to Read later")
+        expect(phone.locator(".article-bar")).to_contain_text("Saved")
         expect(phone.locator(".act-archive")).to_have_count(1)
         phone.goto(f"{origin}/lists/later")
         expect(_row(phone, SECOND)).to_have_count(1)
@@ -299,6 +299,61 @@ def test_archive_and_read_later_on_an_article_work_offline(phone, monkeypatch, t
         _go_online(phone, server)
         _wait_for(lambda: _titles(tmp_path, "later") == [SECOND])
         assert _titles(tmp_path, "later", archived=True) == [FIRST]
+
+
+def test_read_later_on_an_article_also_marks_it_read_in_its_list(phone, monkeypatch, tmp_path):
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        first, _second = _seed_news(tmp_path, [FIRST, SECOND])
+        url = f"{origin}/items/{first}?from_list=news"
+        phone.goto(url)
+
+        phone.click(".article-bar button:has-text('Read later')")
+
+        # The page stays put and the bar keeps its buttons: only the label moves on.
+        expect(phone.locator(".article-bar")).to_contain_text("Saved")
+        expect(phone.locator(".article-bar")).to_contain_text("Mark read")
+        expect(phone.locator(".act-archive")).to_have_count(1)
+        assert phone.url == url
+        # Saved to Read later, and out of News's Unread tab (under Read instead).
+        _wait_for(lambda: _titles(tmp_path, "later") == [FIRST])
+        _wait_for(lambda: _titles(tmp_path, "news") == [SECOND])
+        assert _titles(tmp_path, "news", read=True) == [FIRST]
+
+
+def test_read_later_on_an_article_without_a_list_only_saves_it(phone, monkeypatch, tmp_path):
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        first, _second = _seed_news(tmp_path, [FIRST, SECOND])
+        phone.goto(f"{origin}/items/{first}")
+
+        phone.click(".article-bar button:has-text('Read later')")
+
+        expect(phone.locator(".article-bar")).to_contain_text("Saved")
+        _wait_for(lambda: _titles(tmp_path, "later") == [FIRST])
+        assert _titles(tmp_path, "news") == [FIRST, SECOND]
+
+
+def test_read_later_offline_also_moves_the_article_out_of_its_list(phone, monkeypatch, tmp_path):
+    with _live_server(monkeypatch, tmp_path) as (origin, server):
+        first, _second = _seed_news(tmp_path, [FIRST, SECOND])
+        _ready(phone, origin, "/lists/news", "/lists/news?view=read", "/lists/later")
+        phone.goto(f"{origin}/lists/news")
+        phone.goto(f"{origin}/items/{first}?from_list=news")
+        _go_offline(phone, server)
+
+        phone.click(".article-bar button:has-text('Read later')")
+        expect(phone.locator(".article-bar")).to_contain_text("Saved")
+        expect(_toast(phone)).to_contain_text("will sync")
+
+        # The stored pages already show it: gone from Unread, under Read.
+        phone.goto(f"{origin}/lists/news")
+        expect(_row(phone, FIRST)).to_have_count(0)
+        expect(_row(phone, SECOND)).to_have_count(1)
+        phone.goto(f"{origin}/lists/news?view=read")
+        expect(_row(phone, FIRST)).to_have_count(1)
+
+        _go_online(phone, server)
+        _wait_for(lambda: _titles(tmp_path, "later") == [FIRST])
+        _wait_for(lambda: _titles(tmp_path, "news", read=True) == [FIRST])
 
 
 def test_delete_still_needs_a_connection_and_says_so(phone, monkeypatch, tmp_path):

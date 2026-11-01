@@ -916,28 +916,28 @@ def _bar_and_actions(page: str) -> tuple[str, str]:
     return bar, actions
 
 
-def test_top_bar_has_open_original_then_mark_as_read(monkeypatch, tmp_path):
+def test_top_bar_has_original_then_read_later_then_mark_read(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
         item_id = _first_item_id(tmp_path)
         bar, actions = _bar_and_actions(
             client.get(f"/items/{item_id}?from_list=news").text
         )
-        assert bar.index("Open original") < bar.index("Mark as read")
-        assert "Read later" not in bar
-        assert "Mark as read" not in actions
+        assert bar.index(">Original<") < bar.index(">Read later<")
+        assert bar.index(">Read later<") < bar.index(">Mark read<")
+        assert "Read later" not in actions
+        assert "Mark read" not in actions
 
 
-def test_read_later_sits_in_the_bottom_row_where_mark_as_read_was(
-    monkeypatch, tmp_path
-):
+def test_the_bottom_row_of_an_unsaved_article_is_only_delete(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
         item_id = _first_item_id(tmp_path)
         _bar, actions = _bar_and_actions(
             client.get(f"/items/{item_id}?from_list=news").text
         )
-        assert actions.index("Read later") < actions.index("Delete")
+        assert "act-delete" in actions
+        assert "act-archive" not in actions
 
 
 def test_an_item_opened_from_read_later_has_no_read_later_button(
@@ -952,9 +952,10 @@ def test_an_item_opened_from_read_later_has_no_read_later_button(
             assert f"/items/{item_id}/later" not in page
             assert "Read later" not in page
             bar, actions = _bar_and_actions(page)
-            assert "Open original" in bar
-            assert "Mark as read" not in page
-            assert "Archive" in actions and "Delete" in actions
+            assert ">Original<" in bar
+            assert "Mark read" not in page
+            # Delete on the left, Archive on the right.
+            assert actions.index("act-delete") < actions.index("act-archive")
 
 
 def test_a_saved_item_opened_from_another_list_says_it_is_saved(
@@ -967,8 +968,11 @@ def test_a_saved_item_opened_from_another_list_says_it_is_saved(
         bar, actions = _bar_and_actions(
             client.get(f"/items/{item_id}?from_list=news").text
         )
-        assert "Saved to Read later" in actions
+        assert ">Saved<" in bar
         assert "Read later" not in bar
+        assert ">Mark read<" in bar
+        # Archive appears once saved, to the right of Delete.
+        assert actions.index("act-delete") < actions.index("act-archive")
 
 
 def test_tapping_read_later_adds_item_to_the_list(monkeypatch, tmp_path):
@@ -977,7 +981,8 @@ def test_tapping_read_later_adds_item_to_the_list(monkeypatch, tmp_path):
         item_id = _first_item_id(tmp_path)
         added = client.post(f"/items/{item_id}/later")
         assert added.status_code == 200
-        assert "Saved to Read later" in added.text
+        bar, _actions = _bar_and_actions(added.text)
+        assert ">Saved<" in bar
         later = client.get("/lists/later")
         assert "First fixture item" in later.text
 
@@ -1775,8 +1780,8 @@ def test_archiving_an_item_keeps_it_saved_to_read_later(monkeypatch, tmp_path):
         client.post(f"/items/{item_id}/later")
         client.post(f"/items/{item_id}/archive")
 
-        page = client.get(f"/items/{item_id}")
-        assert "Saved to Read later" in page.text
+        bar, _actions = _bar_and_actions(client.get(f"/items/{item_id}").text)
+        assert ">Saved<" in bar
 
 
 def test_archive_on_missing_item_is_404(monkeypatch, tmp_path):
@@ -2270,14 +2275,14 @@ def test_mark_as_read_shown_only_when_opened_from_a_non_later_list(
         item_id = _first_item_id(tmp_path)
 
         no_context = client.get(f"/items/{item_id}")
-        assert "Mark as read" not in no_context.text
+        assert "Mark read" not in no_context.text
 
         from_news = client.get(f"/items/{item_id}?from_list=news")
-        assert "Mark as read" in from_news.text
+        assert "Mark read" in from_news.text
 
         client.post(f"/items/{item_id}/later")
         from_later = client.get(f"/items/{item_id}?from_list=later")
-        assert "Mark as read" not in from_later.text
+        assert "Mark read" not in from_later.text
 
 
 def test_close_from_home_returns_to_home_not_the_list(monkeypatch, tmp_path):
@@ -2765,8 +2770,8 @@ def test_youtube_item_page_embeds_the_video_between_the_top_bar_and_the_buttons(
         )
         page = client.get(f"/items/{item_id}").text
         assert 'src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"' in page
-        assert page.index("Open original") < page.index("<iframe")
-        assert page.index("<iframe") < page.index("Read later")
+        assert page.index(">Original<") < page.index("<iframe")
+        assert page.index("<iframe") < page.index('class="article-actions"')
         assert page.index("<iframe") < page.index('class="article-body"')
 
 
@@ -2777,7 +2782,7 @@ def test_non_youtube_item_page_has_no_player(monkeypatch, tmp_path):
         assert "<iframe" not in client.get(f"/items/{item_id}").text
 
 
-def test_malformed_youtube_url_shows_no_player_but_keeps_open_original(
+def test_malformed_youtube_url_shows_no_player_but_keeps_the_original_link(
     monkeypatch, tmp_path
 ):
     with _client(monkeypatch, tmp_path) as client:
@@ -2786,7 +2791,7 @@ def test_malformed_youtube_url_shows_no_player_but_keeps_open_original(
         item_id = _set_first_item_url(tmp_path, bad)
         page = client.get(f"/items/{item_id}").text
         assert "<iframe" not in page
-        assert "Open original" in page
+        assert ">Original<" in page
 
 
 # --- a video shows its own length, not a reading time ---------------------
