@@ -1263,10 +1263,6 @@ form.is-apart {
   background: var(--bg-sunk);
 }
 
-.article-actions .is-active {
-  color: var(--accent);
-}
-
 .article-actions .act-delete {
   color: var(--danger);
 }

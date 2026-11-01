@@ -980,7 +980,8 @@
     });
   };
 
-  // The article's Read later, Archive and Mark as read buttons. Pressed
+  // The article's Read later (top bar), Archive (bottom row) and Mark read
+  // (top bar) buttons. Pressed
   // offline they are kept and the page moves on as if they had been sent.
   const initItemActions = () => {
     const bind = (form, spec) => {
@@ -1017,17 +1018,19 @@
       });
     };
 
-    // Read later pressed: the button says so and Archive appears.
+    // Read later pressed: the button says so and Archive appears, to the
+    // right of Delete in the bottom row.
     const showSaved = (form, spec) => {
       const button = form.querySelector("button");
-      button.textContent = "Saved to Read later";
+      button.textContent = "Saved";
       button.classList.add("is-active");
-      if (!spec.archive || document.querySelector(".act-archive")) return;
+      const row = document.querySelector(".article-actions");
+      if (!spec.archive || !row || document.querySelector(".act-archive")) return;
       const archive = document.createElement("form");
       archive.method = "post";
       archive.action = spec.archive.url;
       archive.innerHTML = '<button type="submit" class="act-archive">Archive</button>';
-      form.after(archive);
+      row.append(archive);
       bind(archive, spec.archive);
     };
 

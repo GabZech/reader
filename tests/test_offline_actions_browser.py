@@ -255,7 +255,7 @@ def test_mark_as_read_on_an_article_offline_returns_to_the_list_without_it(
         phone.goto(f"{origin}/items/{first}?from_list=news")
         _go_offline(phone, server)
 
-        phone.click("text=Mark as read")
+        phone.click("text=Mark read")
 
         phone.wait_for_url(f"{origin}/lists/news")
         expect(_row(phone, FIRST)).to_have_count(0)
@@ -280,7 +280,7 @@ def test_archive_and_read_later_on_an_article_work_offline(phone, monkeypatch, t
 
         # Save the News article to Read later: the button says so at once.
         phone.click("text=Read later")
-        expect(phone.locator(".article-actions")).to_contain_text("Saved to Read later")
+        expect(phone.locator(".article-bar")).to_contain_text("Saved")
         expect(phone.locator(".act-archive")).to_have_count(1)
         phone.goto(f"{origin}/lists/later")
         expect(_row(phone, SECOND)).to_have_count(1)

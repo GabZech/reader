@@ -13,14 +13,13 @@ Shape agreed:
 - Opened from the Read later list: bar is Close · Original; bottom row is Delete | Archive.
 - Read later pressed on an article opened from a list also marks it read in that list (it leaves Home and Unread, stays under Read). Opened from a source's own page there is no list, so it is only saved.
 - The page stays put after Read later (no reload, online or offline), so the bar does not change under the reader.
-- Pressing "Saved" during the same visit undoes both: out of Read later, unread again in its list. On a reopened article "Saved" is only a label.
+- "Saved" is only a label: once saved there is no undo from the article (asked for, then dropped).
 - Leaves alone: Mark read, Open original, Archive and Delete behaviour, the offline queue's ordering, swipe actions, wording outside the bar.
 
 ### Planned
 
 1. Layout: bar labels and Read later in the bar, bottom row Delete | Archive. Not started.
 2. Read later also marks read in the origin list, page stays put. Not started.
-3. Undo by pressing "Saved" in the same visit (new route to take an item out of Read later). Not started.
 
 Signed-off mockups are in `preview/` (gitignored): `u-news`, `u-news-saved`, `u-later-list`.
 

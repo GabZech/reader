@@ -7,11 +7,16 @@
         <span class="sync-state" hidden></span>
         <span class="article-bar-right">
           {% if item.url %}
-          <a href="{{ item.url }}" rel="noreferrer">Open original</a>
+          <a href="{{ item.url }}" rel="noreferrer">Original</a>
+          {% endif %}
+          {% if later_action %}
+          <form method="post" action="{{ later_action }}" data-move='{{ moves.later | tojson }}'>
+            <button type="submit"{% if in_read_later %} class="is-active"{% endif %}>{{ "Saved" if in_read_later else "Read later" }}</button>
+          </form>
           {% endif %}
           {% if mark_read_action %}
           <form method="post" action="{{ mark_read_action }}" data-move='{{ moves.read | tojson }}'>
-            <button type="submit" class="act-read">Mark as read</button>
+            <button type="submit" class="act-read">Mark read</button>
           </form>
           {% endif %}
         </span>
@@ -32,19 +37,14 @@
         {% endif %}
       </div>
       <div class="article-actions">
-        {% if later_action %}
-        <form method="post" action="{{ later_action }}" data-move='{{ moves.later | tojson }}'>
-          <button type="submit"{% if in_read_later %} class="is-active"{% endif %}>{{ "Saved to Read later" if in_read_later else "Read later" }}</button>
+        <form method="post" action="{{ delete_action }}">
+          <button type="submit" class="act-delete">Delete</button>
         </form>
-        {% endif %}
         {% if in_read_later %}
         <form method="post" action="{{ archive_action }}" data-move='{{ moves.archive | tojson }}'>
           <button type="submit" class="act-archive">Archive</button>
         </form>
         {% endif %}
-        <form method="post" action="{{ delete_action }}">
-          <button type="submit" class="act-delete">Delete</button>
-        </form>
       </div>
       {# The row this item becomes on the tab each button sends it to, for
          app.js to put there when the button is pressed offline. #}
