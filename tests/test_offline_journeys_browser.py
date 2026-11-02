@@ -66,7 +66,8 @@ def test_a_morning_on_the_train_and_the_way_back_online(phone, monkeypatch, tmp_
         phone.wait_for_selector(".article-body mark.hl.is-pending")
         expect(phone.locator(".sync-state")).to_contain_text("Offline")
         phone.click(".act-archive")
-        phone.wait_for_url(f"{origin}/?flash=*")
+        # Home, with or without its flash: the page drops it once the toast shows.
+        phone.wait_for_url(lambda url: url.split("?")[0] == f"{origin}/")
         expect(_toast(phone)).to_contain_text("Archived · will sync")
         expect(phone.locator("[data-list=later]")).to_have_count(0)
 

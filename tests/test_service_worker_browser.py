@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 
 import httpx
 import uvicorn
+from playwright.sync_api import Error as PlaywrightError
 
 from app import db as dbmod
 from app import main as mainmod
@@ -169,6 +170,44 @@ def quick_reopen(monkeypatch, tmp_path):
         source.replace("const PRECACHE_GAP_MS = 60 * 1000;", "const PRECACHE_GAP_MS = 2 * 1000;")
     )
     monkeypatch.setattr(mainmod, "APP_DIR", served)
+
+
+def _wait_for_run_to_end(page, timeout=20):
+    """Wait until the worker's update run is over (see NOTE_RUN_STATE in
+    conftest) and the page has settled.
+
+    The page can reload itself partway through, so this polls rather than
+    waiting inside the page, which a reload would cut off. A "done" sent while
+    the page was between documents is lost, so every few seconds this asks
+    the worker again, as a page does: mid-run it repeats "running", after it
+    says "done" (or starts one more run, whose "done" then arrives). The ask
+    names no `keep`, so the worker clears nothing out."""
+    deadline = time.monotonic() + timeout
+    asked = time.monotonic()
+    while time.monotonic() < deadline:
+        try:
+            if page.evaluate(
+                "sessionStorage.getItem('test-run') === 'done'"
+                " && document.readyState === 'complete'"
+            ):
+                return
+            if time.monotonic() - asked > 3:
+                asked = time.monotonic()
+                page.evaluate(
+                    "navigator.serviceWorker.controller"
+                    " && navigator.serviceWorker.controller.postMessage({ type: 'precache' })"
+                )
+        except PlaywrightError:
+            pass  # the page was between documents
+        time.sleep(0.2)
+    raise AssertionError("the worker's run never ended")
+
+
+def _after_the_gap(page):
+    """Wait until the worker will start a new run when asked: the last run is
+    over and quick_reopen's 2 seconds have passed since it ended."""
+    _wait_for_run_to_end(page)
+    page.wait_for_timeout(2500)
 
 
 def _app_url(server):
@@ -643,6 +682,9 @@ def test_reading_position_offline_is_kept_and_sent_back_online(
             "document.querySelector('.article-body').children[6].classList.contains('is-resume')"
         )
 
+        # Leave the article while still offline, so what is sent back online
+        # is the spot that waited, not one the article sends as it closes.
+        phone.goto(f"{origin}/lists/later")
         _go_online(phone, server)
         phone.goto(f"{origin}/lists/later")
 

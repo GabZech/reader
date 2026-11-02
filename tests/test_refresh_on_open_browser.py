@@ -12,30 +12,22 @@ from __future__ import annotations
 from playwright.sync_api import expect
 from test_offline_actions_browser import _ready
 from test_service_worker_browser import (
+    _after_the_gap,
     _live_server,
     _saved_article,
-    _wait_for,
+    _wait_for_run_to_end,
     quick_reopen,
 )
-
-from app import diag
 
 
 def _run_precache(phone):
     """Ask the worker for a refresh, and wait for it to finish."""
-    phone.wait_for_timeout(2500)  # the worker spaces runs 2 seconds apart (quick_reopen)
-    before = _finished_runs(phone)
-    phone.evaluate("navigator.serviceWorker.controller.postMessage({ type: 'precache', keep: [] })")
-    _wait_for(lambda: _finished_runs(phone) > before)
-
-
-def _finished_runs(phone):
-    # The phone sends its breadcrumbs to the server (Diagnostics) as it goes.
-    return sum(
-        1
-        for event in diag.snapshot()["events"]
-        if event["e"] == "sw-precache" and "images+" in event["d"]
+    _after_the_gap(phone)
+    phone.evaluate(
+        "sessionStorage.setItem('test-run', 'asked');"
+        " navigator.serviceWorker.controller.postMessage({ type: 'precache', keep: [] })"
     )
+    _wait_for_run_to_end(phone)
 
 
 def _open_read_later(phone, origin):

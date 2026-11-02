@@ -24,6 +24,7 @@ from test_offline_actions_browser import (
     _titles,
 )
 from test_service_worker_browser import (
+    _after_the_gap,
     _live_server,
     _wait_for,
     _wait_until_cached,
@@ -109,7 +110,7 @@ def test_a_revoked_phone_finds_out_when_the_app_opens_and_clears_its_copies(
     with _live_server(monkeypatch, tmp_path) as (origin, _server):
         _seed_news(tmp_path, [FIRST])
         _ready(phone, origin, "/lists/news")
-        phone.wait_for_timeout(2500)
+        _after_the_gap(phone)
 
         with _let_out():
             phone.evaluate(
