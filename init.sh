@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Health, git, and live-state check. Run by the SessionStart hook in .claude/settings.json.
 # --quick skips install/lint/test, for the SessionStart hook.
+# Both modes start installing the browsers the tests need, in the background.
 set -uo pipefail
 
 INSTALL_CMD=(uv sync --locked)
@@ -10,6 +11,38 @@ VERIFY_CMD=(uv run pytest -q)
 # this is the command an agent should run when it needs the app up, not the
 # one to use while actively iterating on a change.
 START_CMD=(uv run uvicorn app.main:app --port 8000)
+
+# Playwright keeps one browser build per Playwright version, and a fresh cloud
+# container ships a different build from the one this repo pins, so the browser
+# tests cannot launch until the right ones are installed. This installs what is
+# missing (a few seconds of no-ops when all is there) and, on Linux as root,
+# the system libraries an engine fails to launch without. It runs in the
+# background so a session never waits on a download; the last line of the log
+# says when it is done.
+BROWSERS_LOG="${TMPDIR:-/tmp}/reader-browsers.log"
+CAN_LAUNCH='
+import sys
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    getattr(p, sys.argv[1]).launch().close()
+'
+ensure_browsers() {
+  (
+    echo "Installing the test browsers: $(date -u +%H:%M:%S)"
+    if ! uv run playwright install chromium webkit; then
+      echo "Browser install FAILED"
+      exit 1
+    fi
+    if [[ "$(uname -s)" == "Linux" && "${EUID:-1}" -eq 0 ]]; then
+      for engine in chromium webkit; do
+        if ! uv run python -I -c "$CAN_LAUNCH" "$engine"; then
+          uv run playwright install-deps "$engine"
+        fi
+      done
+    fi
+    echo "Browsers ready"
+  ) </dev/null >"$BROWSERS_LOG" 2>&1 &
+}
 
 quick=false
 if [[ "${1:-}" == "--quick" ]]; then
@@ -23,10 +56,24 @@ echo "== Working directory =="
 echo "$PWD"
 echo
 
+echo "== Test browsers =="
+ensure_browsers
+if [[ "$quick" == true ]]; then
+  echo "Installing in the background if missing (log: $BROWSERS_LOG). Browser tests need its last line to read \"Browsers ready\"."
+  echo
+fi
+
 if [[ "$quick" == false ]]; then
   echo "== Install, lint, test =="
   if ! "${INSTALL_CMD[@]}"; then
     echo "FAIL: ${INSTALL_CMD[*]} (say so; do not silently work around a broken lock)"
+    exit 1
+  fi
+  # The tests launch the browsers, so wait for them.
+  wait
+  tail -n 1 "$BROWSERS_LOG"
+  if ! grep -q "Browsers ready" "$BROWSERS_LOG"; then
+    echo "FAIL: the test browsers did not install (see $BROWSERS_LOG)"
     exit 1
   fi
   if ! "${LINT_CMD[@]}"; then
