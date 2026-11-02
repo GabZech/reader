@@ -7,7 +7,7 @@ import time
 from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
@@ -19,6 +19,7 @@ from starlette.concurrency import run_in_threadpool
 from app import alerts, auth, diag
 from app.config import app_password, database_path, git_sha, mail_imap_config
 from app.db import (
+    CAPTURED_SOURCE_ID,
     add_highlight,
     add_item_to_list,
     add_source_to_list,
@@ -124,6 +125,24 @@ def item_length(item) -> str:
 
 
 templates.env.globals["item_length"] = item_length
+
+
+def item_source_name(item) -> str:
+    """The name shown under an article's title: the feed, newsletter or channel
+    it came from. A saved link has no source of its own, so it shows the site
+    name its page gave, or else the link's web address; none if it has neither."""
+    if item["source_id"] != CAPTURED_SOURCE_ID:
+        return item["source_title"] or ""
+    if item["site_name"]:
+        return item["site_name"]
+    try:
+        host = urlparse(item["url"] or "").hostname or ""
+    except ValueError:
+        return ""
+    return host.removeprefix("www.")
+
+
+templates.env.globals["item_source_name"] = item_source_name
 
 
 def _sources_notice_pending() -> bool:

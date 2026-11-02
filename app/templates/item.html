@@ -24,7 +24,14 @@
       <header class="top article-head">
         <h1>{{ item.title }}</h1>
       </header>
-      <p class="lede">{{ item.author or item.source_title }}{% if item.published_at %} · {{ format_when(item.published_at) }}{% endif %}{% set length = item_length(item) %}{% if length %} · {{ length }}{% endif %}</p>
+      {% set source_name = item_source_name(item) %}
+      {% if source_name %}
+      <p class="source">{{ source_name }}</p>
+      {% endif %}
+      {% set byline = [item.author, format_when(item.published_at) if item.published_at else none, item_length(item)] | select | join(" · ") %}
+      {% if byline %}
+      <p class="lede">{{ byline }}</p>
+      {% endif %}
       {% if video_id %}
       <div class="video-frame">
         <iframe src="https://www.youtube-nocookie.com/embed/{{ video_id }}" title="{{ item.title }}" loading="lazy" allow="fullscreen; picture-in-picture; encrypted-media" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>

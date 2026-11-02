@@ -145,6 +145,8 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE items ADD COLUMN highlights_exported_at TEXT")
     if "exported_note_path" not in items_columns:
         conn.execute("ALTER TABLE items ADD COLUMN exported_note_path TEXT")
+    if "site_name" not in items_columns:
+        conn.execute("ALTER TABLE items ADD COLUMN site_name TEXT")
     if not lists_table_existed:
         for slug, name, position in LISTS:
             conn.execute(
@@ -993,6 +995,7 @@ def upsert_item(
     image_url: str | None,
     word_count: int | None,
     keep_text_if_empty: bool = False,
+    site_name: str | None = None,
 ) -> bool:
     """Store an item, refreshing it if its (source, guid) is already stored.
     With `keep_text_if_empty`, a refresh that brings no text leaves the stored
@@ -1011,11 +1014,11 @@ def upsert_item(
         f"""
         INSERT INTO items (
             source_id, guid, title, author, url, published_at,
-            body_html, image_url, word_count
+            body_html, image_url, word_count, site_name
         )
         VALUES (
             :source_id, :guid, :title, :author, :url, :published_at,
-            :body_html, :image_url, :word_count
+            :body_html, :image_url, :word_count, :site_name
         )
         ON CONFLICT(source_id, guid) DO UPDATE SET
             title = excluded.title,
@@ -1024,6 +1027,7 @@ def upsert_item(
             published_at = excluded.published_at,
             body_html = CASE WHEN {keep} THEN items.body_html ELSE excluded.body_html END,
             image_url = excluded.image_url,
+            site_name = COALESCE(excluded.site_name, items.site_name),
             word_count = CASE WHEN {keep} THEN items.word_count ELSE excluded.word_count END
         """,
         {
@@ -1036,6 +1040,7 @@ def upsert_item(
             "body_html": body_html,
             "image_url": image_url,
             "word_count": word_count,
+            "site_name": site_name,
             "keep_text_if_empty": keep_text_if_empty,
         },
     )

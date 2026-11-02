@@ -8,7 +8,6 @@
       <header class="top">
         <h1>{{ label }}</h1>
       </header>
-      <blockquote class="quote">{{ text }}</blockquote>
       <form method="post" action="{{ save_action }}" data-highlight-form="title">
         <label class="field-label" for="highlight-title">Title</label>
         <div class="field-row">
@@ -16,4 +15,5 @@
           <button type="submit">Done</button>
         </div>
       </form>
+      <blockquote class="quote">{{ text }}</blockquote>
 {% endblock %}
