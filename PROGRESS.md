@@ -8,10 +8,10 @@ Snapshot of in-flight state, overwritten rather than appended. When to update it
 
 ### Planned
 
-1. Title box above the highlighted text on the section and subsection title pages: not started
+1. Title box above the highlighted text on the section and subsection title pages: built and committed, not yet deployed or tried live
 2. Source line under the article title, with the `site_name` column: not started
 
-Next step: slice 1 screenshot mockup.
+Next step: slice 2 screenshot mockup (source line on the article page).
 
 ## Blocked
 
