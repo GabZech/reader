@@ -358,6 +358,19 @@ button.top-edit {
   text-wrap: pretty;
 }
 
+.source {
+  margin: -0.5rem 0 0.2rem;
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-wrap: pretty;
+}
+
+.source + .lede {
+  margin-top: 0;
+}
+
 .lede.is-error {
   color: var(--danger);
   font-weight: 550;

@@ -845,6 +845,7 @@ def capture_article(conn, url: str, html: str | None = None) -> tuple[int, str]:
         body_html=body,
         image_url=metadata.image if metadata else None,
         word_count=word_count(body) if body else None,
+        site_name=(metadata.sitename if metadata else None) or None,
     )
     item_id = find_item_id(conn, CAPTURED_SOURCE_ID, url)
     add_item_to_list(conn, item_id, "later")

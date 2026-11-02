@@ -1078,6 +1078,113 @@ def test_capture_endpoint_saves_a_captured_page_to_read_later(monkeypatch, tmp_p
         assert "skill library" in item_page.text
 
 
+def _saved_page(site_name: str | None) -> str:
+    meta = f'<meta property="og:site_name" content="{site_name}">' if site_name else ""
+    paragraph = "<p>" + "A paragraph of the saved article. " * 12 + "</p>"
+    return (
+        f"<!doctype html><html><head><title>A saved story</title>{meta}</head>"
+        f"<body><article><h1>A saved story</h1>{paragraph}{paragraph}</article></body></html>"
+    )
+
+
+def _title_to_lede(page: str) -> str:
+    return page[page.index("</h1>") : page.index('class="article-body"')]
+
+
+def test_article_page_shows_its_source_under_the_title(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        page = client.get(f"/items/{item_id}").text
+        under_title = _title_to_lede(page)
+        assert '<p class="source">Fixture news</p>' in under_title
+        assert under_title.index('class="source"') < under_title.index('class="lede"')
+        # The line below keeps the author; it does not repeat the source.
+        lede = under_title[under_title.index('class="lede"') :]
+        assert "Fixture Author" in lede
+        assert "Fixture news" not in lede
+        # List rows stay as they were.
+        assert 'class="source"' not in client.get("/lists/news").text
+
+
+def test_article_without_an_author_does_not_repeat_its_source(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        conn = dbmod.connect(tmp_path / "reader.db")
+        try:
+            row = conn.execute(
+                "SELECT id FROM items WHERE title = 'Second fixture item'"
+            ).fetchone()
+        finally:
+            conn.close()
+        under_title = _title_to_lede(client.get(f"/items/{row['id']}").text)
+        assert '<p class="source">Fixture news</p>' in under_title
+        lede = under_title[under_title.index('class="lede"') :]
+        assert "Fixture news" not in lede
+
+
+def test_a_saved_link_shows_the_site_name_the_page_gives(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        saved = client.post(
+            "/capture",
+            data={
+                "url": "https://www.theguardian.com/world/a-saved-story",
+                "html": _saved_page("The Guardian"),
+            },
+        )
+        page = client.get(saved.json()["item_url"]).text
+        assert '<p class="source">The Guardian</p>' in _title_to_lede(page)
+
+
+def test_a_saved_link_without_a_site_name_shows_its_web_address(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        saved = client.post(
+            "/capture",
+            data={
+                "url": "https://www.example.org/posts/a-saved-story",
+                "html": _saved_page(None),
+            },
+        )
+        page = client.get(saved.json()["item_url"]).text
+        assert '<p class="source">example.org</p>' in _title_to_lede(page)
+
+
+def test_a_saved_link_with_neither_shows_no_source_line(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        saved = client.post(
+            "/capture",
+            data={"url": "not a link", "html": _saved_page(None)},
+        )
+        page = client.get(saved.json()["item_url"]).text
+        assert 'class="source"' not in page
+        assert "Captured" not in _title_to_lede(page)
+
+
+def test_an_older_database_gains_the_site_name_column(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    old.executescript(
+        """
+        CREATE TABLE sources (id TEXT PRIMARY KEY, kind TEXT NOT NULL,
+            title TEXT NOT NULL, feed_url TEXT);
+        CREATE TABLE items (id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_id TEXT NOT NULL, guid TEXT NOT NULL, title TEXT NOT NULL,
+            author TEXT, url TEXT, published_at TEXT, body_html TEXT,
+            image_url TEXT, word_count INTEGER, UNIQUE(source_id, guid));
+        """
+    )
+    old.close()
+    conn = dbmod.connect(path)
+    try:
+        dbmod.init_db(conn)
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(items)")}
+    finally:
+        conn.close()
+    assert "site_name" in columns
+
+
 def test_capture_endpoint_shows_html_confirmation_for_the_bookmarklet(
     monkeypatch, tmp_path
 ):
