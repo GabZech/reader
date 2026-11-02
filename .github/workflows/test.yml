@@ -1,13 +1,25 @@
 name: Test
 
 on:
+  # Branches are tested through their pull request; pushing to main tests
+  # (and deploys) what was merged. A branch without a pull request can still
+  # be tested and deployed on demand (workflow_dispatch).
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
 jobs:
   test:
+    name: test (${{ matrix.engine }})
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # WebKit (Safari's engine) always: the whole suite. Chromium on pull
+        # requests, as a second job alongside it: only the browser tests that
+        # run once per engine, in their Chromium form.
+        engine: ${{ fromJSON(github.event_name == 'pull_request' && '["webkit", "chromium"]' || '["webkit"]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -15,15 +27,22 @@ jobs:
           version: "0.12.1"
       - name: Install
         run: uv sync --locked
+      # The browsers are kept between runs, keyed on the locked Playwright
+      # version; their system libraries are installed each time.
+      - name: Cache browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ matrix.engine }}-${{ hashFiles('uv.lock') }}
       - name: Install browser
-        run: uv run playwright install --with-deps chromium webkit
+        # The WebKit job needs Chromium too: the swipe tests always use it.
+        run: uv run playwright install --with-deps ${{ matrix.engine == 'webkit' && 'chromium webkit' || 'chromium' }}
       - name: Lint
+        if: matrix.engine == 'webkit'
         run: uv run ruff check
       - name: Test
-        # WebKit (Safari's engine) always; Chromium too on pull requests.
-        run: uv run pytest
-        env:
-          READER_BROWSERS: ${{ github.event_name == 'pull_request' && 'webkit,chromium' || 'webkit' }}
+        # Tests run side by side, one per core (pytest.ini).
+        run: uv run pytest --browsers=${{ matrix.engine }} ${{ matrix.engine == 'chromium' && '-k chromium' || '' }}
 
   deploy:
     needs: test
