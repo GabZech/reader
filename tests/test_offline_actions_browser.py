@@ -15,6 +15,7 @@ from test_service_worker_browser import (
     _live_server,
     _select,
     _wait_for,
+    _wait_for_run_to_end,
     _wait_until_cached,
 )
 
@@ -113,7 +114,10 @@ def _swipe(page, title, dx):
 
 
 def _left(page, title):
+    """Swipe a row away to move it, and wait until it has gone (or failed and
+    slid back), so the next swipe finds the rows where they now sit."""
     _swipe(page, title, -170)
+    page.wait_for_function("!document.querySelector('.item-swipe[data-busy]')")
 
 
 def _right(page, title):
@@ -129,11 +133,9 @@ def _toast(page):
 
 
 def _home(phone, origin):
-    """Home syncs once and reloads itself; wait for that to be over."""
+    """Home syncs once and may reload itself; wait for that to be over."""
     phone.goto(f"{origin}/")
-    phone.wait_for_function("sessionStorage.getItem('reader-synced') === '1'")
-    phone.wait_for_timeout(1000)
-    phone.wait_for_load_state("load")
+    _wait_for_run_to_end(phone)
 
 
 def test_swiping_a_news_row_to_read_offline_moves_it_and_sends_it_later(

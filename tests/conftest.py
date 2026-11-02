@@ -56,6 +56,19 @@ Object.defineProperty(Navigator.prototype, "onLine", {
 });
 """
 
+# The worker tells open pages when an update run starts and ends (it says
+# "running" again whenever a page asks during a run, "done" once). The last
+# word is kept per tab, so a test can wait for the run to be over rather than
+# for a guessed time, even when the page reloads itself in between.
+NOTE_RUN_STATE = """
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    if (!event.data || event.data.type !== "downloading") return;
+    sessionStorage.setItem("test-run", event.data.running ? "running" : "done");
+  });
+}
+"""
+
 
 # WebKit is Safari's engine, which the installed iPhone app runs on: bugs
 # there (saving a form offline, the worker's lifetime) never showed in
@@ -69,6 +82,7 @@ def phone(engine):
                 viewport={"width": 390, "height": 844}, service_workers="allow"
             ).new_page()
             page.add_init_script(TELL_ONLINE_STATE)
+            page.add_init_script(NOTE_RUN_STATE)
             yield page
         finally:
             browser.close()

@@ -7,6 +7,7 @@ import time
 
 from test_offline_actions_browser import FIRST, SECOND, _ready, _seed_news
 from test_service_worker_browser import (
+    _after_the_gap,
     _go_offline,
     _live_server,
     _wait_until_cached,
@@ -19,7 +20,7 @@ from app import main as mainmod
 
 def _reopen(phone, origin):
     """Open the app again, as a fresh launch, and wait for its run to end."""
-    phone.wait_for_timeout(2500)
+    _after_the_gap(phone)
     again = phone.context.new_page()
     again.goto(f"{origin}/")
     again.wait_for_function("navigator.serviceWorker.controller !== null")
