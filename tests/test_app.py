@@ -1562,6 +1562,19 @@ def test_setting_a_subsection_title_persists(monkeypatch, tmp_path):
         assert 'value="A closer look"' in page.text
 
 
+def test_title_pages_show_the_title_box_above_the_highlighted_text(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        highlight_id = _save_highlight(client, item_id)
+        for level in ("section", "subsection"):
+            page = client.get(
+                f"/items/{item_id}/highlights/{highlight_id}/{level}-title"
+            ).text
+            assert page.index('id="highlight-title"') < page.index('class="quote"')
+            assert page.index(">Done<") < page.index('class="quote"')
+
+
 def test_closing_a_highlight_page_returns_to_that_highlight(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
