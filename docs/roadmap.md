@@ -64,4 +64,4 @@ Choices explicitly put off for later, each with a real trigger to revisit. Remov
 
 #### Testing
 
-- The browser tests are the slow part of the suite (about 100 of 450 tests, most of a 3 to 4 minute run), and CI is where the whole suite runs, so a failing push costs a few minutes. Tiers exist (`-m "not browser"` runs the rest in under 20 seconds). Still to do: run the browser tests in parallel (`pytest-xdist`, measured first so it does not make them flaky), replace their fixed waits with waits for the event, and let the swipe tests use a real server so they can run on WebKit like the others. Revisit when waiting on CI starts to slow changes down
+- The browser tests are still the slow part of the suite (about 160 per engine), though they now run side by side, one per core, and CI runs WebKit and Chromium as two jobs at once. Still to do: let the swipe tests use a real server so they can run on WebKit like the others, and replace the fixed waits left in tests that hold up under load today. Revisit when waiting on CI starts to slow changes down
