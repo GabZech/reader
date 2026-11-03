@@ -1873,82 +1873,8 @@
     });
   };
 
-  // On an iPhone, closing the in-app browser that Original opens can leave the
-  // installed app's window short (626 against 762 on the phone), so the bottom
-  // bar rides above the screen's edge. iOS keeps a home-screen app's window
-  // short only while the page is no taller than it, and this page is exactly
-  // window-high (.scroller scrolls, not the page), so every page after the
-  // return stayed short too. Making the page as tall as the window was earlier
-  // in this launch lets iOS hand the full height back; html's overflow: hidden
-  // keeps the page itself from scrolling meanwhile. Logged to Diagnostics as
-  // `viewport` entries. Never while typing, when the keyboard shortens the
-  // window on purpose, and never in a browser tab, whose toolbars do the same.
-  const initFullHeight = () => {
-    if (!matchMedia("(display-mode: standalone)").matches) return;
-    const KEY = "reader-tall";
-    const TOLERANCE = 60;
-    const root = document.documentElement;
-    const side = () => (innerWidth > innerHeight ? "l" : "p");
-    const typing = () => {
-      const el = document.activeElement;
-      return !!el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
-    };
-    const read = () => {
-      try {
-        return JSON.parse(sessionStorage.getItem(KEY)) || {};
-      } catch {
-        return {};
-      }
-    };
-    const remember = () => {
-      try {
-        const all = read();
-        all[side()] = innerHeight;
-        sessionStorage.setItem(KEY, JSON.stringify(all));
-      } catch {
-        /* best-effort */
-      }
-    };
-    let held = 0;
-    const check = (why) => {
-      if (typing()) return;
-      const tall = read()[side()] || 0;
-      if (innerHeight >= tall - TOLERANCE) {
-        if (held) {
-          // Back to full height, the page fits the window again by itself.
-          note("viewport", `ok ih=${innerHeight} tall=${held}`);
-          root.style.minHeight = "";
-          held = 0;
-        }
-        if (innerHeight > tall) remember();
-        return;
-      }
-      if (held === tall) return;
-      held = tall;
-      root.style.minHeight = `${tall}px`;
-      note("viewport", `short ih=${innerHeight} tall=${tall} ${why}`);
-      setTimeout(() => {
-        if (held && innerHeight < held - TOLERANCE) note("viewport", `stuck ih=${innerHeight} tall=${held}`);
-      }, 800);
-    };
-    let timer = 0;
-    const soon = (why) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => check(why), 150);
-    };
-    window.addEventListener("pageshow", () => soon("pageshow"));
-    window.addEventListener("focus", () => soon("focus"));
-    window.addEventListener("resize", () => soon("resize"));
-    document.addEventListener("focusout", () => soon("focusout"));
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") soon("visible");
-    });
-    check("load");
-  };
-
   initThemeToggle();
   initConfirmForms();
-  initFullHeight();
   applyMoves();
   initSwipe();
   initItemActions();
