@@ -7,7 +7,7 @@
         <span class="sync-state" hidden></span>
         <span class="article-bar-right">
           {% if item.url %}
-          <a href="{{ item.url }}" rel="noreferrer">Original</a>
+          <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">Original</a>
           {% endif %}
           {% if later_action %}
           <form method="post" action="{{ later_action }}" data-move='{{ moves.later | tojson }}'>
