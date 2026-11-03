@@ -929,6 +929,23 @@ def test_top_bar_has_original_then_read_later_then_mark_read(monkeypatch, tmp_pa
         assert "Mark read" not in actions
 
 
+def test_original_opens_in_a_new_window_so_the_app_never_leaves_the_article(
+    monkeypatch, tmp_path
+):
+    # Opened in the app's own window, iOS's in-app browser added its toolbar
+    # to the installed app's window and never gave the space back, leaving the
+    # bottom bar raised. A new window opens it as a layer over the app instead.
+    with _client(monkeypatch, tmp_path) as client:
+        _add_to_news(client, "https://example.test/feed.xml")
+        item_id = _first_item_id(tmp_path)
+        bar, _actions = _bar_and_actions(
+            client.get(f"/items/{item_id}?from_list=news").text
+        )
+        link = bar[bar.rindex("<a ", 0, bar.index(">Original<")) : bar.index(">Original<")]
+        assert 'target="_blank"' in link
+        assert 'rel="noopener noreferrer"' in link
+
+
 def test_the_bottom_row_of_an_unsaved_article_is_only_delete(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
         _add_to_news(client, "https://example.test/feed.xml")
