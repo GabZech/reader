@@ -1873,13 +1873,15 @@
     });
   };
 
-  // Original opens in a new window: in the app's own window, iOS's in-app
-  // browser added its toolbar to the installed app's window and never gave the
-  // space back, leaving the bottom bar raised. The template says so already;
-  // this covers articles the phone stored before it did, whose markup is not
+  // Original and the web links in an article's text open in a new window: in
+  // the app's own window, iOS's in-app browser added its toolbar to the
+  // installed app's window and never gave the space back, leaving the bottom
+  // bar raised. The template says so for Original already; this covers the
+  // text's links and articles the phone stored before, whose markup is not
   // refreshed when the app updates.
   const initOriginalLink = () => {
-    document.querySelectorAll(".article-bar-right a[href^='http']").forEach((link) => {
+    const links = ".article-bar-right a[href^='http'], .article-body a[href^='http']";
+    document.querySelectorAll(links).forEach((link) => {
       link.target = "_blank";
       link.rel = "noopener noreferrer";
     });

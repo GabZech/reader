@@ -37,3 +37,37 @@ def test_an_article_stored_before_the_change_opens_original_in_a_new_window(
         link = phone.locator(".article-bar-right a", has_text="Original")
         assert link.get_attribute("target") == "_blank"
         assert link.get_attribute("rel") == "noopener noreferrer"
+
+
+# Tapping a link in an article's text did the same as the old Original: iOS
+# loaded the site in the app's own window and the bar stayed raised after Done.
+# Web links in the text open in a new window too; links inside the app and
+# email links are left as they are.
+
+BODY_ARTICLE = """<!doctype html>
+<html><head><meta charset="utf-8"></head><body>
+<div class="scroller"><main class="page">
+<div class="article-body">
+  <p><a id="web" href="https://example.test/story">story</a>
+  <a id="relative" href="/items/1">item</a>
+  <a id="mail" href="mailto:a@example.test">mail</a></p>
+</div>
+</main></div>
+<script src="/static/app.js"></script>
+</body></html>"""
+
+
+def test_web_links_in_an_article_open_in_a_new_window(phone, monkeypatch, tmp_path):
+    with _live_server(monkeypatch, tmp_path) as (origin, _server):
+        phone.route(
+            f"{origin}/body-copy",
+            lambda route: route.fulfill(content_type="text/html", body=BODY_ARTICLE),
+        )
+        phone.goto(f"{origin}/body-copy")
+        phone.wait_for_load_state("load")
+
+        web = phone.locator("#web")
+        assert web.get_attribute("target") == "_blank"
+        assert web.get_attribute("rel") == "noopener noreferrer"
+        assert phone.locator("#relative").get_attribute("target") is None
+        assert phone.locator("#mail").get_attribute("target") is None
