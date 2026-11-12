@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 from lxml.html import fromstring
 
 from app.config import database_path
+from app.urls import web_url
 
 LISTS = (
     ("news", "News", 0),
@@ -1001,6 +1002,9 @@ def upsert_item(
     With `keep_text_if_empty`, a refresh that brings no text leaves the stored
     text in place: a feed that ships none must not undo the text fetched from
     the page."""
+    # Only web addresses: anything else would run as the app when tapped.
+    url = web_url(url)
+    image_url = web_url(image_url)
     existing = conn.execute(
         "SELECT id FROM items WHERE source_id = ? AND guid = ?",
         (source_id, guid),

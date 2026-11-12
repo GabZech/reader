@@ -108,9 +108,12 @@ from app.obsidian import (
     highlights_have_links,
     highlights_in_a_single_list_item,
 )
+from app.urls import css_url, web_url
 
 APP_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
+templates.env.filters["web_url"] = web_url
+templates.env.filters["css_url"] = css_url
 templates.env.globals["format_when"] = format_when
 templates.env.globals["reading_length"] = reading_length
 
@@ -2139,6 +2142,8 @@ async def capture(request: Request):
     url = str(form.get("url") or "").strip()
     if not url:
         raise HTTPException(status_code=400, detail="Missing url")
+    if web_url(url) is None:
+        raise HTTPException(status_code=400, detail="Invalid url")
     html = form.get("html")
     html = str(html) if html else None
     conn = connect()
