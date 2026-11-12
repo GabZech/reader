@@ -1894,8 +1894,47 @@
     });
   };
 
+  // The bookmarklet's tab: ask the page that opened it for what to save
+  // (its address and HTML as rendered), then save it with this browser's
+  // sign-in. Only the opener's message counts. A page that cannot hand
+  // itself over (some sites cut the tabs they open loose) gets a button to
+  // save its address instead; nothing is saved from the address on its own.
+  const initCaptureHandoff = () => {
+    const form = document.querySelector("form[data-capture-handoff]");
+    if (!form) return;
+    const status = document.querySelector("[data-handoff-status]");
+    const fallback = document.querySelector("form[data-handoff-fallback]");
+    const opener = window.opener;
+    let handedOver = false;
+    const giveUp = () => {
+      if (handedOver) return;
+      status.textContent = fallback
+        ? "This page could not hand itself over. Save its address instead, and Reader will fetch the page itself."
+        : "This page could not hand itself over, so there is nothing to save.";
+      if (fallback) fallback.hidden = false;
+    };
+    if (!opener) {
+      giveUp();
+      return;
+    }
+    window.addEventListener("message", (event) => {
+      if (handedOver || event.source !== opener) return;
+      const page = event.data;
+      if (!page || page.type !== "reader-page") return;
+      if (typeof page.url !== "string" || typeof page.html !== "string") return;
+      handedOver = true;
+      form.elements.url.value = page.url;
+      form.elements.html.value = page.html;
+      form.submit();
+    });
+    // Says nothing about the page or the app, so any opener may hear it.
+    opener.postMessage("reader-ready", "*");
+    setTimeout(giveUp, 4000);
+  };
+
   initThemeToggle();
   initBookmarkletLink();
+  initCaptureHandoff();
   initConfirmForms();
   initOriginalLink();
   applyMoves();

@@ -12,6 +12,7 @@ from conftest import TEST_PASSWORD
 from fastapi.testclient import TestClient
 
 from app import auth
+from app.db import connect, create_device, init_db
 from app.main import app
 
 NAVIGATE = {"Sec-Fetch-Mode": "navigate", "Accept": "text/html"}
@@ -49,6 +50,18 @@ def _rows(tmp_path, kind="key"):
         conn.close()
 
 
+def _old_bookmarklet_key():
+    """A key made for the bookmarklet before it stopped needing one: still
+    listed, so it can be revoked."""
+    conn = connect()
+    try:
+        init_db(conn)
+        create_device(conn, "key", "Computer bookmarklet", auth.token_hash("rk_old"), None, START)
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def _later(monkeypatch, **delta):
     moment = START + timedelta(**delta)
     monkeypatch.setattr(auth, "now", lambda: moment)
@@ -62,6 +75,8 @@ def test_the_add_page_offers_the_two_tools():
     assert page.status_code == 200
     assert "iPhone Shortcut" in page.text
     assert "Computer bookmarklet" in page.text
+    # The bookmarklet needs no key: it is a plain link to its own page.
+    assert 'href="/settings/bookmarklet"' in page.text
     assert 'action="/settings/devices/keys"' in page.text
 
 
@@ -74,13 +89,13 @@ def test_a_shortcut_key_is_shown_once_with_where_to_put_it(tmp_path):
     assert row["name"] == "iPhone Shortcut"
 
 
-def test_a_bookmarklet_key_is_built_into_the_button(tmp_path):
-    key, response = _make_key(_browser(), "bookmarklet")
-    link = re.search(r'href="(javascript:[^"]*)"', response.text).group(1)
-    assert key in link
-    assert "/capture" in link
-    assert "outerHTML" in link
-    assert _rows(tmp_path)[0]["name"] == "Computer bookmarklet"
+def test_a_bookmarklet_key_can_no_longer_be_made(tmp_path):
+    # Its key ran inside every page it saved, where that page could read it.
+    response = _browser().post(
+        "/settings/devices/keys", data={"kind": "bookmarklet"}, headers=NAVIGATE
+    )
+    assert response.status_code == 400
+    assert _rows(tmp_path) == []
 
 
 def test_only_a_scrambled_copy_of_the_key_is_kept(tmp_path):
@@ -123,8 +138,8 @@ def test_a_key_lets_a_page_be_saved_to_read_later():
     assert response.json()["item_url"].startswith("/items/")
 
 
-def test_a_key_works_for_the_bookmarklets_confirmation_page_too():
-    key, _ = _make_key(_browser(), "bookmarklet")
+def test_a_key_works_for_the_html_confirmation_page_too():
+    key, _ = _make_key(_browser(), "shortcut")
     tool = TestClient(app, follow_redirects=False)
     response = tool.post("/capture?format=html", data={**CAPTURE, "key": key}, headers=NAVIGATE)
     assert response.status_code == 200
@@ -212,7 +227,7 @@ def test_signing_out_other_browsers_leaves_the_keys_alone(tmp_path):
 def test_the_devices_page_lists_keys_apart_from_browsers(monkeypatch):
     client = _browser()
     _make_key(client, "shortcut")
-    _make_key(client, "bookmarklet")
+    _old_bookmarklet_key()
     _later(monkeypatch, days=9)
     page = client.get("/settings/devices", headers=NAVIGATE).text
     assert "Save keys" in page
@@ -247,7 +262,7 @@ def test_settings_counts_the_keys_next_to_the_browsers():
     assert "save key" not in client.get("/settings", headers=NAVIGATE).text
     _make_key(client)
     assert "1 browser · 1 save key" in client.get("/settings", headers=NAVIGATE).text
-    _make_key(client, "bookmarklet")
+    _make_key(client, "shortcut")
     assert "1 browser · 2 save keys" in client.get("/settings", headers=NAVIGATE).text
 
 

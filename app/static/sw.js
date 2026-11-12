@@ -511,7 +511,7 @@ async function answer(request, event) {
 // Devices: what other devices and tools did is only known there):
 // never stored, so offline they say what they need.
 const NEEDS_SERVER =
-  /^\/(login|settings\/devices(\/.*)?|lists\/add|home\/edit|diagnostics|sources\/add(\/.*)?|sources\/added\/[^/]+|sources\/[^/]+\/(list|window|new-list))$/;
+  /^\/(login|settings\/devices(\/.*)?|settings\/bookmarklet|capture\/from-page|lists\/add|home\/edit|diagnostics|sources\/add(\/.*)?|sources\/added\/[^/]+|sources\/[^/]+\/(list|window|new-list))$/;
 
 // What a page that cannot load says: an article not downloaded, a page that
 // needs the server, or (for anything else) just to try again.

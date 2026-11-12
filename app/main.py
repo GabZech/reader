@@ -401,19 +401,21 @@ def _is_save_key(key: str) -> bool:
         conn.close()
 
 
-def _bookmarklet_href(request: Request, key: str) -> str:
-    action = f"{str(request.base_url).rstrip('/')}/capture?format=html"
+def _bookmarklet_href(request: Request) -> str:
+    """A button that opens Reader's hand-off page in a new tab and passes it
+    the page being saved, as the browser rendered it. It carries no key: the
+    tab saves with the browser's own sign-in. The page is handed only to a
+    tab on this app's origin, and only once that tab asks for it."""
+    origin = str(request.base_url).rstrip("/")
     script = (
         "(function(){"
-        "var f=document.createElement('form');"
-        "f.method='POST';f.target='_blank';"
-        f"f.action='{action}';"
-        "function a(n,v){var i=document.createElement('input');"
-        "i.type='hidden';i.name=n;i.value=v;f.appendChild(i);}"
-        f"a('key','{key}');"
-        "a('url',location.href);"
-        "a('html',document.documentElement.outerHTML);"
-        "document.body.appendChild(f);f.submit();f.remove();"
+        f'var o="{origin}";'
+        'var w=window.open(o+"/capture/from-page?url="+encodeURIComponent(location.href),"_blank");'
+        "if(!w)return;"
+        'var d={type:"reader-page",url:location.href,html:document.documentElement.outerHTML};'
+        'window.addEventListener("message",function(e){'
+        'if(e.source===w&&e.origin===o&&e.data==="reader-ready")w.postMessage(d,o);'
+        "});"
         "})();"
     )
     return "javascript:" + script
@@ -584,7 +586,6 @@ def devices_sign_out_others(request: Request):
 
 KEY_KINDS = {
     "shortcut": "iPhone Shortcut",
-    "bookmarklet": "Computer bookmarklet",
     "access": "Claude access",
 }
 
@@ -625,10 +626,18 @@ async def key_create(request: Request):
             "kind": kind,
             "name": KEY_KINDS[kind],
             "key": key,
-            "bookmarklet_href": _bookmarklet_href(request, key) if kind == "bookmarklet" else "",
             "capture_url": f"{str(request.base_url).rstrip('/')}/capture",
         },
         headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/settings/bookmarklet")
+def bookmarklet_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "bookmarklet.html",
+        {"nav": "home", "bookmarklet_href": _bookmarklet_href(request)},
     )
 
 
@@ -2133,9 +2142,27 @@ def item_delete(
     )
 
 
+# A rendered page's HTML can run to megabytes (an X post does); the server's
+# own limit for a form field is 1 MB.
+CAPTURE_MAX_BYTES = 10 * 1024 * 1024
+
+
+@app.get("/capture/from-page")
+def capture_from_page(request: Request, url: str = ""):
+    """Where the bookmarklet hands over the page being saved. Saved only on
+    the hand-off, or a tap: never from the address alone, which any link
+    could carry."""
+    return templates.TemplateResponse(
+        request,
+        "capture_from_page.html",
+        {"nav": "home", "url": web_url(url)},
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @app.post("/capture")
 async def capture(request: Request):
-    form = await request.form()
+    form = await request.form(max_part_size=CAPTURE_MAX_BYTES)
     if request.state.device is None and not request.state.access and not await run_in_threadpool(
         _is_save_key, str(form.get("key") or "").strip()
     ):

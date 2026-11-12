@@ -47,7 +47,8 @@ INLINE_HANDLER = re.compile(r"<[a-z][^>]*\son[a-z]+\s*=", re.IGNORECASE)
 
 
 @pytest.mark.parametrize(
-    "path", ["/", "/login", "/lists", "/sources", "/settings", "/settings/devices", "/settings/devices/keys/new"]
+    "path", ["/", "/login", "/lists", "/sources", "/settings", "/settings/devices", "/settings/devices/keys/new", "/settings/bookmarklet",
+             "/capture/from-page?url=https%3A%2F%2Fblog.test%2Fpost"]
 )
 def test_no_page_carries_an_inline_script(client, path):
     page = client.get(path, headers=NAVIGATE).text
@@ -55,7 +56,7 @@ def test_no_page_carries_an_inline_script(client, path):
     assert not INLINE_HANDLER.search(page)
 
 
-@pytest.mark.parametrize("kind", ["shortcut", "bookmarklet", "access"])
+@pytest.mark.parametrize("kind", ["shortcut", "access"])
 def test_the_page_showing_a_new_key_carries_no_inline_script(anonymous, client, kind):
     client.post("/login", data={"password": TEST_PASSWORD})
     page = client.post("/settings/devices/keys", data={"kind": kind}, headers=NAVIGATE).text
