@@ -325,8 +325,17 @@ async def trace_requests(request: Request, call_next):
 async def check_host_and_framing(request: Request, call_next):
     # A Host header is a hostname and maybe a port. Anything else (a slash,
     # "?", "#", "@") is refused before it can bend a URL built from it.
-    if not auth.host_is_plain(request.headers.get("host", "")):
+    host = request.headers.get("host", "")
+    if not auth.host_is_plain(host):
         return Response("Bad Host header", status_code=400)
+    # A change sent from another website is refused before anything runs.
+    # SameSite cookies alone would let a sibling subdomain through once the
+    # app is on a domain of its own. No Origin at all (the Shortcut, tools)
+    # goes on to the usual sign-in and key checks.
+    if request.method not in ("GET", "HEAD", "OPTIONS") and not auth.same_origin(
+        request.headers.get("origin"), host
+    ):
+        return Response("Not accepted from another site", status_code=403)
     response = await call_next(request)
     # No other site may show these pages in a frame (a hidden Revoke button).
     response.headers["X-Frame-Options"] = "DENY"
