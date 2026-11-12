@@ -1887,7 +1887,15 @@
     });
   };
 
+  // The bookmarklet is there to be dragged to the bookmarks bar, not clicked.
+  const initBookmarkletLink = () => {
+    document.querySelectorAll("a.bookmarklet").forEach((link) => {
+      link.addEventListener("click", (event) => event.preventDefault());
+    });
+  };
+
   initThemeToggle();
+  initBookmarkletLink();
   initConfirmForms();
   initOriginalLink();
   applyMoves();

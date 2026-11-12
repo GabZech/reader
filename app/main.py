@@ -330,7 +330,11 @@ async def check_host_and_framing(request: Request, call_next):
     response = await call_next(request)
     # No other site may show these pages in a frame (a hidden Revoke button).
     response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Content-Security-Policy"] = "frame-ancestors 'none'"
+    # Only the app's own script files run: no inline script, no inline
+    # handler, no javascript: link, whatever markup reaches a page.
+    response.headers["Content-Security-Policy"] = (
+        "script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+    )
     return response
 
 

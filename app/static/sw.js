@@ -9,6 +9,8 @@ const IMAGES = "reader-images-v1";
 const SHELL = [
   "/static/styles.css",
   "/static/app.js",
+  "/static/theme.js",
+  "/static/trace.js",
   "/static/fonts/fraunces-normal.woff2",
   "/static/fonts/fraunces-italic.woff2",
   "/static/fonts/literata-normal.woff2",

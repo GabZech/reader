@@ -12,13 +12,7 @@
     <link rel="stylesheet" href="/static/styles.css" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
-    <script>
-      (() => {
-        if (localStorage.getItem("reader-theme") !== "light") {
-          document.documentElement.dataset.theme = "dark";
-        }
-      })();
-    </script>
+    <script src="/static/theme.js"></script>
   </head>
   <body>
     <div class="scroller">
@@ -45,19 +39,6 @@
         </form>
       </div>
     </div>
-    <script>
-      // The installed app is a browser of its own: say so, so the Devices page can name it.
-      try {
-        if (window.navigator.standalone || matchMedia("(display-mode: standalone)").matches) {
-          document.getElementById("installed").value = "1";
-        }
-      } catch (_) {}
-      // Nobody is signed in here, so nothing from the library should stay on this phone.
-      try {
-        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: "forget" });
-        }
-      } catch (_) {}
-    </script>
+    <script src="/static/login.js"></script>
   </body>
 </html>
