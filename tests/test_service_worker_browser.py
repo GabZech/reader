@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 
 import httpx
 import uvicorn
+from conftest import wait_for_js
 from playwright.sync_api import Error as PlaywrightError
 
 from app import db as dbmod
@@ -217,8 +218,7 @@ def _app_url(server):
 
 def _wait_for_quote(phone, text):
     # Offline the page fills its passage in a moment after it opens.
-    phone.wait_for_function(
-        "(t) => document.querySelector('blockquote.quote').textContent === t", arg=text
+    wait_for_js(phone, "(t) => document.querySelector('blockquote.quote').textContent === t", arg=text
     )
 
 
@@ -244,7 +244,7 @@ def test_a_page_that_cannot_load_or_be_found_offline_shows_a_retry_page(
     # white screen with no way out.
     with _live_server(monkeypatch, tmp_path) as (origin, server):
         phone.goto(f"{origin}/")
-        phone.wait_for_function("navigator.serviceWorker.controller !== null")
+        wait_for_js(phone, "navigator.serviceWorker.controller !== null")
         server.network.down()
         server.should_exit = True
         time.sleep(1.5)
@@ -264,7 +264,7 @@ def test_a_page_that_cannot_load_or_be_found_offline_shows_a_retry_page(
 def test_a_page_seen_before_still_opens_offline(phone, monkeypatch, tmp_path):
     with _live_server(monkeypatch, tmp_path) as (origin, server):
         phone.goto(f"{origin}/")
-        phone.wait_for_function("navigator.serviceWorker.controller !== null")
+        wait_for_js(phone, "navigator.serviceWorker.controller !== null")
         phone.goto(f"{origin}/lists")
         server.network.down()
         server.should_exit = True
@@ -363,8 +363,7 @@ def test_a_read_later_article_never_opened_still_opens_offline(
         for context in ("?from_list=later", "?from_home=1", ""):
             phone.goto(f"{origin}/items/{item_id}{context}")
             assert "Words to read offline" in phone.inner_text(".article-body")
-            phone.wait_for_function(
-                "document.querySelector('.article-body img').complete"
+            wait_for_js(phone, "document.querySelector('.article-body img').complete"
             )
             assert phone.evaluate(
                 "document.querySelector('.article-body img').naturalWidth"
@@ -414,14 +413,14 @@ def test_updating_from_an_older_worker_downloads_read_later_and_keeps_old_pages(
         # Not Home: its sync reloads the page, and a reload that starts just
         # as the worker claims pages leaves that page with no worker at all.
         phone.goto(f"{origin}/sources")
-        phone.wait_for_function("navigator.serviceWorker.controller !== null")
+        wait_for_js(phone, "navigator.serviceWorker.controller !== null")
         _wait_until_cached(phone, f"{origin}/settings")
 
         worker.write_text((APP_STATIC / "sw.js").read_text())
         phone.goto(f"{origin}/lists")
         # WebKit sometimes leaves the ask made during the update unanswered;
         # every page asks, so the download happens by the next one.
-        phone.wait_for_function("navigator.serviceWorker.controller !== null")
+        wait_for_js(phone, "navigator.serviceWorker.controller !== null")
         phone.goto(f"{origin}/sources")
         _wait_until_cached(phone, f"{origin}/items/{item_id}")
         _wait_until_cached(phone, f"{origin}/lists/later")
@@ -871,7 +870,7 @@ def test_a_cog_left_turning_by_a_lost_done_message_stops_at_the_next_ask(
     phone.add_init_script("sessionStorage.setItem('reader-synced', '1')")
     with _live_server(monkeypatch, tmp_path) as (origin, _server):
         phone.goto(f"{origin}/")
-        phone.wait_for_function("navigator.serviceWorker.controller !== null")
+        wait_for_js(phone, "navigator.serviceWorker.controller !== null")
         phone.wait_for_selector("#sync-status:not(.is-updating)")
         phone.evaluate(
             """() => navigator.serviceWorker.dispatchEvent(

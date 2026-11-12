@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from conftest import wait_for_js
 from playwright.sync_api import sync_playwright
 from test_service_worker_browser import _live_server
 
@@ -31,7 +32,7 @@ def test_the_page_never_scrolls_so_the_tab_bar_cannot_be_dragged_with_it(
         wheel_phone.evaluate("document.querySelector('.page').style.minHeight = '3000px'")
         wheel_phone.mouse.move(200, 300)
         wheel_phone.mouse.wheel(0, 900)
-        wheel_phone.wait_for_function("document.querySelector('.scroller').scrollTop > 0")
+        wait_for_js(wheel_phone, "document.querySelector('.scroller').scrollTop > 0")
 
         assert wheel_phone.evaluate("window.scrollY") == 0
         assert wheel_phone.evaluate("document.querySelector('.scroller').scrollTop") > 0

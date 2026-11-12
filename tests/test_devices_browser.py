@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from conftest import wait_for_js
 from playwright.sync_api import expect
 from test_service_worker_browser import _live_server, _wait_until_cached
 
@@ -92,7 +93,7 @@ def test_a_key_used_elsewhere_shows_as_used_when_the_page_is_opened_again(
         finally:
             conn.close()
         phone.goto(f"{origin}/settings")
-        phone.wait_for_function("navigator.serviceWorker.controller !== null")
+        wait_for_js(phone, "navigator.serviceWorker.controller !== null")
         phone.goto(f"{origin}/settings/devices")
         _wait_until_cached(phone, f"{origin}/settings/devices")
         row = phone.locator(".device-row", has_text="iPhone Shortcut")

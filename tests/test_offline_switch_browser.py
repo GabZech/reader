@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import time
 
+from conftest import wait_for_js
 from test_offline_actions_browser import FIRST, SECOND, _ready, _seed_news
 from test_service_worker_browser import (
     _after_the_gap,
@@ -23,7 +24,7 @@ def _reopen(phone, origin):
     _after_the_gap(phone)
     again = phone.context.new_page()
     again.goto(f"{origin}/")
-    again.wait_for_function("navigator.serviceWorker.controller !== null")
+    wait_for_js(again, "navigator.serviceWorker.controller !== null")
     again.wait_for_selector("#sync-status.is-updating", timeout=5000)
     again.wait_for_selector("#sync-status:not(.is-updating)", timeout=20000)
     return again

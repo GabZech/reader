@@ -7,6 +7,7 @@ says so instead of failing in the browser's own way.
 from __future__ import annotations
 
 import httpx
+from conftest import wait_for_js
 from playwright.sync_api import expect
 from test_offline_actions_browser import FIRST, SECOND, _app, _ready, _seed_news, _toast
 from test_service_worker_browser import _go_offline, _go_online, _live_server
@@ -147,7 +148,7 @@ def test_a_form_sent_online_still_comes_back_to_its_page(phone, monkeypatch, tmp
 
         phone.click("text=Shown >> nth=0")
 
-        phone.wait_for_function("document.querySelector('.set-row.is-off') !== null")
+        wait_for_js(phone, "document.querySelector('.set-row.is-off') !== null")
         assert phone.url.startswith(f"{origin}/settings")
         assert _home_flags(tmp_path)["news"] == 0
 
