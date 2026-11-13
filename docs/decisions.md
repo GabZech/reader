@@ -4,6 +4,16 @@ Choices that are expensive to undo, newest first. Written by Ship when a change 
 
 Each entry: date, title and PR (when one exists), then **Decision**, **Why** (one sentence), **Rejected**, **Revisit when**. The full reasoning and evidence live in the linked PR.
 
+## 2026-11-13: The bookmarklet hands the page to a Reader tab; pages run only the app's own scripts
+
+**Decision:** The computer bookmarklet carries no key. It opens `/capture/from-page` in a new tab and hands it the page's address and rendered HTML through `postMessage`, aimed only at the app's origin; that tab saves with the browser's sign-in. Alongside it, every response carries the script policy `script-src 'self'` (no inline scripts anywhere), and a change sent with another site's `Origin` is refused.
+
+**Why:** A key built into a bookmarklet runs inside every page it saves, where that page can read it.
+
+**Rejected:** Sending only the address and letting the server fetch it (pages behind a login, and X posts, would save empty); keeping the key and accepting the exposure; a nonce or hash per inline script instead of moving them out (more moving parts for three short scripts).
+
+**Revisit when:** Saving from a computer moves to a browser extension, or a page needs an inline script.
+
 ## 2026-10-31: One password, with a cookie or a key per device kept as a hash
 
 **Decision:** One password, held as the `LOGIN_PASSWORD` host secret, opens the app. Each browser that gives it gets a long-lived cookie, kept only as a hash in a `devices` table, that ends after 30 days unused or when the password changes. The Shortcut, the bookmarklet and development tooling use separate hashed keys (save keys, an access key) instead of the cookie. A request that is not a person opening a page gets a plain 401, and only page navigations are sent to the login page.
