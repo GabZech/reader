@@ -7,7 +7,8 @@ allowed to get in the way of signing in: a failure is noted in Diagnostics.
 from __future__ import annotations
 
 import smtplib
-from datetime import timedelta, timezone
+import threading
+from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 
 from app import auth, diag
@@ -17,10 +18,11 @@ from app.config import alert_config
 LOCAL_TIMEZONE = timezone(timedelta(hours=-3), "BRT")
 
 
-def _send(subject: str, body: str) -> None:
+def _send(subject: str, body: str) -> bool:
+    """Whether the mail went out."""
     config = alert_config()
     if config is None:
-        return
+        return False
     message = EmailMessage()
     message["From"] = config.user
     message["To"] = config.to
@@ -33,6 +35,8 @@ def _send(subject: str, body: str) -> None:
             server.send_message(message)
     except OSError as error:  # includes every smtplib error, refusals and timeouts too
         diag.note("alert-failed", f"{type(error).__name__}: {error}")
+        return False
+    return True
 
 
 def _when() -> str:
@@ -51,12 +55,44 @@ def new_sign_in(device_name: str, client: str) -> None:
     )
 
 
+# Lockouts are mailed at most this often: anyone with many addresses could
+# otherwise fill the inbox. The ones held back are counted in the next mail.
+LOCKOUT_MAIL_EVERY = timedelta(hours=1)
+_lockout_lock = threading.Lock()
+_last_lockout_mail: datetime | None = None
+_unmailed_lockouts = 0
+
+
+def forget_lockout_mail() -> None:
+    global _last_lockout_mail, _unmailed_lockouts
+    with _lockout_lock:
+        _last_lockout_mail, _unmailed_lockouts = None, 0
+
+
 def locked_out(client: str) -> None:
-    _send(
+    global _last_lockout_mail, _unmailed_lockouts
+    moment = auth.now()
+    with _lockout_lock:
+        if _last_lockout_mail is not None and moment - _last_lockout_mail < LOCKOUT_MAIL_EVERY:
+            _unmailed_lockouts += 1
+            return
+        held_back = _unmailed_lockouts
+    more = (
+        f"{held_back} more {'network was' if held_back == 1 else 'networks were'} locked out "
+        "since the last email, not mailed one by one.\n\n"
+        if held_back
+        else ""
+    )
+    sent = _send(
         "Reader: sign-in locked after wrong passwords",
         f"Several wrong passwords were tried on Reader's login page.\n\n"
         f"Network: {client}\n"
         f"When: {_when()}\n\n"
+        f"{more}"
         f"That network is locked out for {auth.minutes_left(auth.LOCK_FOR)}. "
         "Nothing was let in. If you did not try this, consider changing the password on Fly.",
     )
+    if sent:
+        with _lockout_lock:
+            _last_lockout_mail = moment
+            _unmailed_lockouts -= held_back

@@ -11,9 +11,11 @@ or set READER_BROWSERS the same way (CI does for pull requests).
 from __future__ import annotations
 
 import os
+import time
 from datetime import UTC, datetime
 
 import pytest
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
 
 from app import auth
@@ -68,6 +70,25 @@ if (navigator.serviceWorker) {
   });
 }
 """
+
+
+def wait_for_js(page, js: str, arg=None, timeout: float = 30.0):
+    """Wait until `js` (an expression, or a function given `arg`) is truthy.
+    Playwright's wait_for_function evaluates its predicate as a string, which
+    the app's script policy refuses; evaluate is not refused. Retries across
+    a navigation, as wait_for_function does."""
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            value = page.evaluate(js, arg) if arg is not None else page.evaluate(js)
+            if value:
+                return value
+        except PlaywrightError as error:
+            if "context was destroyed" not in str(error) and "navigat" not in str(error):
+                raise
+        if time.monotonic() > deadline:
+            raise AssertionError(f"never true within {timeout}s: {js}")
+        time.sleep(0.05)
 
 
 # WebKit is Safari's engine, which the installed iPhone app runs on: bugs

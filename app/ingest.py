@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import ipaddress
 import re
+import socket
 import time
 from collections import Counter
 from dataclasses import dataclass
@@ -464,20 +466,66 @@ def _newest_first(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(entries, key=key, reverse=True)
 
 
+class BlockedAddress(httpx.ConnectError):
+    """A fetch refused because its address is not on the public internet. A
+    kind of connection error, so every caller treats it as unreachable."""
+
+
+# Swapped in tests only, to answer fetches without a network.
+_TRANSPORT: httpx.BaseTransport | None = None
+MAX_REDIRECTS = 10
+
+
+def _addresses(host: str) -> list[str]:
+    try:
+        infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+    except (socket.gaierror, UnicodeError) as error:
+        raise httpx.ConnectError(f"{host}: {error}") from error
+    return [info[4][0] for info in infos]
+
+
+def _check_public(url: httpx.URL) -> None:
+    """Refuse an address the server alone can reach: itself, Fly's private
+    network, a cloud metadata address, a home router. Every address the name
+    resolves to must be public. A name that changes its answer between this
+    check and the fetch (DNS rebinding) is not caught."""
+    if url.scheme not in ("http", "https") or not url.host:
+        raise BlockedAddress(f"not a web address: {url}")
+    try:
+        resolved = [str(ipaddress.ip_address(url.host))]  # an address, not a name
+    except ValueError:
+        resolved = _addresses(url.host)
+    for raw in resolved:
+        address = ipaddress.ip_address(raw.split("%", 1)[0])
+        if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
+            address = address.ipv4_mapped
+        if not address.is_global:
+            raise BlockedAddress(f"{url.host} is not a public address")
+
+
 def fetch_url(url: str, timeout: float = 8.0) -> tuple[str, str]:
-    response = httpx.get(
-        url,
+    """Fetch a page from the public internet, following redirects by hand so
+    that each hop is checked before it is asked."""
+    with httpx.Client(
         timeout=timeout,
-        follow_redirects=True,
+        follow_redirects=False,
+        transport=_TRANSPORT,
         headers={
             "User-Agent": "reader/0.1",
             # Skips Google's EU cookie-consent redirect page, which otherwise
             # replaces the real page (and its feed link) for a YouTube channel URL.
             "Cookie": "SOCS=CAI",
         },
-    )
-    response.raise_for_status()
-    return str(response.url), response.text
+    ) as client:
+        target = httpx.URL(url)
+        for _hop in range(MAX_REDIRECTS + 1):
+            _check_public(target)
+            response = client.get(target)
+            if not response.has_redirect_location:
+                response.raise_for_status()
+                return str(response.url), response.text
+            target = response.url.join(response.headers["location"])
+        raise httpx.TooManyRedirects(f"more than {MAX_REDIRECTS} redirects", request=response.request)
 
 
 def _fetch_longform_xml(feed_url: str, timeout: float = 8.0) -> str | None:

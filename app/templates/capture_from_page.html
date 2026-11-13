@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Saving{% endblock %}
+{% block body %}
+      <header class="top">
+        <h1>Read later</h1>
+      </header>
+      <p class="lede" data-handoff-status>Saving the page to Read later…</p>
+      <form method="post" action="/capture?format=html" enctype="multipart/form-data" data-capture-handoff>
+        <input type="hidden" name="url" value="">
+        <textarea name="html" hidden></textarea>
+      </form>
+      {% if url %}
+      <form method="post" action="/capture?format=html" data-handoff-fallback hidden>
+        <blockquote class="quote">{{ url }}</blockquote>
+        <input type="hidden" name="url" value="{{ url }}">
+        <button class="btn btn-accent" type="submit">Save the address only</button>
+      </form>
+      {% endif %}
+{% endblock %}

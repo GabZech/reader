@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from conftest import wait_for_js
 from test_app import _save_highlight
 from test_highlight_browser import (
     ORIGIN,
@@ -99,8 +100,7 @@ def test_merging_into_a_titled_highlight_keeps_one_marker(
         _select_and_save(
             browser_page, f"{mark}.firstChild, 4", f"{mark}.nextSibling, 26"
         )
-        browser_page.wait_for_function(
-            f"!document.querySelector('mark.hl[data-highlight-id=\"{titled}\"]')"
+        wait_for_js(browser_page, f"!document.querySelector('mark.hl[data-highlight-id=\"{titled}\"]')"
         )
         markers = _markers(browser_page)
         assert len(markers) == 1 and markers[0][1] is True

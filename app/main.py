@@ -108,9 +108,12 @@ from app.obsidian import (
     highlights_have_links,
     highlights_in_a_single_list_item,
 )
+from app.urls import css_url, web_url
 
 APP_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
+templates.env.filters["web_url"] = web_url
+templates.env.filters["css_url"] = css_url
 templates.env.globals["format_when"] = format_when
 templates.env.globals["reading_length"] = reading_length
 
@@ -322,12 +325,25 @@ async def trace_requests(request: Request, call_next):
 async def check_host_and_framing(request: Request, call_next):
     # A Host header is a hostname and maybe a port. Anything else (a slash,
     # "?", "#", "@") is refused before it can bend a URL built from it.
-    if not auth.host_is_plain(request.headers.get("host", "")):
+    host = request.headers.get("host", "")
+    if not auth.host_is_plain(host):
         return Response("Bad Host header", status_code=400)
+    # A change sent from another website is refused before anything runs.
+    # SameSite cookies alone would let a sibling subdomain through once the
+    # app is on a domain of its own. No Origin at all (the Shortcut, tools)
+    # goes on to the usual sign-in and key checks.
+    if request.method not in ("GET", "HEAD", "OPTIONS") and not auth.same_origin(
+        request.headers.get("origin"), host
+    ):
+        return Response("Not accepted from another site", status_code=403)
     response = await call_next(request)
     # No other site may show these pages in a frame (a hidden Revoke button).
     response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Content-Security-Policy"] = "frame-ancestors 'none'"
+    # Only the app's own script files run: no inline script, no inline
+    # handler, no javascript: link, whatever markup reaches a page.
+    response.headers["Content-Security-Policy"] = (
+        "script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+    )
     return response
 
 
@@ -394,19 +410,21 @@ def _is_save_key(key: str) -> bool:
         conn.close()
 
 
-def _bookmarklet_href(request: Request, key: str) -> str:
-    action = f"{str(request.base_url).rstrip('/')}/capture?format=html"
+def _bookmarklet_href(request: Request) -> str:
+    """A button that opens Reader's hand-off page in a new tab and passes it
+    the page being saved, as the browser rendered it. It carries no key: the
+    tab saves with the browser's own sign-in. The page is handed only to a
+    tab on this app's origin, and only once that tab asks for it."""
+    origin = str(request.base_url).rstrip("/")
     script = (
         "(function(){"
-        "var f=document.createElement('form');"
-        "f.method='POST';f.target='_blank';"
-        f"f.action='{action}';"
-        "function a(n,v){var i=document.createElement('input');"
-        "i.type='hidden';i.name=n;i.value=v;f.appendChild(i);}"
-        f"a('key','{key}');"
-        "a('url',location.href);"
-        "a('html',document.documentElement.outerHTML);"
-        "document.body.appendChild(f);f.submit();f.remove();"
+        f'var o="{origin}";'
+        'var w=window.open(o+"/capture/from-page?url="+encodeURIComponent(location.href),"_blank");'
+        "if(!w)return;"
+        'var d={type:"reader-page",url:location.href,html:document.documentElement.outerHTML};'
+        'window.addEventListener("message",function(e){'
+        'if(e.source===w&&e.origin===o&&e.data==="reader-ready")w.postMessage(d,o);'
+        "});"
         "})();"
     )
     return "javascript:" + script
@@ -577,7 +595,6 @@ def devices_sign_out_others(request: Request):
 
 KEY_KINDS = {
     "shortcut": "iPhone Shortcut",
-    "bookmarklet": "Computer bookmarklet",
     "access": "Claude access",
 }
 
@@ -618,10 +635,18 @@ async def key_create(request: Request):
             "kind": kind,
             "name": KEY_KINDS[kind],
             "key": key,
-            "bookmarklet_href": _bookmarklet_href(request, key) if kind == "bookmarklet" else "",
             "capture_url": f"{str(request.base_url).rstrip('/')}/capture",
         },
         headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/settings/bookmarklet")
+def bookmarklet_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "bookmarklet.html",
+        {"nav": "home", "bookmarklet_href": _bookmarklet_href(request)},
     )
 
 
@@ -2126,9 +2151,27 @@ def item_delete(
     )
 
 
+# A rendered page's HTML can run to megabytes (an X post does); the server's
+# own limit for a form field is 1 MB.
+CAPTURE_MAX_BYTES = 10 * 1024 * 1024
+
+
+@app.get("/capture/from-page")
+def capture_from_page(request: Request, url: str = ""):
+    """Where the bookmarklet hands over the page being saved. Saved only on
+    the hand-off, or a tap: never from the address alone, which any link
+    could carry."""
+    return templates.TemplateResponse(
+        request,
+        "capture_from_page.html",
+        {"nav": "home", "url": web_url(url)},
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @app.post("/capture")
 async def capture(request: Request):
-    form = await request.form()
+    form = await request.form(max_part_size=CAPTURE_MAX_BYTES)
     if request.state.device is None and not request.state.access and not await run_in_threadpool(
         _is_save_key, str(form.get("key") or "").strip()
     ):
@@ -2139,6 +2182,8 @@ async def capture(request: Request):
     url = str(form.get("url") or "").strip()
     if not url:
         raise HTTPException(status_code=400, detail="Missing url")
+    if web_url(url) is None:
+        raise HTTPException(status_code=400, detail="Invalid url")
     html = form.get("html")
     html = str(html) if html else None
     conn = connect()

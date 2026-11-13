@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import ClassVar
 
 import pytest
@@ -55,6 +56,7 @@ def _mail(anonymous, monkeypatch, tmp_path):
     FakeSMTP.sent, FakeSMTP.log, FakeSMTP.fail = [], [], False
     monkeypatch.setattr(alerts.smtplib, "SMTP", FakeSMTP)
     diag.reset()
+    alerts.forget_lockout_mail()
 
 
 def _client():
@@ -142,3 +144,47 @@ def test_the_sending_host_comes_from_the_receiving_one_unless_told(monkeypatch):
     monkeypatch.setenv("MAIL_IMAP_HOST", "imap.gmail.com")
     monkeypatch.delenv("MAIL_SMTP_HOST")
     assert alert_config().host == "smtp.gmail.com"
+
+
+def _lock_out(client, network):
+    for _ in range(auth.LOCK_AFTER):
+        _sign_in(client, "nope", **{"Fly-Client-IP": network})
+
+
+def _at(monkeypatch, moment):
+    monkeypatch.setattr(auth, "now", lambda: moment)
+
+
+def test_lockouts_from_many_networks_send_at_most_one_email_an_hour(monkeypatch):
+    start = datetime(2026, 11, 12, 10, tzinfo=UTC)
+    _at(monkeypatch, start)
+    client = _client()
+    for n in range(1, 6):
+        _lock_out(client, f"203.0.113.{n}")
+    (first,) = FakeSMTP.sent
+    assert "203.0.113.1" in first.get_content()
+
+    _at(monkeypatch, start + timedelta(minutes=59))
+    _lock_out(client, "198.51.100.7")
+    assert len(FakeSMTP.sent) == 1
+
+    _at(monkeypatch, start + timedelta(minutes=61))
+    _lock_out(client, "198.51.100.8")
+    assert len(FakeSMTP.sent) == 2
+    body = FakeSMTP.sent[1].get_content()
+    assert "198.51.100.8" in body
+    # The ones held back are counted, so the owner knows it kept happening.
+    assert "5 more networks were locked out" in body
+
+
+def test_a_lockout_email_that_failed_to_send_does_not_hold_back_the_next(monkeypatch):
+    start = datetime(2026, 11, 12, 10, tzinfo=UTC)
+    _at(monkeypatch, start)
+    FakeSMTP.fail = True
+    client = _client()
+    _lock_out(client, "203.0.113.1")
+    FakeSMTP.fail = False
+    _at(monkeypatch, start + timedelta(minutes=1))
+    _lock_out(client, "203.0.113.2")
+    (message,) = FakeSMTP.sent
+    assert "203.0.113.2" in message.get_content()

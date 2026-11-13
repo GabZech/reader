@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from urllib.parse import urlsplit
 
 import pytest
+from conftest import wait_for_js
 from playwright.sync_api import sync_playwright
 from test_app import (
     _add_to_news,
@@ -401,8 +402,7 @@ def _block_in_view(page, index):
 
 
 def _wait_for_block_in_view(page, index):
-    page.wait_for_function(
-        """(index) => {
+    wait_for_js(page, """(index) => {
           const el = document.querySelector(".article-body").children[index];
           const r = el.getBoundingClientRect();
           return r.top >= 0 && r.top < window.innerHeight;

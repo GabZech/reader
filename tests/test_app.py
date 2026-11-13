@@ -1168,11 +1168,21 @@ def test_a_saved_link_without_a_site_name_shows_its_web_address(monkeypatch, tmp
 
 def test_a_saved_link_with_neither_shows_no_source_line(monkeypatch, tmp_path):
     with _client(monkeypatch, tmp_path) as client:
-        saved = client.post(
-            "/capture",
-            data={"url": "not a link", "html": _saved_page(None)},
-        )
-        page = client.get(saved.json()["item_url"]).text
+        client.get("/")
+        # A capture now needs a web address; an item can still lack one
+        # (a feed whose link was not a web address), so store it directly.
+        conn = dbmod.connect()
+        try:
+            dbmod.upsert_item(
+                conn, source_id="captured", guid="g", title="Saved", author=None,
+                url="not a link", published_at=None, body_html=_saved_page(None),
+                image_url=None, word_count=1,
+            )
+            item_id = conn.execute("SELECT id FROM items WHERE guid = 'g'").fetchone()[0]
+            conn.commit()
+        finally:
+            conn.close()
+        page = client.get(f"/items/{item_id}").text
         assert 'class="source"' not in page
         assert "Captured" not in _title_to_lede(page)
 

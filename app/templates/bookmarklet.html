@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Computer bookmarklet{% endblock %}
+{% block body %}
+        <a class="back" href="/settings/devices/keys/new">Add a save key</a>
+        <header class="top">
+          <h1>Computer bookmarklet</h1>
+        </header>
+        <p class="lede">Drag this button to your bookmarks bar. Click it on any page to send that page to Read later.</p>
+        <section class="list">
+          <div class="set-row">
+            <span class="set-name">Read later button</span>
+            <a class="bookmarklet" href="{{ bookmarklet_href }}">Drag to bookmarks</a>
+          </div>
+        </section>
+        <p class="section-note">It opens Reader in a new tab, which saves the page as you see it. It needs no key: the tab uses this browser's sign-in, so it works in any browser where you are signed in to Reader.</p>
+        <p class="section-note">Made a bookmarklet key before? Revoke it on the Devices page: this button does not use it.</p>
+        <a class="btn" href="/settings/devices" style="margin-top: 1rem">Done</a>
+{% endblock %}

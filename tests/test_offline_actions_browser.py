@@ -8,6 +8,7 @@ behind a relay that can cut the connection (see test_service_worker_browser).
 from __future__ import annotations
 
 import httpx
+from conftest import wait_for_js
 from playwright.sync_api import expect
 from test_service_worker_browser import (
     _go_offline,
@@ -84,7 +85,7 @@ def _ready(phone, origin, *paths):
     """Open the app so the worker takes over and has downloaded these pages."""
     phone.goto(f"{origin}/settings")
     try:
-        phone.wait_for_function("navigator.serviceWorker.controller !== null")
+        wait_for_js(phone, "navigator.serviceWorker.controller !== null")
     except Exception as error:
         # Say where the worker got stuck, not only that it did.
         state = phone.evaluate(
@@ -117,7 +118,7 @@ def _left(page, title):
     """Swipe a row away to move it, and wait until it has gone (or failed and
     slid back), so the next swipe finds the rows where they now sit."""
     _swipe(page, title, -170)
-    page.wait_for_function("!document.querySelector('.item-swipe[data-busy]')")
+    wait_for_js(page, "!document.querySelector('.item-swipe[data-busy]')")
 
 
 def _right(page, title):

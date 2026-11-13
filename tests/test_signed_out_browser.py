@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from contextlib import contextmanager
 
-from conftest import TEST_PASSWORD, _SignedInForTests
+from conftest import TEST_PASSWORD, _SignedInForTests, wait_for_js
 from playwright.sync_api import expect
 from test_offline_actions_browser import (
     FIRST,
@@ -70,7 +70,7 @@ def test_signing_in_in_the_browser_keeps_the_phone_in_and_fills_its_copies(
         assert cookie["expires"] > 0
 
         # The worker takes over and downloads, signed in by that cookie alone.
-        phone.wait_for_function("navigator.serviceWorker.controller !== null")
+        wait_for_js(phone, "navigator.serviceWorker.controller !== null")
         _wait_until_cached(phone, f"{origin}/lists")
         phone.reload()
         expect(phone.locator("body")).to_contain_text(FIRST)
@@ -82,7 +82,7 @@ def _sign_in(phone, origin, path):
     phone.fill("input[type=password]", TEST_PASSWORD)
     phone.click("button[type=submit]")
     expect(phone).to_have_url(f"{origin}{path}")
-    phone.wait_for_function("navigator.serviceWorker.controller !== null")
+    wait_for_js(phone, "navigator.serviceWorker.controller !== null")
     _wait_until_cached(phone, f"{origin}{path}")
 
 

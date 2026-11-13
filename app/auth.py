@@ -17,7 +17,7 @@ import secrets
 import sqlite3
 from datetime import UTC, datetime, timedelta, tzinfo
 from functools import lru_cache
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from fastapi import Request
 from fastapi.responses import RedirectResponse, Response
@@ -178,6 +178,17 @@ _PLAIN_HOST = re.compile(r"^(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::\d{1,5})?$"
 
 def host_is_plain(host: str) -> bool:
     return bool(_PLAIN_HOST.match(host))
+
+
+def same_origin(origin: str | None, host: str) -> bool:
+    """Whether a request's Origin header is this app (or absent). "null", sent
+    by sandboxed frames and some redirects, is never this app."""
+    if origin is None:
+        return True
+    return urlsplit(origin).netloc.lower() == host.lower() and urlsplit(origin).scheme in (
+        "http",
+        "https",
+    )
 
 
 def turn_away(request: Request) -> Response:

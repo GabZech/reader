@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import time
 
+from conftest import wait_for_js
 from playwright.sync_api import expect
 from test_offline_actions_browser import FIRST, SECOND, _ready, _seed_news, _seen
 from test_service_worker_browser import (
@@ -29,8 +30,7 @@ def _wait_for(check, timeout=15):
 
 def _downloaded(phone):
     """Wait for the background download to finish, so it stores nothing more."""
-    phone.wait_for_function(
-        """() => JSON.parse(localStorage.getItem('reader-log') || '[]')
+    wait_for_js(phone, """() => JSON.parse(localStorage.getItem('reader-log') || '[]')
              .some((x) => x.e === 'sw-precache' && x.d.startsWith('pages+'))"""
     )
 
